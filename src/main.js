@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
 import {makeHuman} from './chars.js';
+import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 
 const KEY='kelas_game_v12';
@@ -259,7 +260,8 @@ function renderDialog(){
   else if(d.kind==='menu')h=htmlMenu(d);
   box.innerHTML='<div class="box">'+h+'</div>';
 }
-const head=(id,title)=>`<div class="hd">${id?`<img class="pt" src="img/portraits/${id}.jpg" alt="" onerror="this.remove()">`:''}<h3>${esc(title)}</h3></div>`;
+const hasPortrait=id=>!!(window.__MAN&&(window.__MAN.portraits||[]).includes(id));
+const head=(id,title)=>`<div class="hd">${id&&hasPortrait(id)?`<img class="pt" src="img/portraits/${id}.jpg" alt="">`:''}<h3>${esc(title)}</h3></div>`;
 function htmlQuiz(d){
   const n=NPC[d.id];
   let h=head(d.id,n.name+' · '+n.role);
@@ -734,7 +736,7 @@ $('cont').onclick=()=>enterGame(false);
 Object.assign(window,{crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
-(function init(){
+function init(){
   const s=readSave();
   resize();
   if(s&&s.nom){
@@ -755,4 +757,10 @@ Object.assign(window,{crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDon
   setTimeout(()=>{$('load').classList.add('hide');$('start').classList.remove('hide')},150);
   G.mode='start';
   requestAnimationFrame(loop);
-})();
+}
+fetch('img/manifest.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(m=>{
+  window.__MAN=m||{};setManifest(m);
+  if((m.scenes||[]).includes('kinshasa'))$('start').style.backgroundImage='linear-gradient(rgba(10,20,30,.35),rgba(10,20,30,.35)),url(img/scenes/kinshasa.jpg)';
+  init();
+});
+

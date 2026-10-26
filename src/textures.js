@@ -14,7 +14,10 @@ const cache={};
 const once=(k,f)=>cache[k]||(cache[k]=f());
 
 // Remplace la texture dessinée par une photo si elle est présente.
+let MAN={};
+export function setManifest(m){MAN=m||{}}
 export function upgradePhoto(tex,name){
+  if(!(MAN.tex||[]).includes(name))return tex;
   const img=new Image();
   img.onload=()=>{tex.image=img;tex.needsUpdate=true};
   img.src='img/tex/'+name+'.jpg';

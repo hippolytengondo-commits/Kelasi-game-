@@ -32,7 +32,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 #dlg .ko{color:#c0392b;font-size:13px}
 #dlg .ok{color:var(--acc);font-size:14px}
 #dlg .row{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;border-bottom:1px dotted var(--line)}
-#start{position:absolute;inset:0;z-index:8;background:linear-gradient(180deg,#2f86d6 0%,#7cc2ee 55%,#dff3fb 100%);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:18px;gap:10px;overflow:auto}
+#start{position:absolute;inset:0;z-index:8;background-size:cover;background-position:center;background:linear-gradient(180deg,#2f86d6 0%,#7cc2ee 55%,#dff3fb 100%);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:18px;gap:10px;overflow:auto}
 #start .card{width:100%;max-width:420px;background:rgba(255,255,255,.94);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 #start h2{margin:0;font-size:26px;letter-spacing:1px}
 #start p{margin:0;font-size:13px;line-height:1.4}
