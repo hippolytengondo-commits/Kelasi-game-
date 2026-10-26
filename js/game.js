@@ -301,6 +301,7 @@ function openBox(d){
   hideBubble();renderDialog();
 }
 function closeDialog(){
+  resetArmed=false;
   $('dlg').style.display='none';G.dialog=null;G.mode='play';
   if(G.sc==='ville'||G.sc==='maison')buildScene();
   refreshHud();
@@ -442,12 +443,13 @@ function htmlMenu(){
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
-   +`<button class="s" onclick="resetGame()">Recommencer une nouvelle partie</button>`;
+   +`<button class="s" onclick="resetGame()">${G.dialog&&G.dialog.confirmReset?'Appuie encore pour tout effacer':'Recommencer une nouvelle partie'}</button>`;
   return h;
 }
 function toggleSound(){G.sound=!G.sound;save();renderDialog()}
+let resetArmed=false;
 function resetGame(){
-  if(!confirm('Effacer toute ta progression et recommencer ?'))return;
+  if(!resetArmed){resetArmed=true;G.dialog.confirmReset=true;renderDialog();return}
   try{localStorage.removeItem(KEY)}catch(e){}
   location.reload();
 }
