@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
 import {makeHuman} from './chars.js';
+import {makePhotoChar} from './sprites.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 
@@ -13,10 +14,10 @@ const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
 const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp:0,items:{},bought:{},fin:false});
-const G={nom:'',photo:null,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
+const G={nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,photo:G.photo,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
 const doorOpen=()=>doneNpc('lola');
@@ -44,6 +45,50 @@ const SFX={
  win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.18,'sine',.08,i*.12))},
  step:()=>beep(90,.05,'sine',.02)
 };
+
+// ---------- Lecture à voix haute ----------
+const TTS=typeof window!=='undefined'&&'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined';
+let voices=[];
+function loadVoices(){if(TTS)voices=speechSynthesis.getVoices()||[]}
+if(TTS){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+const VOICE={lola:{g:'f',pitch:.85,rate:.88},ilunga:{g:'f',pitch:1,rate:.95},junior:{g:'h',pitch:1.7,rate:1.05},mavungu:{g:'h',pitch:.75,rate:.9},bea:{g:'f',pitch:1.1,rate:1},mama:{g:'f',pitch:.95,rate:.95},_:{g:'f',pitch:1,rate:.95}};
+function pickVoice(g){
+  const fr=voices.filter(v=>/^fr/i.test(v.lang));
+  if(!fr.length)return null;
+  const fem=/(julie|hortense|denise|eloise|élodie|amelie|amélie|audrey|marie|brigitte|female|femme|google fran)/i,mal=/(paul|henri|claude|thomas|mathieu|male|homme|antoine|lucas)/i;
+  const hit=fr.filter(v=>(g==='f'?fem:mal).test(v.name));
+  return hit[0]||fr.find(v=>/google|microsoft/i.test(v.name))||fr[0];
+}
+let lastSpoken=null;
+function cleanText(t){return String(t).replace(/×/g,' fois ').replace(/÷/g,' divisé par ').replace(/−/g,' moins ').replace(/\+/g,' plus ').replace(/=/g,' égale ').replace(/[·★☆🪙🥭⭐✔🔒👗🔊]/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()}
+function speak(text,id){
+  lastSpoken={text:text,id:id};
+  if(!TTS||!G.voice)return;
+  try{
+    speechSynthesis.cancel();
+    const v=VOICE[id]||VOICE._,u=new SpeechSynthesisUtterance(cleanText(text));
+    u.lang='fr-FR';u.pitch=v.pitch;u.rate=v.rate;const vo=pickVoice(v.g);if(vo)u.voice=vo;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function stopSpeech(){if(TTS)try{speechSynthesis.cancel()}catch(e){}}
+function replay(){if(lastSpoken){const w=G.voice;G.voice=true;speak(lastSpoken.text,lastSpoken.id);G.voice=w}}
+let spokeKey='';
+function autoSpeak(d){
+  let key='',text='',id=d.id;
+  if(d.kind==='quiz'){
+    const n=NPC[d.id];key=`q|${d.id}|${d.stage}|${d.i}|${d.qi}`;
+    if(d.stage==='lines')text=n.intro[d.i];
+    else if(d.stage==='q'){const q=d.qs[d.qi];text='Question '+(d.qi+1)+'. '+q.q+' Réponses : '+(d.opts||[]).join(', ')}
+    else if(d.stage==='fb')text=(d.fbFirst?'Bravo ! ':'C’est ça. ')+d.qs[d.qi].exp;
+    else text=d.rev?'Révision terminée : '+d.firsts+' sur '+d.qs.length+' du premier coup.':n.outro;
+  }else if(d.kind==='info'){key='i|'+d.title+'|'+d.i;text=d.lines[d.i]}
+  else if(d.kind==='shop'){key='s|'+d.msg;text=d.msg;id='bea'}
+  else return;
+  if(key===spokeKey)return;
+  spokeKey=key;speak(text,id);
+}
+const replayBtn=()=>TTS?`<button class="s" onclick="replay()">🔊 Réécouter</button>`:'';
 
 // ---------- Moteur 3D ----------
 const cv=$('cv');
@@ -78,6 +123,15 @@ let playerObj=null;
 let npcObjs={};
 let mangoGroup=null;
 function playerLook(){return Object.assign({},G.look,{h:.8})}
+const hasChar=id=>!!(window.__MAN&&(window.__MAN.chars||[]).includes(id));
+function makePlayer(){
+  if(G.real&&hasChar(G.real))return makePhotoChar(G.real,{walk:hasChar(G.real+'w')?G.real+'w':null});
+  return makeHuman(playerLook());
+}
+function makeNpc(id,n){
+  if(hasChar(id))return makePhotoChar(id);
+  return makeHuman(n.look);
+}
 const SCENES={
  ville:{build:()=>buildVille(),interior:false,doors:[
    {x:-22,z:-5.4,r:1.9,to:'maison',label:'Entrer dans la maison',tx:0,tz:1.0,phi:-Math.PI/2},
@@ -100,14 +154,14 @@ function buildScene(){
   hemi.intensity=S.interior?2.1:1.0;
   scene.fog.near=S.interior?200:70;
   sun.intensity=S.interior?2.2:3.0;
-  playerObj=makeHuman(playerLook());scene.add(playerObj);
+  playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
   snapCamera();
 }
 function addNpc(id,n){
-  const obj=makeHuman(n.look);
-  obj.position.set(n.x,n.sit?.0:0,n.z);obj.rotation.y=n.ry||0;
+  const obj=makeNpc(id,n);
+  obj.position.set(n.x,0,n.z);obj.rotation.y=n.ry||0;
   scene.add(obj);npcObjs[id]={obj,n,wave:0,ry:n.ry||0};
 }
 
@@ -240,7 +294,7 @@ function openBox(d){
   $('actwrap').classList.add('hide');
 }
 function closeDialog(){
-  resetArmed=false;
+  resetArmed=false;stopSpeech();spokeKey='';
   $('dlg').style.display='none';G.dialog=null;G.mode='play';
   $('actwrap').classList.remove('hide');
   if(G.sc==='maison')buildScene();
@@ -259,7 +313,8 @@ function renderDialog(){
   else if(d.kind==='info')h=htmlInfo(d);
   else if(d.kind==='shop')h=htmlShop(d);
   else if(d.kind==='menu')h=htmlMenu(d);
-  box.innerHTML='<div class="box">'+h+'</div>';
+  box.innerHTML='<div class="box">'+h+(d.kind!=='menu'?replayBtn():'')+'</div>';
+  autoSpeak(d);
 }
 const hasPortrait=id=>!!(window.__MAN&&(window.__MAN.portraits||[]).includes(id));
 const head=(id,title)=>`<div class="hd">${id&&hasPortrait(id)?`<img class="pt" src="img/portraits/${id}.jpg" alt="">`:''}<h3>${esc(title)}</h3></div>`;
@@ -388,9 +443,11 @@ function htmlMenu(){
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
+   +`<button onclick="toggleVoice()">Lecture à voix haute : ${G.voice?'activée':'coupée'}</button>`
    +`<button class="s" onclick="resetGame()">${G.dialog&&G.dialog.confirmReset?'Appuie encore pour tout effacer':'Recommencer une nouvelle partie'}</button>`;
 }
 function toggleSound(){G.sound=!G.sound;save();renderDialog()}
+function toggleVoice(){G.voice=!G.voice;if(!G.voice)stopSpeech();save();renderDialog()}
 let resetArmed=false;
 function resetGame(){
   if(!resetArmed){resetArmed=true;G.dialog.confirmReset=true;renderDialog();return}
@@ -497,12 +554,14 @@ function loop(now){
       const [nx,nz]=collide(G.x+mx*sp*dt,G.z+mz*sp*dt);
       G.x=nx;G.z=nz;
       const tr=Math.atan2(mx,mz);G.ry+=angDiff(G.ry,tr)*Math.min(1,dt*12);
+      G.lean=ix*Math.min(1,mag);
       stepT+=dt*sp;if(stepT>1.2){stepT=0;SFX.step()}
     }
   }
+  if(sp===0)G.lean=0;
   G.speed=sp;
   playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
-  playerObj.userData.update(dt,{speed:sp,pose:G.mode==='creator'?'creator':''});
+  playerObj.userData.update(dt,{speed:sp,pose:G.mode==='creator'?'creator':'',cam:camera.position,lean:G.lean||0});
   // PNJ
   Object.keys(npcObjs).forEach(id=>{
     const o=npcObjs[id],n=o.n;
@@ -514,7 +573,7 @@ function loop(now){
     o.ry+=angDiff(o.ry,tr)*Math.min(1,dt*5);
     o.obj.rotation.y=o.ry;
     if(o.wave>0)o.wave-=dt;
-    o.obj.userData.update(dt,{talk:talking||(!!AUTOP[id]&&bub&&bub.who===id),wave:o.wave>0,sit:!!n.sit});
+    o.obj.userData.update(dt,{cam:camera.position,talk:talking||(!!AUTOP[id]&&bub&&bub.who===id),wave:o.wave>0,sit:!!n.sit});
   });
   W.update(dt,tt,{open:doorOpen()});
   // soleil qui suit le joueur
@@ -618,7 +677,7 @@ function crUpload(inp){
 
 // ---------- Créateur de personnage ----------
 const CATS={hair:HAIRS,acc:ACCS,outfit:OUTFITS};
-const CR={tab:'visage',prev:null,from:'play',ang:0};
+const CR={tab:'perso',prev:null,from:'play',ang:0};
 function isOwned(kind,id){
   const d=CATS[kind][id];if(!d)return false;
   if(d.own)return true;
@@ -648,7 +707,7 @@ function pendingItems(){
 }
 function rebuildPlayer(){
   const old=playerObj;
-  playerObj=makeHuman(playerLook());
+  playerObj=makePlayer();
   playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
   scene.add(playerObj);
   if(old){scene.remove(old);old.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
@@ -657,10 +716,11 @@ let rbPend=false;
 function rebuildSoon(){if(rbPend)return;rbPend=true;requestAnimationFrame(()=>{rbPend=false;rebuildPlayer()})}
 function hudVisible(v){['joy','actwrap','top','info'].forEach(i=>$(i).classList.toggle('hide',!v))}
 function openCreator(from){
-  CR.from=from;CR.tab='visage';CR.prev=JSON.parse(JSON.stringify(G.look));
+  CR.from=from;CR.tab='perso';CR.prev=JSON.parse(JSON.stringify(G.look));
   G.mode='creator';G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;resetKnob();hideBubble();
   CR.ang=0;G.ry=0;rebuildPlayer();
   hudVisible(false);$('creator').classList.remove('hide');
+  {const re=!!G.real,P=playerObj.position;camera.fov=30;camera.updateProjectionMatrix();camera.position.set(P.x,re?1.25:1.45,P.z+(re?3.9:2.35))}
   renderCreator();
 }
 function creatorDone(){
@@ -677,10 +737,16 @@ const chip=(label,active,onclick,sub)=>`<button class="chip${active?' on':''}" o
 const sw=(color,active,onclick)=>`<button class="swt${active?' on':''}" style="background:${color}" onclick="${onclick}" aria-label="couleur"></button>`;
 const slider=(label,key)=>`<label class="sl"><span>${label}</span><input type="range" min="0" max="100" value="${Math.round(G.look[key]*100)}" oninput="crSlide('${key}',this.value)"></label>`;
 function renderCreator(){
-  const L=G.look,tabs=[['visage','Visage'],['cheveux','Cheveux'],['teint','Teint'],['acc','Accessoires'],['tenue','Tenue'],['photo','Photo']];
+  const L=G.look,tabs=G.real?[['perso','Personnage'],['photo','Photo']]:[['perso','Personnage'],['visage','Visage'],['cheveux','Cheveux'],['teint','Teint'],['acc','Accessoires'],['tenue','Tenue'],['photo','Photo']];
+  if(!tabs.some(t=>t[0]===CR.tab))CR.tab='perso';
   let h=`<div class="crh"><b>Mon personnage</b><span>🪙 ${G.adv.pieces}</span><button class="p" onclick="creatorDone()">Terminer</button></div>`;
   h+=`<div class="tabs">`+tabs.map(t=>`<button class="${CR.tab===t[0]?'on':''}" onclick="crTab('${t[0]}')">${t[1]}</button>`).join('')+`</div><div class="crb">`;
-  if(CR.tab==='visage'){
+  if(CR.tab==='perso'){
+    h+=`<div class="lb">Style de personnage</div><div class="chips">`+chip('Réaliste (photo)',!!G.real,`crStyle('real')`)+chip('3D personnalisable',!G.real,`crStyle('3d')`)+`</div>`;
+    if(G.real){
+      h+=`<div class="lb">Choisis ton personnage</div><div class="avs">`+['pf1','pf2','ph1','ph2'].map(c=>`<button class="avb${G.real===c?' on':''}" onclick="crChar('${c}')"><img src="img/chars/${c}.webp" alt="" style="object-fit:contain;object-position:top"></button>`).join('')+`</div>`;
+    }else h+=`<p style="font-size:13px;margin:8px 0">Règle le visage, les cheveux, le teint, les accessoires et la tenue avec les onglets.</p>`;
+  }else if(CR.tab==='visage'){
     h+=slider('Largeur du visage','faceW')+slider('Mâchoire','jaw')+slider('Taille des yeux','eyeS')+slider('Nez','nose')+slider('Lèvres','lips')+slider('Joues roses','blush');
     h+=`<div class="lb">Sourcils</div><div class="chips">`+['Fins','Épais','Arqués'].map((n,i)=>chip(n,L.brow===i,`crSet('brow',${i})`)).join('')+`</div>`;
     h+=`<div class="lb">Couleur des yeux</div><div class="sws">`+EYE_COLORS.map((c,i)=>sw(c,L.eyeC===i,`crSet('eyeC',${i})`)).join('')+`</div>`;
@@ -712,6 +778,12 @@ function renderCreator(){
   }
   $('creator').innerHTML=h;
 }
+function crStyle(m){
+  if(m==='real'){const ok=['pf1','pf2','ph1','ph2'].some(hasChar);G.real=ok?(G.look.s==='f'?'pf1':'ph1'):null}
+  else G.real=null;
+  rebuildPlayer();renderCreator();
+}
+function crChar(id){G.real=id;G.look.s=id[1]==='f'?'f':'h';G.sexe=G.look.s;rebuildPlayer();renderCreator()}
 function crTab(t){CR.tab=t;renderCreator()}
 function crSlide(k,v){G.look[k]=v/100;rebuildSoon()}
 function crSet(k,v){
@@ -757,21 +829,21 @@ function enterGame(newGame){
 $('go').onclick=()=>{
   const n=$('nom').value.trim();
   if(!n){$('nom').focus();return}
-  G.nom=n;G.adv=newAdv();
+  G.nom=n;G.adv=newAdv();G.real=((window.__MAN&&window.__MAN.chars)||[]).includes(G.sexe==='f'?'pf1':'ph1')?(G.sexe==='f'?'pf1':'ph1'):null;
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe,hair:G.sexe==='f'?'tresses':'courtes'});
   save();
   enterGame(true);
 };
 $('cont').onclick=()=>enterGame(false);
 
-Object.assign(window,{crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 function init(){
   const s=readSave();
   resize();
   if(s&&s.nom){
-    G.nom=s.nom;G.photo=s.photo||null;G.sound=s.sound!==false;
+    G.nom=s.nom;G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
     G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{s:s.sexe||'f',skin:s.skin||3});G.sexe=G.look.s;
     G.adv=Object.assign(newAdv(),s.adv||{});
     $('nom').value=s.nom;
