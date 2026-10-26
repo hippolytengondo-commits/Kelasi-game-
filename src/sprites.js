@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 
 // Personnages photographiques détourés, placés dans le monde 3D et toujours tournés vers la caméra.
+// Personnages en robe ou jupe : pas de jambes séparées, la jupe se balance.
+const DRESS={lola:1,ilunga:1,bea:1,mama:1,kasa:1};
 export const CHAR_HEIGHT={lola:1.55,ilunga:1.68,junior:1.45,mavungu:1.78,bea:1.65,mama:1.68,jer:1.62,kasa:1.25,pf1:1.72,pf2:1.68,ph1:1.82,ph2:1.78};
 const loader=new THREE.TextureLoader();
 const cache={};
@@ -28,8 +30,38 @@ export function makePhotoChar(id,opts){
   const pivot=new THREE.Group();root.add(pivot);
   const mk=t=>new THREE.MeshBasicMaterial({map:t,transparent:true,alphaTest:.45,side:THREE.DoubleSide,color:new THREE.Color(opts.tone||'#f4f1ec')});
   const matIdle=mk(tex(id)),matWalk=opts.walk?mk(tex(opts.walk)):null;
-  const geo=new THREE.PlaneGeometry(1,1);geo.translate(0,.5,0);
+  const SX=14,SY=36;
+  const geo=new THREE.PlaneGeometry(1,1,SX,SY);geo.translate(0,.5,0);
+  const posA=geo.attributes.position,base=Float32Array.from(posA.array);
+  const dress=!!DRESS[id],realStep=!!opts.walk;
   const mesh=new THREE.Mesh(geo,matIdle);pivot.add(mesh);
+  const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
+  // Déformation « marionnette » : jambes, bras, jupe, tête, buste.
+  function deform(ph,walk,talk,t,idle){
+    const sn=Math.sin(ph),L=Math.max(0,sn)*.085*walk,R=Math.max(0,-sn)*.085*walk;
+    const armK=sn*.08*walk,shift=Math.sin(t*.5)*.006*idle;
+    for(let i=0;i<posA.count;i++){
+      const bx=base[i*3],by=base[i*3+1];let x=bx,y=by;
+      const v=by;                                   // 0 = pieds, 1 = tête
+      if(!dress&&!realStep&&v<.54&&walk>0){
+        const w=sm(.52,.04,v);                      // poids croissant vers les pieds
+        const side=sm(.06,-.06,bx);                 // 1 = jambe gauche de l'image
+        y+= (L*side+R*(1-side))*w*w;
+      }
+      if(dress&&walk>0&&v<.62){                     // jupe qui ondule
+        const w=sm(.6,.05,v);x+=Math.sin(ph+v*5)*.018*walk*w;y+=Math.abs(sn)*.01*walk*w;
+      }
+      if(walk>0&&v>.42&&v<.86){                     // bras : raccourcissement alterné
+        const a=sm(.2,.34,Math.abs(bx))*sm(.42,.55,v)*sm(.86,.74,v);
+        const dir=bx<0?1:-1;y+=(y-.8)*armK*dir*a*3;
+      }
+      if(talk&&v>.84){y+=Math.sin(t*5)*.004*sm(.84,.96,v)}
+      x+=shift*sm(.0,1,v);                          // léger transfert de poids à l'arrêt
+      posA.setXYZ(i,x,y,0);
+    }
+    posA.needsUpdate=true;
+  }
+  deform(0,0,false,0,1);
   let aspect=.33;
   const fit=()=>{mesh.scale.set(H*aspect,H,1);shadow.scale.set(Math.max(.5,H*aspect*1.1),H*.2,1)};
   fit();
@@ -44,7 +76,7 @@ export function makePhotoChar(id,opts){
     if(sp>.1){
       state.ph+=dt*(sp>3.2?9:6.5);
       const s=Math.sin(state.ph);
-      y=Math.abs(s)*.045*(sp>3.2?1.5:1);
+      y=Math.abs(s)*.012*(sp>3.2?1.5:1);
       rz=s*.035;
       if(matWalk){const k=Math.floor(state.ph/Math.PI)%2;m=k?matWalk:matIdle;flip=1}
       // légère inclinaison dans le sens du déplacement
@@ -56,6 +88,7 @@ export function makePhotoChar(id,opts){
     if(o.talk){y+=Math.abs(Math.sin(t*6))*.012;rz+=Math.sin(t*4)*.012}
     if(o.wave){y+=Math.abs(Math.sin(t*9))*.04;rz+=Math.sin(t*9)*.07}
     mesh.material=m;mesh.position.y=y;mesh.rotation.z=rz;mesh.scale.y=H*sy;
+    deform(state.ph,Math.min(1,sp/2.2),!!o.talk,t,sp>.1?0:1);
     mesh.scale.x=H*aspect*flip;
   }
   Object.assign(root.userData,{update,state,height:H,photo:true});
