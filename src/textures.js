@@ -19,7 +19,7 @@ export function setManifest(m){MAN=m||{}}
 export function upgradePhoto(tex,name){
   if(!(MAN.tex||[]).includes(name))return tex;
   const img=new Image();
-  img.onload=()=>{tex.image=img;tex.needsUpdate=true};
+  img.onload=()=>{tex.image=img;tex.wrapS=tex.wrapT=THREE.MirroredRepeatWrapping;tex.colorSpace=THREE.SRGBColorSpace;tex.needsUpdate=true};
   img.src='img/tex/'+name+'.jpg';
   return tex;
 }
@@ -109,4 +109,11 @@ export function skyTexture(){
     gr.addColorStop(0,'#2f86d6');gr.addColorStop(.5,'#7cc2ee');gr.addColorStop(.82,'#dff3fb');gr.addColorStop(1,'#f2f6e8');
     g.fillStyle=gr;g.fillRect(0,0,w,h);
   },1,1);
+}
+
+// Photo de scène (affiche) : null si elle n'existe pas.
+export function photoTexture(name){
+  if(!(MAN.scenes||[]).includes(name))return null;
+  const t=new THREE.TextureLoader().load('img/scenes/'+name+'.jpg');
+  t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;
 }

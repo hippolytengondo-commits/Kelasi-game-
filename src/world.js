@@ -256,6 +256,13 @@ export function buildClasse(){
     const w=new THREE.Mesh(new THREE.PlaneGeometry(2,1.5),new THREE.MeshBasicMaterial({color:0xcfeaff}));w.rotation.y=-Math.PI/2;w.position.set(W/2-.03,2.1,z);g.add(w);
     box(g,.08,1.6,.08,std('#fff'),W/2-.05,2.1,z);
   });
+  // affiches photo sur le mur gauche
+  [['kinshasa',-2.8],['fleuve',0],['marche',2.8]].forEach(a=>{
+    const t=T.photoTexture(a[0]);if(!t)return;
+    box(g,.08,1.5,2.5,std('#5a3a22',.7),-W/2+.06,2.3,a[1]);
+    const pl=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.3),new THREE.MeshStandardMaterial({map:t,roughness:.6}));
+    pl.rotation.y=Math.PI/2;pl.position.set(-W/2+.11,2.3,a[1]);g.add(pl);
+  });
   // pupitres
   [[-5.5,1.2],[-2.8,1.2],[5.7,1.0],[-5.5,3.4],[-2.8,3.4],[0,3.4],[2.6,3.4],[5.7,3.4],[0,1.2]].forEach(p=>chairDesk(g,p[0],p[1]));
   chairDesk(g,2.6,.55,.62);
