@@ -2,61 +2,35 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Kelas Game — Aventure à l’école</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Kelas Game</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app">
-  <header><b>KELAS GAME</b><span id="stats"></span><button id="menu" aria-label="Menu">☰</button></header>
-  <div id="world">
-    <div id="stage" style="position:absolute;inset:0"></div>
-    <div id="bubble"></div>
-    <div id="toast"></div>
-    <div id="dlg"></div>
-    <div id="start">
+<div id="world">
+  <canvas id="cv"></canvas>
+  <div id="top" class="hud"><span id="stats"></span><button id="menu" aria-label="Menu">☰</button></div>
+  <div id="info" class="hud"></div>
+  <div id="bubble"></div>
+  <div id="toast"></div>
+  <div id="joy" class="hide"><div id="knob"></div></div>
+  <div id="actwrap" class="hide"><div id="alabel"></div><button id="ba" disabled>Action</button></div>
+  <div id="cine" class="hide"><h1>KELAS GAME</h1><p>LEXARIS ACADÉMIE · Apprendre en jouant</p></div>
+  <button id="skip" class="hide">Passer</button>
+  <div id="dlg"></div>
+  <div id="start" class="hide">
+    <div class="card">
       <h2>Kelas Game</h2>
-      <p>Explore le village, réponds aux questions, gagne des pièces et meuble ta maison.</p>
+      <p>Explore le village en 3D, réponds aux questions de l’école, gagne des pièces et meuble ta maison.</p>
       <button id="cont" class="p hide"></button>
-      <input id="nom" maxlength="14" placeholder="Ton prénom">
+      <input id="nom" maxlength="14" placeholder="Ton prénom" autocomplete="off">
       <div class="row"><button id="fille" class="p">Une fille</button><button id="garcon">Un garçon</button></div>
       <div class="row" id="skins"></div>
       <button id="go" class="p">Commencer</button>
     </div>
   </div>
-  <div id="info"></div>
-  <div id="hud">
-    <button id="bl" aria-label="Gauche">◀</button>
-    <button id="ba">Action</button>
-    <button id="br" aria-label="Droite">▶</button>
-  </div>
+  <div id="load">Chargement du village…<i><b id="lb"></b></i></div>
 </div>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-<defs>
-  <linearGradient id="gSkyQ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fb0ee"/><stop offset="1" stop-color="#e3f6ff"/></linearGradient>
-  <linearGradient id="gSkyM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a4c"/><stop offset="1" stop-color="#ffd9a0"/></linearGradient>
-  <linearGradient id="gSkyE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fcaf0"/><stop offset="1" stop-color="#eefbf2"/></linearGradient>
-  <linearGradient id="gSkyF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3fb4e6"/><stop offset="1" stop-color="#c4f0ff"/></linearGradient>
-  <linearGradient id="gSkyK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a6b"/><stop offset="1" stop-color="#ffe6c9"/></linearGradient>
-  <linearGradient id="gGrass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ad977"/><stop offset="1" stop-color="#4f9c3c"/></linearGradient>
-  <linearGradient id="gDirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0b47a"/><stop offset="1" stop-color="#b07a43"/></linearGradient>
-  <linearGradient id="gRoad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a39a90"/><stop offset="1" stop-color="#6d655e"/></linearGradient>
-  <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4bb0ec"/><stop offset="1" stop-color="#17609e"/></linearGradient>
-  <linearGradient id="gTole" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1f6f8"/><stop offset=".5" stop-color="#b9c6cc"/><stop offset="1" stop-color="#7f8f98"/></linearGradient>
-  <linearGradient id="gWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b97a4a"/><stop offset="1" stop-color="#7a4a26"/></linearGradient>
-  <linearGradient id="gRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8674a"/><stop offset="1" stop-color="#a8301e"/></linearGradient>
-  <linearGradient id="gShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".3"/><stop offset=".35" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></linearGradient>
-  <radialGradient id="gSun"><stop offset="0" stop-color="#fff6a8" stop-opacity="1"/><stop offset="1" stop-color="#ffe07a" stop-opacity="0"/></radialGradient>
-  <radialGradient id="gMango" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#e68a00"/></radialGradient>
-  <pattern id="pBrick" width="14" height="7" patternUnits="userSpaceOnUse"><rect width="14" height="7" fill="#c46a3c"/><path d="M0 .5H14M0 3.5H14M7 0V3.5M0 3.5V7M14 3.5V7" stroke="#8a4524" stroke-width=".9" fill="none"/></pattern>
-  <pattern id="pEarth" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#c58c52"/><circle cx="3" cy="4" r="1.2" fill="#a86f3b"/><circle cx="9" cy="10" r="1" fill="#d9a878"/></pattern>
-  <pattern id="pChaume" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#d8b56a"/><path d="M0 4H8M4 0V8" stroke="#a88140" stroke-width="1"/></pattern>
-  <pattern id="pStripe" width="12" height="10" patternUnits="userSpaceOnUse"><rect width="12" height="10" fill="#fff"/><rect width="6" height="10" fill="#c0392b"/></pattern>
-  <pattern id="pWax" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#e0a526"/><circle cx="4" cy="4" r="2.2" fill="#1f7a4d"/><circle cx="12" cy="12" r="2.2" fill="#c0392b"/></pattern>
-  <g id="mango"><ellipse rx="6" ry="8" fill="url(#gMango)" stroke="#c8741a" stroke-width=".8"/><path d="M0 -8 q4 -6 9 -3" fill="none" stroke="#1f7a4d" stroke-width="2"/></g>
-</defs></svg>
-
-<script src="js/figures.js"></script>
-<script src="js/game.js"></script>
+<script src="dist/game.js"></script>
 </body>
 </html>
