@@ -13,10 +13,10 @@ const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
 const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp:0,items:{},bought:{},fin:false});
-const G={nom:'',sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
+const G={nom:'',photo:null,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,photo:G.photo,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
 const doorOpen=()=>doneNpc('lola');
@@ -174,7 +174,8 @@ function objective(){
   return 'Tu as tout accompli ! Continue à réviser pour gagner des étoiles.';
 }
 function refreshHud(){
-  $('stats').textContent='🪙 '+G.adv.pieces+' · ⭐ '+starsTotal()+' · Niv '+lvl();
+  const pu=photoUrl();
+  $('stats').innerHTML=(pu?`<img class="av" src="${pu}" alt="">`:'')+'🪙 '+G.adv.pieces+' · ⭐ '+starsTotal()+' · Niv '+lvl();
   if(G.mode!=='mini')$('info').textContent=objective();
 }
 function gain(p,xp){
@@ -376,7 +377,8 @@ function checkFin(){
 function openMenu(){if(G.mode==='play')openBox({kind:'menu'})}
 function htmlMenu(){
   const a=G.adv;
-  return `<h3>${esc(G.nom)} · Niveau ${lvl()}</h3><p class="row"><span>Pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Tissu wax · mangues</span><b>${a.tissu} · ${a.mangues} 🥭</b></p>`
+  const pu=photoUrl();
+  return `<div class="hd">${pu?`<img class="pt" src="${pu}" alt="">`:''}<h3>${esc(G.nom)} · Niveau ${lvl()}</h3></div><p class="row"><span>Pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Tissu wax · mangues</span><b>${a.tissu} · ${a.mangues} 🥭</b></p>`
    +`<p class="row"><span>Réponses justes du premier coup</span><b>${a.good}/${a.total}</b></p>`
    +`<h4>Leçons</h4>`+['lola','ilunga','junior','mavungu'].map(id=>{
       const s=a.stars[id]||0;
@@ -591,6 +593,29 @@ function endCine(){
 }
 $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 
+// ---------- Photo de profil ----------
+const PHOTO_KEY='kelas_photo_v1';
+function userPhoto(){try{return localStorage.getItem(PHOTO_KEY)}catch(e){return null}}
+function photoUrl(){
+  if(G.photo==='u')return userPhoto();
+  if(G.photo&&window.__MAN&&(window.__MAN.avatars||[]).includes(G.photo))return 'img/avatars/'+G.photo+'.jpg';
+  return null;
+}
+function crPhoto(id){G.photo=id;save();refreshHud();renderCreator()}
+function crUpload(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const img=new Image(),url=URL.createObjectURL(f);
+  img.onload=()=>{
+    const c=document.createElement('canvas');c.width=160;c.height=213;
+    const x=c.getContext('2d'),k=Math.max(160/img.width,213/img.height),w=img.width*k,h=img.height*k;
+    x.drawImage(img,(160-w)/2,(213-h)/2,w,h);URL.revokeObjectURL(url);
+    try{localStorage.setItem(PHOTO_KEY,c.toDataURL('image/jpeg',.82));G.photo='u';save();refreshHud();renderCreator();toast('Ta photo est enregistrée sur cet appareil.')}
+    catch(e){toast('Impossible d’enregistrer la photo.')}
+  };
+  img.onerror=()=>toast('Cette image ne peut pas être lue.');
+  img.src=url;
+}
+
 // ---------- Créateur de personnage ----------
 const CATS={hair:HAIRS,acc:ACCS,outfit:OUTFITS};
 const CR={tab:'visage',prev:null,from:'play',ang:0};
@@ -652,7 +677,7 @@ const chip=(label,active,onclick,sub)=>`<button class="chip${active?' on':''}" o
 const sw=(color,active,onclick)=>`<button class="swt${active?' on':''}" style="background:${color}" onclick="${onclick}" aria-label="couleur"></button>`;
 const slider=(label,key)=>`<label class="sl"><span>${label}</span><input type="range" min="0" max="100" value="${Math.round(G.look[key]*100)}" oninput="crSlide('${key}',this.value)"></label>`;
 function renderCreator(){
-  const L=G.look,tabs=[['visage','Visage'],['cheveux','Cheveux'],['teint','Teint'],['acc','Accessoires'],['tenue','Tenue']];
+  const L=G.look,tabs=[['visage','Visage'],['cheveux','Cheveux'],['teint','Teint'],['acc','Accessoires'],['tenue','Tenue'],['photo','Photo']];
   let h=`<div class="crh"><b>Mon personnage</b><span>🪙 ${G.adv.pieces}</span><button class="p" onclick="creatorDone()">Terminer</button></div>`;
   h+=`<div class="tabs">`+tabs.map(t=>`<button class="${CR.tab===t[0]?'on':''}" onclick="crTab('${t[0]}')">${t[1]}</button>`).join('')+`</div><div class="crb">`;
   if(CR.tab==='visage'){
@@ -669,6 +694,12 @@ function renderCreator(){
     h+=`<div class="lb">Teint de la peau</div><div class="sws">`+SKIN_TONES.map((c,i)=>sw(c,L.skin===i,`crSet('skin',${i})`)).join('')+`</div>`;
   }else if(CR.tab==='acc'){
     h+=`<div class="lb">Accessoires</div><div class="chips">`+Object.keys(ACCS).map(k=>chip(ACCS[k].n,L.acc.indexOf(k)>=0,`crAcc('${k}')`,isOwned('acc',k)?'':'🔒 '+lockText('acc',k))).join('')+`</div>`;
+  }else if(CR.tab==='photo'){
+    const av=((window.__MAN&&window.__MAN.avatars)||[]).filter(a=>a[0]===L.s);
+    h+=`<div class="lb">Ma photo de profil</div><div class="avs">`+av.map(a=>`<button class="avb${G.photo===a?' on':''}" onclick="crPhoto('${a}')"><img src="img/avatars/${a}.jpg" alt=""></button>`).join('')
+      +(userPhoto()?`<button class="avb${G.photo==='u'?' on':''}" onclick="crPhoto('u')"><img src="${userPhoto()}" alt=""></button>`:'')+`</div>`;
+    h+=`<div class="chips" style="margin-top:8px"><label class="chip" style="cursor:pointer">📷 Ajouter ma propre photo<small>Reste sur cet appareil</small><input type="file" accept="image/*" style="display:none" onchange="crUpload(this)"></label>`
+      +chip('Aucune photo',!G.photo,`crPhoto(null)`)+`</div>`;
   }else{
     h+=`<div class="lb">Tenue</div><div class="chips">`+Object.keys(OUTFITS).map(k=>chip(OUTFITS[k].n,L.outfit===k,`crOutfit('${k}')`,isOwned('outfit',k)?'':'🔒 '+lockText('outfit',k))).join('')+`</div>`;
     h+=`<div class="lb">Couleur de la tenue</div><div class="sws">`+OUTFIT_COLORS.map((c,i)=>sw(c,L.outfitC===i,`crSet('outfitC',${i})`)).join('')+`</div>`;
@@ -733,14 +764,14 @@ $('go').onclick=()=>{
 };
 $('cont').onclick=()=>enterGame(false);
 
-Object.assign(window,{crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 function init(){
   const s=readSave();
   resize();
   if(s&&s.nom){
-    G.nom=s.nom;G.sound=s.sound!==false;
+    G.nom=s.nom;G.photo=s.photo||null;G.sound=s.sound!==false;
     G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{s:s.sexe||'f',skin:s.skin||3});G.sexe=G.look.s;
     G.adv=Object.assign(newAdv(),s.adv||{});
     $('nom').value=s.nom;
