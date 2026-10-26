@@ -14,3 +14,6 @@ npm install
 npm run build   # src/ -> dist/game.js
 ```
 Ouvrir `index.html` via un serveur statique. Déploiement : site statique (Netlify, `netlify.toml`).
+
+## Aventure photographique (mode principal)
+Lieux réalistes en photo (`img/scenes/`), personnages photographiques détourés (`img/chars/`), déplacement de lieu en lieu par les flèches, glisser pour regarder autour, ambiance sonore générée, dialogues lus à voix haute. Le mode 3D libre reste disponible (« Explorer en 3D (bêta) »).

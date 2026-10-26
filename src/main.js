@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
 import {makeHuman} from './chars.js';
 import {makePhotoChar} from './sprites.js';
+import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 
@@ -14,10 +15,10 @@ const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
 const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp:0,items:{},bought:{},fin:false});
-const G={nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
+const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
 const doorOpen=()=>doneNpc('lola');
@@ -219,7 +220,7 @@ function updateCamera(dt){
 // ---------- HUD ----------
 function objective(){
   const a=G.adv.done;
-  if(!a.lola)return 'Objectif : parle à Mama Lola, la gardienne du portail, à droite du village.';
+  if(!a.lola)return 'Objectif : va à l’école et parle à Mama Lola, la gardienne du portail.';
   if(!a.ilunga)return 'Objectif : entre dans l’école et va voir la Professeure Ilunga.';
   if(!a.junior)return 'Objectif : rejoins Junior, assis dans la classe.';
   if(!a.mavungu)return 'Objectif : le Directeur Mavungu t’attend dans la classe.';
@@ -295,7 +296,9 @@ function openBox(d){
 }
 function closeDialog(){
   resetArmed=false;stopSpeech();spokeKey='';
-  $('dlg').style.display='none';G.dialog=null;G.mode='play';
+  $('dlg').style.display='none';G.dialog=null;
+  if(G.ui==='photo'){G.mode='pview';PM.refresh();refreshHud();return}
+  G.mode='play';
   $('actwrap').classList.remove('hide');
   if(G.sc==='maison')buildScene();
   refreshHud();
@@ -313,7 +316,9 @@ function renderDialog(){
   else if(d.kind==='info')h=htmlInfo(d);
   else if(d.kind==='shop')h=htmlShop(d);
   else if(d.kind==='menu')h=htmlMenu(d);
-  box.innerHTML='<div class="box">'+h+(d.kind!=='menu'?replayBtn():'')+'</div>';
+  else if(d.kind==='profile')h=htmlProfile(d);
+  else if(d.kind==='objs')h=htmlObjs(d);
+  box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
 }
 const hasPortrait=id=>!!(window.__MAN&&(window.__MAN.portraits||[]).includes(id));
@@ -373,7 +378,7 @@ function completeQuiz(d){
   let tissu=0;
   if(id==='mavungu'){G.adv.pieces+=20;G.adv.tissu+=2;tissu=2;d.gain+=20}
   d.res={stars:st,tissu:tissu};
-  const nw=newUnlocks(id);if(nw.length)setTimeout(()=>toast('Débloqué : '+nw.join(', ')),900);
+  const nw=G.ui==='photo'?[]:newUnlocks(id);if(nw.length)setTimeout(()=>toast('Débloqué : '+nw.join(', ')),900);
   SFX.win();save();refreshHud();
   setTimeout(checkFin,0);
 }
@@ -401,7 +406,7 @@ function htmlShop(d){
     if(a.items[k])return `<button disabled>✔ ${esc(it.n)} (dans ta maison)</button>`;
     return `<button onclick="buy('${k}')">${esc(it.n)} — ${it.p} 🪙${it.t?' + '+it.t+' tissu wax':''}</button>`;
   }).join('');
-  h+=`<button onclick="shopMode()">👗 Mode : essayer tenues et coiffures</button>`;
+  if(G.ui!=='photo')h+=`<button onclick="shopMode()">👗 Mode : essayer tenues et coiffures</button>`;
   return h+`<button class="s" onclick="closeDialog()">Quitter le marché</button>`;
 }
 function sellMangoes(){
@@ -429,7 +434,7 @@ function checkFin(){
 }
 
 // ---------- Menu ----------
-function openMenu(){if(G.mode==='play')openBox({kind:'menu'})}
+function openMenu(){if(G.mode==='play'||G.mode==='pview')openBox({kind:'menu'})}
 function htmlMenu(){
   const a=G.adv;
   const pu=photoUrl();
@@ -442,11 +447,12 @@ function htmlMenu(){
    +`<h4>Ma maison</h4>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${a.items[k]?'✔':'—'}</b></div>`).join('')
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
+   +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
    +`<button onclick="toggleVoice()">Lecture à voix haute : ${G.voice?'activée':'coupée'}</button>`
    +`<button class="s" onclick="resetGame()">${G.dialog&&G.dialog.confirmReset?'Appuie encore pour tout effacer':'Recommencer une nouvelle partie'}</button>`;
 }
-function toggleSound(){G.sound=!G.sound;save();renderDialog()}
+function toggleSound(){G.sound=!G.sound;save();if(G.ui==='photo'){if(G.sound)PM.ambientOn();else PM.ambientOff()}renderDialog()}
 function toggleVoice(){G.voice=!G.voice;if(!G.voice)stopSpeech();save();renderDialog()}
 let resetArmed=false;
 function resetGame(){
@@ -540,7 +546,7 @@ function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
-  if(!W)return;
+  if(!W||G.ui==='photo')return;
   const playing=G.mode==='play'||G.mode==='mini';
   // déplacement
   let sp=0;
@@ -652,6 +658,23 @@ function endCine(){
 }
 $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 
+// ---------- Profil et objets (mode photo) ----------
+function openProfile(){openBox({kind:'profile'})}
+function htmlProfile(){
+  const av=((window.__MAN&&window.__MAN.avatars)||[]).filter(a=>a[0]===(G.look.s||'f'));
+  return `<h3>Ma photo de profil</h3><div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.look.s==='f'?' on':''}" onclick="setGenre('f')" style="width:auto">Fille</button><button class="chip${G.look.s==='h'?' on':''}" onclick="setGenre('h')" style="width:auto">Garçon</button></div>`
+   +`<div class="avs">`+av.map(a=>`<button class="avb${G.photo===a?' on':''}" onclick="crPhoto('${a}')"><img src="img/avatars/${a}.jpg" alt=""></button>`).join('')+(userPhoto()?`<button class="avb${G.photo==='u'?' on':''}" onclick="crPhoto('u')"><img src="${userPhoto()}" alt=""></button>`:'')+`</div>`
+   +`<label class="chip" style="cursor:pointer;display:block;margin-top:8px">📷 Ajouter ma propre photo<small>Reste sur cet appareil</small><input type="file" accept="image/*" style="display:none" onchange="crUpload(this)"></label>`
+   +`<button class="p" onclick="closeDialog()">Fermer</button>`;
+}
+function setGenre(g){G.look.s=g;G.sexe=g;save();renderDialog()}
+function openObjs(){openBox({kind:'objs'})}
+function htmlObjs(){
+  const n=nbItems(),t=Object.keys(ITEMS).length;
+  return `<h3>Mes objets (${n}/${t})</h3>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${G.adv.items[k]?'✔':'—'}</b></div>`).join('')
+   +`<p style="font-size:13px;margin-top:8px">Achète-les chez Maman Béa, au marché, avec les pièces gagnées en répondant aux questions et en cueillant des mangues.</p><button class="p" onclick="closeDialog()">Fermer</button>`;
+}
+
 // ---------- Photo de profil ----------
 const PHOTO_KEY='kelas_photo_v1';
 function userPhoto(){try{return localStorage.getItem(PHOTO_KEY)}catch(e){return null}}
@@ -660,7 +683,7 @@ function photoUrl(){
   if(G.photo&&window.__MAN&&(window.__MAN.avatars||[]).includes(G.photo))return 'img/avatars/'+G.photo+'.jpg';
   return null;
 }
-function crPhoto(id){G.photo=id;save();refreshHud();renderCreator()}
+function crPhoto(id){G.photo=id;save();refreshHud();if(G.dialog&&G.dialog.kind==='profile')renderDialog();else renderCreator()}
 function crUpload(inp){
   const f=inp.files&&inp.files[0];if(!f)return;
   const img=new Image(),url=URL.createObjectURL(f);
@@ -668,7 +691,7 @@ function crUpload(inp){
     const c=document.createElement('canvas');c.width=160;c.height=213;
     const x=c.getContext('2d'),k=Math.max(160/img.width,213/img.height),w=img.width*k,h=img.height*k;
     x.drawImage(img,(160-w)/2,(213-h)/2,w,h);URL.revokeObjectURL(url);
-    try{localStorage.setItem(PHOTO_KEY,c.toDataURL('image/jpeg',.82));G.photo='u';save();refreshHud();renderCreator();toast('Ta photo est enregistrée sur cet appareil.')}
+    try{localStorage.setItem(PHOTO_KEY,c.toDataURL('image/jpeg',.82));G.photo='u';save();refreshHud();if(G.dialog&&G.dialog.kind==='profile')renderDialog();else renderCreator();toast('Ta photo est enregistrée sur cet appareil.')}
     catch(e){toast('Impossible d’enregistrer la photo.')}
   };
   img.onerror=()=>toast('Cette image ne peut pas être lue.');
@@ -816,6 +839,16 @@ function shopMode(){closeDialog();openCreator('play')}
 function setSexe(s){G.sexe=s;G.look.s=s;if(s==='f'&&G.look.beard)G.look.beard=0;$('fille').className=s==='f'?'p':'';$('garcon').className=s==='h'?'p':''}
 $('fille').onclick=()=>setSexe('f');
 $('garcon').onclick=()=>setSexe('h');
+function enterPhoto(intro){
+  $('start').classList.add('hide');$('cv').style.display='none';
+  hudVisible(true);['joy','actwrap'].forEach(i=>$(i).classList.add('hide'));$('cine').classList.add('hide');
+  G.ui='photo';G.mode='pview';
+  PM.show('village');refreshHud();
+  if(intro)openBox({kind:'info',title:'Bienvenue, '+G.nom+' !',i:0,lines:[
+    'Tu es devant ta maison, dans ton quartier de Kinshasa. Touche les flèches pour te déplacer, touche les personnes pour leur parler, et fais glisser ton doigt pour regarder autour de toi.',
+    'Ton but : aller à l’école LEXARIS ACADÉMIE. Mama Lola garde le portail : réponds à ses questions pour entrer.',
+    'En chemin, cueille des mangues, vends-les à Maman Béa au marché, et gagne des pièces.']});
+}
 function enterGame(newGame){
   $('start').classList.add('hide');
   G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;
@@ -829,21 +862,31 @@ function enterGame(newGame){
 $('go').onclick=()=>{
   const n=$('nom').value.trim();
   if(!n){$('nom').focus();return}
+  G.nom=n;G.adv=newAdv();G.ui='photo';
+  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.photo=G.sexe==='f'?'f1':'h1';
+  save();enterPhoto(true);
+};
+$('go3d').onclick=()=>{
+  const n=$('nom').value.trim();
+  if(!n){$('nom').focus();return}
+  G.ui='3d';$('cv').style.display='block';
   G.nom=n;G.adv=newAdv();G.real=((window.__MAN&&window.__MAN.chars)||[]).includes(G.sexe==='f'?'pf1':'ph1')?(G.sexe==='f'?'pf1':'ph1'):null;
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe,hair:G.sexe==='f'?'tresses':'courtes'});
   save();
   enterGame(true);
 };
-$('cont').onclick=()=>enterGame(false);
+$('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
+const PA={G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
+initPhoto(PA);const PM=PA.photo;
 function init(){
   const s=readSave();
   resize();
   if(s&&s.nom){
-    G.nom=s.nom;G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
+    G.nom=s.nom;G.ui=s.ui||'photo';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
     G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{s:s.sexe||'f',skin:s.skin||3});G.sexe=G.look.s;
     G.adv=Object.assign(newAdv(),s.adv||{});
     $('nom').value=s.nom;
@@ -853,9 +896,8 @@ function init(){
   }
   setSexe(G.sexe);refreshHud();
   G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;
-  buildScene();
-  // plan fixe du village derrière le menu
-  camera.position.set(-6,7,14);camera.lookAt(10,2,-2);
+  if(G.ui!=='photo'||!s||!s.nom){/* fond 3D inutile : la photo sert de décor */}
+  $('cv').style.display='none';
   $('lb').style.width='100%';
   setTimeout(()=>{$('load').classList.add('hide');$('start').classList.remove('hide')},150);
   G.mode='start';
