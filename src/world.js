@@ -281,6 +281,9 @@ export function buildMaison(items){
   box(g,.6,.12,.9,std('#ffffff',.9),bx-.7,.7,bz);
   box(g,1.4,.08,1.25,new THREE.MeshStandardMaterial({map:T.waxTexture('#c0392b','#f1c40f'),roughness:.9}),bx+.3,.66,bz);
   boxes.push({x0:bx-1.2,x1:bx+1.2,z0:bz-.75,z1:bz+.75});
+  // miroir sur pied
+  box(g,1.0,1.8,.08,std('#5a3a22',.7),-1.6,.95,-D/2+.12);
+  const mr=new THREE.Mesh(new THREE.PlaneGeometry(.82,1.62),new THREE.MeshStandardMaterial({color:0xcfe6f2,roughness:.05,metalness:.85,emissive:0x6f9fb8,emissiveIntensity:.25}));mr.position.set(-1.6,.95,-D/2+.17);g.add(mr);
   // fenêtre
   const wn=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.3),new THREE.MeshBasicMaterial({color:0xcfeaff}));wn.position.set(2.4,1.9,-D/2+.03);g.add(wn);
   box(g,1.7,.1,.1,std('#5a3a22'),2.4,2.6,-D/2+.06);

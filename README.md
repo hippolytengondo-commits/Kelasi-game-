@@ -5,6 +5,7 @@ Jeu d'aventure éducatif en 3D temps réel (Three.js) : village, école LEXARIS 
 - **Quêtes** : Mama Lola → Professeure Ilunga → Junior → Directeur Mavungu (calcul, français, géographie, histoire de la RDC ; étoiles selon les erreurs).
 - **Économie** : pièces, XP, niveaux ; mini-jeu de cueillette de mangues ; boutique de Maman Béa ; 6 objets qui meublent la maison.
 - **Commandes** : joystick + glisser pour tourner la caméra (tactile), ZQSD / flèches, E ou Entrée pour agir, M pour le menu.
+- **Créateur de personnage** : visage (largeur, mâchoire, yeux, nez, lèvres, sourcils, barbe), coiffures, teint, accessoires, tenues et couleurs. Accessible au début, au miroir de la maison et chez Maman Béa. Les objets payants s'essaient avant d'être achetés ; d'autres se débloquent par les quêtes ou le niveau.
 - **Images réalistes** : déposer des photos dans `img/tex/` (`grass`, `dirt`, `brick`.jpg : remplacent les textures dessinées) et des portraits dans `img/portraits/<id>.jpg` (`lola`, `ilunga`, `junior`, `mavungu`, `bea`, `mama`) : ils s'affichent dans les dialogues.
 
 ## Développement

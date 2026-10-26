@@ -1,10 +1,9 @@
 import * as THREE from 'three';
-import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS} from './data.js';
+import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
 import {makeHuman} from './chars.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 
 const KEY='kelas_game_v12';
-const SKINS=['#7a4a2e','#4f3020','#a96f45'];
 const $=id=>document.getElementById(id);
 const clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -12,11 +11,11 @@ const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])
 const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
-const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp:0,items:{},fin:false});
-const G={nom:'',sexe:'f',skin:0,sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
+const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp:0,items:{},bought:{},fin:false});
+const G={nom:'',sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,sexe:G.sexe,skin:G.skin,sound:G.sound,adv:G.adv}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({nom:G.nom,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
 const doorOpen=()=>doneNpc('lola');
@@ -77,12 +76,13 @@ let W=null;            // scène courante {group,colliders,boxes,bounds,update,.
 let playerObj=null;
 let npcObjs={};
 let mangoGroup=null;
-function playerLook(){return {s:G.sexe,h:.8,skin:SKINS[G.skin]||SKINS[0],c:'#1f7a4d',k:'uniforme',co:G.sexe==='f'?'tresses':'courtes'}}
+function playerLook(){return Object.assign({},G.look,{h:.8})}
 const SCENES={
  ville:{build:()=>buildVille(),interior:false,doors:[
    {x:-22,z:-5.4,r:1.9,to:'maison',label:'Entrer dans la maison',tx:0,tz:1.0,phi:-Math.PI/2},
    {x:42,z:-5.3,r:2.6,to:'classe',label:'Entrer dans l’école',ok:()=>doorOpen(),closed:'Porte fermée',tx:0,tz:2.6,phi:-Math.PI/2}]},
- maison:{build:()=>buildMaison(G.adv.items),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}]},
+ maison:{build:()=>buildMaison(G.adv.items),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}],
+   spots:[{x:-1.6,z:-2.2,r:1.9,label:'Miroir : changer mon look',run:()=>openCreator('play')}]},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
 function clearScene(){
@@ -179,7 +179,7 @@ function refreshHud(){
 function gain(p,xp){
   const l0=lvl();
   G.adv.pieces+=p;G.adv.xp+=xp;
-  if(lvl()>l0){toast('Niveau '+lvl()+' atteint !');SFX.win()}
+  if(lvl()>l0){toast('Niveau '+lvl()+' atteint !'+(LEVEL_UNLOCKS[lvl()]?' Nouvelle tenue débloquée !':''));SFX.win()}
   refreshHud();save();
 }
 let toastT=null;
@@ -207,6 +207,7 @@ function nearby(){
   const out=[];
   Object.keys(NPC).forEach(id=>{const n=NPC[id];if(n.sc===G.sc){const d=dist(G.x,G.z,n.x,n.z);if(d<(n.kind==='shop'?3.9:2.7))out.push({t:'npc',id:id,d:d})}});
   SCENES[G.sc].doors.forEach((d,i)=>{const dd=dist(G.x,G.z,d.x,d.z);if(dd<d.r)out.push({t:'door',i:i,d:dd})});
+  (SCENES[G.sc].spots||[]).forEach((sp,i)=>{const dd=dist(G.x,G.z,sp.x,sp.z);if(dd<sp.r)out.push({t:'spot',i:i,d:dd})});
   if(G.sc==='ville'&&W.mangoTree){const dd=dist(G.x,G.z,W.mangoTree.x,W.mangoTree.z);if(dd<4)out.push({t:'tree',d:dd})}
   return out.sort((a,b)=>(a.t==='npc'?0:1)-(b.t==='npc'?0:1)||a.d-b.d);
 }
@@ -221,6 +222,7 @@ function actionFor(t){
     return {label:parler(n),enabled:true,run:()=>startQuiz(t.id,false)};
   }
   if(t.t==='tree')return {label:'Cueillir des mangues',enabled:true,run:startMini};
+  if(t.t==='spot'){const sp=SCENES[G.sc].spots[t.i];return {label:sp.label,enabled:true,run:sp.run}}
   const d=SCENES[G.sc].doors[t.i];
   if(d.ok&&!d.ok())return {label:d.closed,enabled:false,run:null};
   return {label:d.label,enabled:true,run:()=>goTo(d)};
@@ -313,6 +315,7 @@ function completeQuiz(d){
   let tissu=0;
   if(id==='mavungu'){G.adv.pieces+=20;G.adv.tissu+=2;tissu=2;d.gain+=20}
   d.res={stars:st,tissu:tissu};
+  const nw=newUnlocks(id);if(nw.length)setTimeout(()=>toast('Débloqué : '+nw.join(', ')),900);
   SFX.win();save();refreshHud();
   setTimeout(checkFin,0);
 }
@@ -340,6 +343,7 @@ function htmlShop(d){
     if(a.items[k])return `<button disabled>✔ ${esc(it.n)} (dans ta maison)</button>`;
     return `<button onclick="buy('${k}')">${esc(it.n)} — ${it.p} 🪙${it.t?' + '+it.t+' tissu wax':''}</button>`;
   }).join('');
+  h+=`<button onclick="shopMode()">👗 Mode : essayer tenues et coiffures</button>`;
   return h+`<button class="s" onclick="closeDialog()">Quitter le marché</button>`;
 }
 function sellMangoes(){
@@ -444,10 +448,11 @@ joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId){e.preventDefault(
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joy.addEventListener(ev,e=>{if(e.pointerId===joyId)resetKnob()}));
 // glisser sur la scène : orienter la caméra
 let camPtr=null,lastX=0,lastY=0;
-cv.addEventListener('pointerdown',e=>{if(G.mode!=='play'&&G.mode!=='mini')return;camPtr=e.pointerId;lastX=e.clientX;lastY=e.clientY;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointerdown',e=>{if(G.mode!=='play'&&G.mode!=='mini'&&G.mode!=='creator')return;camPtr=e.pointerId;lastX=e.clientX;lastY=e.clientY;cv.setPointerCapture(e.pointerId)});
 cv.addEventListener('pointermove',e=>{
   if(e.pointerId!==camPtr)return;
-  G.phi+=(e.clientX-lastX)*.006;G.pitch=clamp(.12,1.1,G.pitch+(e.clientY-lastY)*.004);
+  if(G.mode==='creator'){CR.ang-=(e.clientX-lastX)*.012}
+  else{G.phi+=(e.clientX-lastX)*.006;G.pitch=clamp(.12,1.1,G.pitch+(e.clientY-lastY)*.004)}
   lastX=e.clientX;lastY=e.clientY;
 });
 ['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,e=>{if(e.pointerId===camPtr)camPtr=null}));
@@ -493,7 +498,7 @@ function loop(now){
   }
   G.speed=sp;
   playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
-  playerObj.userData.update(dt,{speed:sp});
+  playerObj.userData.update(dt,{speed:sp,pose:G.mode==='creator'?'creator':''});
   // PNJ
   Object.keys(npcObjs).forEach(id=>{
     const o=npcObjs[id],n=o.n;
@@ -511,6 +516,13 @@ function loop(now){
   // soleil qui suit le joueur
   sun.position.set(G.x+26,G.z*0+40,G.z+16);sun.target.position.set(G.x,0,G.z);
   if(G.mode==='cine')cineStep(dt);
+  else if(G.mode==='creator'){
+    const P=playerObj.position,ww=$('world').clientWidth,hh=$('world').clientHeight,land=ww>hh*1.25;
+    if(camera.fov!==30){camera.fov=30;camera.updateProjectionMatrix()}
+    const a=CR.ang,d=2.35,tp=new THREE.Vector3(P.x+Math.sin(a)*d,1.45,P.z+Math.cos(a)*d);
+    camera.position.lerp(tp,1-Math.exp(-dt*8));camera.lookAt(P.x,1.08,P.z);
+    if(land)camera.setViewOffset(ww,hh,ww*.2,0,ww,hh);else camera.clearViewOffset();
+  }
   else if(G.mode==='start'){const a=tt*.08;camera.position.set(8+Math.cos(a)*34,9,2+Math.sin(a)*22);camera.lookAt(10,2,-2)}
   else updateCamera(dt);
   skyDome.position.copy(camera.position);
@@ -577,23 +589,134 @@ function endCine(){
 }
 $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 
+// ---------- Créateur de personnage ----------
+const CATS={hair:HAIRS,acc:ACCS,outfit:OUTFITS};
+const CR={tab:'visage',prev:null,from:'play',ang:0};
+function isOwned(kind,id){
+  const d=CATS[kind][id];if(!d)return false;
+  if(d.own)return true;
+  if(d.unlock&&doneNpc(d.unlock))return true;
+  if(G.adv.bought[kind+':'+id])return true;
+  if(kind==='outfit')for(const lv in LEVEL_UNLOCKS){if(lvl()>=+lv&&LEVEL_UNLOCKS[lv].outfits.indexOf(id)>=0)return true}
+  return false;
+}
+function lockText(kind,id){
+  const d=CATS[kind][id];
+  if(d.price)return d.price+' 🪙';
+  if(d.unlock)return 'Quête : '+NPC[d.unlock].name;
+  for(const lv in LEVEL_UNLOCKS)if(LEVEL_UNLOCKS[lv].outfits&&LEVEL_UNLOCKS[lv].outfits.indexOf(id)>=0)return 'Niveau '+lv;
+  return '';
+}
+function newUnlocks(questId){
+  const out=[];
+  [['hair',HAIRS],['acc',ACCS],['outfit',OUTFITS]].forEach(c=>Object.keys(c[1]).forEach(k=>{if(c[1][k].unlock===questId)out.push(c[1][k].n)}));
+  return out;
+}
+function pendingItems(){
+  const L=G.look,list=[];
+  if(!isOwned('hair',L.hair))list.push({kind:'hair',id:L.hair});
+  if(!isOwned('outfit',L.outfit))list.push({kind:'outfit',id:L.outfit});
+  L.acc.forEach(a=>{if(!isOwned('acc',a))list.push({kind:'acc',id:a})});
+  return list;
+}
+function rebuildPlayer(){
+  const old=playerObj;
+  playerObj=makeHuman(playerLook());
+  playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
+  scene.add(playerObj);
+  if(old){scene.remove(old);old.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+}
+let rbPend=false;
+function rebuildSoon(){if(rbPend)return;rbPend=true;requestAnimationFrame(()=>{rbPend=false;rebuildPlayer()})}
+function hudVisible(v){['joy','actwrap','top','info'].forEach(i=>$(i).classList.toggle('hide',!v))}
+function openCreator(from){
+  CR.from=from;CR.tab='visage';CR.prev=JSON.parse(JSON.stringify(G.look));
+  G.mode='creator';G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;resetKnob();hideBubble();
+  CR.ang=0;G.ry=0;rebuildPlayer();
+  hudVisible(false);$('creator').classList.remove('hide');
+  renderCreator();
+}
+function creatorDone(){
+  const L=G.look,P=CR.prev;
+  if(!isOwned('hair',L.hair))L.hair=P.hair;
+  if(!isOwned('outfit',L.outfit))L.outfit=P.outfit;
+  L.acc=L.acc.filter(a=>isOwned('acc',a));
+  save();rebuildPlayer();
+  $('creator').classList.add('hide');camera.clearViewOffset();resize();
+  if(CR.from==='start'){startCine()}
+  else{G.mode='play';hudVisible(true);snapCamera();refreshHud()}
+}
+const chip=(label,active,onclick,sub)=>`<button class="chip${active?' on':''}" onclick="${onclick}">${label}${sub?`<small>${sub}</small>`:''}</button>`;
+const sw=(color,active,onclick)=>`<button class="swt${active?' on':''}" style="background:${color}" onclick="${onclick}" aria-label="couleur"></button>`;
+const slider=(label,key)=>`<label class="sl"><span>${label}</span><input type="range" min="0" max="100" value="${Math.round(G.look[key]*100)}" oninput="crSlide('${key}',this.value)"></label>`;
+function renderCreator(){
+  const L=G.look,tabs=[['visage','Visage'],['cheveux','Cheveux'],['teint','Teint'],['acc','Accessoires'],['tenue','Tenue']];
+  let h=`<div class="crh"><b>Mon personnage</b><span>🪙 ${G.adv.pieces}</span><button class="p" onclick="creatorDone()">Terminer</button></div>`;
+  h+=`<div class="tabs">`+tabs.map(t=>`<button class="${CR.tab===t[0]?'on':''}" onclick="crTab('${t[0]}')">${t[1]}</button>`).join('')+`</div><div class="crb">`;
+  if(CR.tab==='visage'){
+    h+=slider('Largeur du visage','faceW')+slider('Mâchoire','jaw')+slider('Taille des yeux','eyeS')+slider('Nez','nose')+slider('Lèvres','lips')+slider('Joues roses','blush');
+    h+=`<div class="lb">Sourcils</div><div class="chips">`+['Fins','Épais','Arqués'].map((n,i)=>chip(n,L.brow===i,`crSet('brow',${i})`)).join('')+`</div>`;
+    h+=`<div class="lb">Couleur des yeux</div><div class="sws">`+EYE_COLORS.map((c,i)=>sw(c,L.eyeC===i,`crSet('eyeC',${i})`)).join('')+`</div>`;
+    h+=`<div class="lb">Couleur des lèvres</div><div class="sws">`+LIP_COLORS.map((c,i)=>sw(c,L.lipC===i,`crSet('lipC',${i})`)).join('')+`</div>`;
+    if(L.s==='h')h+=`<div class="lb">Barbe</div><div class="chips">`+['Aucune','Légère','Complète'].map((n,i)=>chip(n,L.beard===i,`crSet('beard',${i})`)).join('')+`</div>`;
+  }else if(CR.tab==='cheveux'){
+    h+=`<div class="lb">Coiffure</div><div class="chips">`+Object.keys(HAIRS).map(k=>chip(HAIRS[k].n,L.hair===k,`crHair('${k}')`,isOwned('hair',k)?'':'🔒 '+lockText('hair',k))).join('')+`</div>`;
+    h+=`<div class="lb">Couleur des cheveux</div><div class="sws">`+HAIR_COLORS.map((c,i)=>sw(c,L.hairC===i,`crSet('hairC',${i})`)).join('')+`</div>`;
+  }else if(CR.tab==='teint'){
+    h+=`<div class="lb">Je suis</div><div class="chips">`+chip('Une fille',L.s==='f',`crSet('s','f')`)+chip('Un garçon',L.s==='h',`crSet('s','h')`)+`</div>`;
+    h+=`<div class="lb">Teint de la peau</div><div class="sws">`+SKIN_TONES.map((c,i)=>sw(c,L.skin===i,`crSet('skin',${i})`)).join('')+`</div>`;
+  }else if(CR.tab==='acc'){
+    h+=`<div class="lb">Accessoires</div><div class="chips">`+Object.keys(ACCS).map(k=>chip(ACCS[k].n,L.acc.indexOf(k)>=0,`crAcc('${k}')`,isOwned('acc',k)?'':'🔒 '+lockText('acc',k))).join('')+`</div>`;
+  }else{
+    h+=`<div class="lb">Tenue</div><div class="chips">`+Object.keys(OUTFITS).map(k=>chip(OUTFITS[k].n,L.outfit===k,`crOutfit('${k}')`,isOwned('outfit',k)?'':'🔒 '+lockText('outfit',k))).join('')+`</div>`;
+    h+=`<div class="lb">Couleur de la tenue</div><div class="sws">`+OUTFIT_COLORS.map((c,i)=>sw(c,L.outfitC===i,`crSet('outfitC',${i})`)).join('')+`</div>`;
+  }
+  h+=`</div>`;
+  const pend=pendingItems();
+  if(pend.length){
+    const tot=pend.reduce((a,p)=>a+(CATS[p.kind][p.id].price||0),0);
+    h+=`<div class="buy"><span>Essayage : ${pend.map(p=>esc(CATS[p.kind][p.id].n)).join(', ')} — ${tot} 🪙</span><button class="p" onclick="crBuy()">Acheter</button></div>`;
+  }
+  $('creator').innerHTML=h;
+}
+function crTab(t){CR.tab=t;renderCreator()}
+function crSlide(k,v){G.look[k]=v/100;rebuildSoon()}
+function crSet(k,v){
+  G.look[k]=v;
+  if(k==='s'){G.sexe=v;if(v==='f'&&G.look.beard)G.look.beard=0}
+  rebuildSoon();renderCreator();
+}
+function crTryable(kind,id){
+  const d=CATS[kind][id];
+  if(isOwned(kind,id)||d.price)return true;
+  toast(lockText(kind,id)+' pour débloquer : '+d.n);SFX.ko();return false;
+}
+function crHair(id){if(!crTryable('hair',id))return;G.look.hair=id;rebuildSoon();renderCreator()}
+function crOutfit(id){if(!crTryable('outfit',id))return;G.look.outfit=id;rebuildSoon();renderCreator()}
+function crAcc(id){
+  const a=G.look.acc,i=a.indexOf(id);
+  if(i>=0)a.splice(i,1);else{if(!crTryable('acc',id))return;a.push(id)}
+  rebuildSoon();renderCreator();
+}
+function crBuy(){
+  const pend=pendingItems();
+  const tot=pend.reduce((a,p)=>a+(CATS[p.kind][p.id].price||0),0);
+  if(G.adv.pieces<tot){toast('Il te manque '+(tot-G.adv.pieces)+' pièces.');SFX.ko();return}
+  G.adv.pieces-=tot;pend.forEach(p=>{G.adv.bought[p.kind+':'+p.id]=true});
+  save();refreshHud();SFX.coin();toast('Achat réussi !');renderCreator();
+}
+function shopMode(){closeDialog();openCreator('play')}
+
 // ---------- Écran de départ ----------
-function setSexe(s){G.sexe=s;$('fille').className=s==='f'?'p':'';$('garcon').className=s==='h'?'p':'';if(playerObj&&G.mode==='start')preview()}
-function setSkin(i){G.skin=i;[].forEach.call(document.querySelectorAll('#skins .sk'),(b,j)=>{b.className='sk'+(j===i?' p':'')});if(G.mode==='start')preview()}
+function setSexe(s){G.sexe=s;G.look.s=s;if(s==='f'&&G.look.beard)G.look.beard=0;$('fille').className=s==='f'?'p':'';$('garcon').className=s==='h'?'p':''}
 $('fille').onclick=()=>setSexe('f');
 $('garcon').onclick=()=>setSexe('h');
-SKINS.forEach((c,i)=>{
-  const b=document.createElement('button');b.className='sk';b.style.background=c;b.setAttribute('aria-label','Teint '+(i+1));
-  b.onclick=()=>setSkin(i);$('skins').appendChild(b);
-});
-function preview(){
-  // le village reste visible derrière l'écran de départ
-}
 function enterGame(newGame){
   $('start').classList.add('hide');
-  if(newGame)startCine();
+  G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;
+  if(newGame){buildScene();G.mode='creator';openCreator('start')}
   else{
-    G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;G.mode='play';
+    G.mode='play';
     ['joy','actwrap'].forEach(i=>$(i).classList.remove('hide'));
     buildScene();refreshHud();
   }
@@ -601,27 +724,29 @@ function enterGame(newGame){
 $('go').onclick=()=>{
   const n=$('nom').value.trim();
   if(!n){$('nom').focus();return}
-  G.nom=n;G.adv=newAdv();save();
-  ['joy','actwrap'].forEach(i=>$(i).classList.remove('hide'));
+  G.nom=n;G.adv=newAdv();
+  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe,hair:G.sexe==='f'?'tresses':'courtes'});
+  save();
   enterGame(true);
 };
 $('cont').onclick=()=>enterGame(false);
 
-Object.assign(window,{nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 (function init(){
   const s=readSave();
   resize();
   if(s&&s.nom){
-    G.nom=s.nom;G.sexe=s.sexe||'f';G.skin=s.skin||0;G.sound=s.sound!==false;
+    G.nom=s.nom;G.sound=s.sound!==false;
+    G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{s:s.sexe||'f',skin:s.skin||3});G.sexe=G.look.s;
     G.adv=Object.assign(newAdv(),s.adv||{});
     $('nom').value=s.nom;
     $('cont').textContent='Continuer · '+s.nom+' (niveau '+lvl()+')';
     $('cont').classList.remove('hide');
     $('go').textContent='Nouvelle partie';$('go').className='';
   }
-  setSexe(G.sexe);setSkin(G.skin);refreshHud();
+  setSexe(G.sexe);refreshHud();
   G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;
   buildScene();
   // plan fixe du village derrière le menu

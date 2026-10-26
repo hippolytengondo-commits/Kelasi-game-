@@ -82,3 +82,32 @@ export const ITEMS={
  rideau:{n:'Rideau en wax',p:10,t:1},tableau:{n:'Tableau du village',p:30},plante:{n:'Plante verte',p:15}
 };
 
+
+// ---------- Créateur de personnage ----------
+export const SKIN_TONES=['#c58b62','#b07a50','#9a6641','#7a4a2e','#63391f','#4f3020','#3d2416','#d9a67c'];
+export const HAIR_COLORS=['#140d09','#2e1a10','#5a3319','#8a3a1c','#c79a3b','#7a7a7a','#d9d9d9','#7b2a6e'];
+export const EYE_COLORS=['#120a06','#3b2212','#2f4a3a','#2a4a6e'];
+export const LIP_COLORS=['#7a3a30','#a8483c','#c0566a','#4a2a24'];
+export const OUTFIT_COLORS=['#1f7a4d','#2e86de','#c0392b','#e67e22','#8e44ad','#16a085','#e0a526','#2c3e50','#d6336c','#f1f1f1'];
+
+// own : disponible dès le départ ; unlock : cadeau d'une quête ; price : à acheter chez Maman Béa
+export const HAIRS={
+ courtes:{n:'Courts',own:true},rase:{n:'Rasé',own:true},tresses:{n:'Tresses',own:true},nattes:{n:'Nattes',own:true},afro:{n:'Afro',own:true},
+ chignon:{n:'Chignon',unlock:'lola'},noeuds:{n:'Nœuds bantous',price:25},locks:{n:'Locks',price:30}
+};
+export const ACCS={
+ boucles:{n:'Boucles d’oreilles',own:true},
+ lunettes:{n:'Lunettes',unlock:'ilunga'},casquette:{n:'Casquette',unlock:'junior'},
+ foulard:{n:'Foulard',price:20},collier:{n:'Collier de perles',price:15},sac:{n:'Sac à dos',price:25}
+};
+export const OUTFITS={
+ uniforme:{n:'Uniforme de l’école',own:true,top:'plain',bottom:'auto',trouser:'#262a3a',collar:true},
+ polo:{n:'Polo et jean',price:35,top:'plain',bottom:'trousers',trouser:'#2f4a7a',collar:true},
+ sport:{n:'Tenue de sport',price:40,top:'plain',bottom:'trousers',trouser:'#233044',collar:false,matchTrouser:true},
+ robe:{n:'Robe de fête',price:70,top:'plain',bottom:'skirt',belt:true},
+ pagne:{n:'Tenue wax',unlock:'mavungu',top:'wax',bottom:'auto',trouser:'#262a3a'},
+ boubou:{n:'Boubou brodé',price:60,top:'plain',bottom:'long',trim:true}
+};
+export const DEFAULT_LOOK={s:'f',skin:3,faceW:.5,jaw:.4,eyeS:.5,eyeC:1,brow:0,nose:.5,lips:.5,lipC:0,hair:'tresses',hairC:0,beard:0,acc:[],outfit:'uniforme',outfitC:0,blush:.3};
+// récompenses automatiques selon les quêtes / le niveau
+export const LEVEL_UNLOCKS={4:{outfits:['sport']}};
