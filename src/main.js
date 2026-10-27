@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {buildMarche,buildFleuve,buildSante,buildUniv} from './stages.js';
 import {buildBiblio,buildGare,buildFerme,buildForet,buildMusee} from './stages2.js';
+import {buildAeroport,buildInga,buildVirunga,buildZongo,buildAtelier} from './stages4.js';
 import {buildStade,buildMine,buildObservatoire,buildPort,buildParlement} from './stages3.js';
 import {STAGES,BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
 import {makeHuman,setFaces} from './chars.js';
@@ -173,6 +174,11 @@ marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},
  observatoire:{build:()=>buildObservatoire(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
  port:{build:()=>buildPort(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
  parlement:{build:()=>buildParlement(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ aeroport:{build:()=>buildAeroport(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ inga:{build:()=>buildInga(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ virunga:{build:()=>buildVirunga(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ zongo:{build:()=>buildZongo(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ atelier:{build:()=>buildAtelier(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
 function clearScene(){
@@ -738,7 +744,7 @@ function stageCheck(id){
   if(STAGES.every(stageDone)&&!G.adv.diplome){
     G.adv.diplome=true;save();
     setTimeout(()=>openBox({kind:'info',title:'Diplôme de LEXARIS ACADÉMIE',i:0,lines:[
-      'Félicitations '+G.nom+' ! Tu as terminé les quinze épisodes, de l’école au Parlement.',
+      'Félicitations '+G.nom+' ! Tu as terminé les vingt épisodes, de l’école à l’atelier des artisans.',
       'Tu sais compter, lire, protéger la nature, prendre soin de ta santé, connaître ton pays et tes droits. Tu es un vrai citoyen et un champion !']}),1500);
   }
 }

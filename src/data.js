@@ -432,11 +432,11 @@ Object.assign(NPC,{
  mbala:{sc:'parlement',x:-5,z:-6.2,ry:0.3,name:'Honorable Mbala',short:'l’Honorable Mbala',role:'Député',kind:'quiz',sujet:'institutions',nb:3,needs:'ndala',
   look:{s:'h',h:1.02,skin:'#79493b',c:'#1c2a44',k:'uniforme',co:'courtes',faceKey:'avatars/h3',cravate:true},
   intro:['Bienvenue au Parlement ! Ici se votent les lois du pays.','Un bon citoyen connaît le fonctionnement de ses institutions.'],
-  outro:'Excellent ! Il te reste une dernière personne : la sénatrice Nkulu.'},
+  outro:'Excellent ! Va saluer la sénatrice Nkulu.'},
  nkulu:{sc:'parlement',x:6,z:-6,ry:-0.4,name:'Sénatrice Nkulu',short:'la sénatrice',role:'Sénatrice',kind:'quiz',sujet:'civisme',nb:3,needs:'mbala',
   look:{s:'f',h:0.98,skin:'#7a4a2e',c:'#8e44ad',k:'boubou',co:'tresses',faceKey:'portraits/ilunga'},
-  intro:['Félicitations, tu es arrivé au dernier épisode !','Être citoyen, c’est respecter les autres et participer à la vie du pays.'],
-  outro:'Félicitations ! Tu as terminé les quinze épisodes. Tu es un vrai citoyen et un champion !'}
+  intro:['Bienvenue au Parlement !','Être citoyen, c’est respecter les autres et participer à la vie du pays.'],
+  outro:'Bravo ! Le voyage continue : prends l’avion à l’aéroport de N’Djili.'},
 });
 STAGES.push(
  {id:'biblio',scene:'biblio',name:'La bibliothèque',icon:'📚',npcs:['nzuzi','kabasele']},
@@ -449,4 +449,128 @@ STAGES.push(
  {id:'observatoire',scene:'observatoire',name:'L’observatoire',icon:'🔭',npcs:['mulumba','mbuyi']},
  {id:'port',scene:'port',name:'Le port de Matadi',icon:'🚢',npcs:['lunda','ndala']},
  {id:'parlement',scene:'parlement',name:'Le Parlement',icon:'🏛',npcs:['mbala','nkulu']}
+);
+
+// ---------- Épisodes 16 à 20 ----------
+Object.assign(SUJETS,{aeroport:'L’aéroport',voyage:'Voyager et se repérer',energie:'L’énergie et l’électricité',eau:'L’eau et le fleuve',virunga:'Le parc des Virunga',volcans:'Volcans et gorilles',cascade:'Chutes et orientation',securite_eau:'Sécurité près de l’eau',artisanat:'L’artisanat congolais',metiers:'Les métiers et le calcul'});
+Object.assign(BANK,{
+ aeroport:[
+  Q('Comment s’appelle le grand aéroport international de Kinshasa ?',['N’Djili','Luano','Bangboka','Kavumu'],'N’Djili','L’aéroport international de N’Djili est celui de Kinshasa.'),
+  Q('Quel document faut-il pour voyager dans un autre pays ?',['un passeport','un cahier','un ballon','une assiette'],'un passeport','Le passeport prouve qui tu es quand tu voyages à l’étranger.'),
+  Q('Qui guide les avions depuis la tour de l’aéroport ?',['le contrôleur aérien','le boulanger','le pêcheur','le coiffeur'],'le contrôleur aérien','Le contrôleur aérien dit aux pilotes quand décoller et atterrir.'),
+  Q('Que faut-il faire à bord pendant le décollage ?',['attacher sa ceinture','courir dans l’avion','ouvrir la porte','dormir par terre'],'attacher sa ceinture','La ceinture te protège pendant le décollage et l’atterrissage.'),
+  Q('Un avion parcourt 600 km en 1 heure. Combien de kilomètres en 3 heures ?',['1 800 km','900 km','1 200 km','2 400 km'],'1 800 km','600 × 3 = 1 800 km.')
+ ],
+ voyage:[
+  Q('Un vol part à 14 h et dure 2 heures. À quelle heure arrive-t-il ?',['16 h','15 h','17 h','12 h'],'16 h','14 h + 2 h = 16 h.'),
+  Q('Sur quel continent se trouve la RDC ?',['l’Afrique','l’Europe','l’Asie','l’Amérique'],'l’Afrique','La RDC est au cœur de l’Afrique.'),
+  Q('Quel océan borde l’ouest de la RDC et de l’Afrique centrale ?',['l’océan Atlantique','l’océan Indien','l’océan Arctique','l’océan Pacifique'],'l’océan Atlantique','La RDC touche l’océan Atlantique par une petite côte.'),
+  Q('Combien de pays voisins la RDC a-t-elle ?',['9','3','5','12'],'9','La RDC est entourée de 9 pays voisins.'),
+  Q('Quelle est la capitale de la France ?',['Paris','Londres','Rome','Madrid'],'Paris','La capitale de la France est Paris.')
+ ],
+ energie:[
+  Q('Que produit un barrage hydroélectrique ?',['de l’électricité','du pain','du sel','des livres'],'de l’électricité','L’eau fait tourner des turbines qui produisent de l’électricité.'),
+  Q('Sur quel fleuve se trouve le barrage d’Inga ?',['le fleuve Congo','le Nil','le Niger','la Seine'],'le fleuve Congo','Inga est construit sur le fleuve Congo, dans le Kongo Central.'),
+  Q('Quelle énergie vient du soleil ?',['l’énergie solaire','l’énergie du charbon','l’énergie du pétrole','l’énergie du bois mort'],'l’énergie solaire','Les panneaux solaires transforment la lumière en électricité.'),
+  Q('Comment économiser l’électricité ?',['éteindre les lampes inutiles','laisser tout allumé','ouvrir le frigo longtemps','brancher dix appareils'],'éteindre les lampes inutiles','Éteindre ce qu’on n’utilise pas économise de l’énergie.'),
+  Q('Que faut-il éviter de toucher ?',['les fils électriques dénudés','un cahier','un ballon','une chaise'],'les fils électriques dénudés','Un fil électrique abîmé est dangereux : préviens un adulte.')
+ ],
+ eau:[
+  Q('Comment s’appelle le passage de l’eau de la mer vers le ciel sous forme de vapeur ?',['l’évaporation','la fabrication','le labour','la récolte'],'l’évaporation','Le soleil chauffe l’eau, qui monte en vapeur : c’est l’évaporation.'),
+  Q('Que devient la vapeur d’eau dans les nuages ?',['des gouttes qui forment la pluie','du sable','du fer','du feu'],'des gouttes qui forment la pluie','La vapeur refroidit et forme des gouttes : la pluie.'),
+  Q('Comment rendre une eau plus sûre à boire ?',['la faire bouillir ou la filtrer','la boire telle quelle','y mettre du sable','la salir'],'la faire bouillir ou la filtrer','Bouillir ou filtrer l’eau élimine beaucoup de microbes.'),
+  Q('Le fleuve Congo est connu comme…',['le fleuve le plus profond du monde','un petit ruisseau','un désert','une montagne'],'le fleuve le plus profond du monde','Le Congo est le fleuve le plus profond connu, et l’un des plus puissants.'),
+  Q('Pourquoi ne faut-il pas gaspiller l’eau ?',['parce qu’elle est précieuse','parce qu’elle est rare partout','par plaisir','par habitude'],'parce qu’elle est précieuse','L’eau propre est indispensable à la vie : on la protège.')
+ ],
+ virunga:[
+  Q('Quel animal rare vit dans le parc des Virunga ?',['le gorille de montagne','le pingouin','l’ours polaire','le kangourou'],'le gorille de montagne','Les gorilles de montagne vivent dans les Virunga.'),
+  Q('Qui protège les animaux dans les parcs nationaux ?',['les rangers (gardes)','les cuisiniers','les chauffeurs','les coiffeurs'],'les rangers (gardes)','Les rangers surveillent la nature et protègent les animaux.'),
+  Q('Pourquoi protéger la nature ?',['pour les générations futures','pour la détruire plus vite','pour rien','pour faire du bruit'],'pour les générations futures','Protéger la nature, c’est préserver la vie pour demain.'),
+  Q('Que ne faut-il pas faire dans un parc ?',['jeter des déchets','observer en silence','suivre le guide','rester sur le sentier'],'jeter des déchets','On garde le parc propre et on respecte les animaux.'),
+  Q('Les Virunga sont un parc…',['national','privé','de jeux','de voitures'],'national','Les Virunga sont le plus ancien parc national d’Afrique.')
+ ],
+ volcans:[
+  Q('Comment s’appelle la roche en fusion qui sort d’un volcan ?',['la lave','la glace','le sable','la boue'],'la lave','La lave est de la roche fondue très chaude.'),
+  Q('Nyiragongo est…',['un volcan','un fleuve','un village','un animal'],'un volcan','Nyiragongo est un volcan actif près de Goma.'),
+  Q('Quel grand lac se trouve près de Goma ?',['le lac Kivu','le lac Victoria','le lac Tchad','le lac Léman'],'le lac Kivu','Goma est au bord du lac Kivu.'),
+  Q('Que mange surtout le gorille ?',['des plantes et des feuilles','de la viande crue','du poisson','des cailloux'],'des plantes et des feuilles','Le gorille est surtout herbivore.'),
+  Q('Que faire si un volcan se réveille ?',['suivre les consignes d’évacuation','s’approcher pour regarder','se baigner','dormir'],'suivre les consignes d’évacuation','En cas d’alerte, on s’éloigne et on écoute les autorités.')
+ ],
+ cascade:[
+  Q('Où se lève le soleil ?',['à l’est','à l’ouest','au nord','au sud'],'à l’est','Le soleil se lève à l’est et se couche à l’ouest.'),
+  Q('Avec quel objet s’oriente-t-on dans la nature ?',['une boussole','une cuillère','un cahier','un ballon'],'une boussole','L’aiguille de la boussole indique le nord.'),
+  Q('Comment appelle-t-on l’eau qui tombe d’une falaise ?',['une chute','un désert','une dune','un puits'],'une chute','Une chute (ou cascade) est de l’eau qui tombe de haut.'),
+  Q('Où se couche le soleil ?',['à l’ouest','à l’est','au nord','au sud'],'à l’ouest','Le soleil se couche à l’ouest.'),
+  Q('Quelle direction est opposée au nord ?',['le sud','l’est','l’ouest','le haut'],'le sud','Le sud est le contraire du nord.')
+ ],
+ securite_eau:[
+  Q('Peut-on se baigner juste au pied d’une chute ?',['non, c’est dangereux','oui, toujours','oui, la nuit','oui, avec des chaussures'],'non, c’est dangereux','Le courant et les rochers rendent le pied d’une chute dangereux.'),
+  Q('Si quelqu’un tombe à l’eau, que fais-tu ?',['j’appelle à l’aide et je lance une bouée','je pars en courant sans rien dire','je saute sans réfléchir','je ris'],'j’appelle à l’aide et je lance une bouée','Il faut alerter les adultes et lancer un objet qui flotte.'),
+  Q('Que faut-il savoir faire avant de nager au fleuve ?',['nager avec un adulte','plonger seul','nager de nuit','porter des bottes'],'nager avec un adulte','On ne se baigne jamais seul.'),
+  Q('Sur des rochers mouillés, on doit…',['marcher lentement','courir','sauter','danser'],'marcher lentement','Les rochers mouillés glissent : on avance doucement.'),
+  Q('Que veut dire un panneau « Danger » près de l’eau ?',['il ne faut pas s’approcher','c’est une décoration','c’est un jeu','c’est pour les poissons'],'il ne faut pas s’approcher','Un panneau « Danger » doit toujours être respecté.')
+ ],
+ artisanat:[
+  Q('Les Kuba sont célèbres pour leurs tissus en…',['raphia','plastique','fer','verre'],'raphia','Les Kuba tissent de beaux tissus de raphia.'),
+  Q('Quel outil sert à sculpter le bois ?',['un ciseau à bois','une cuillère','un stylo','une éponge'],'un ciseau à bois','Le sculpteur utilise un ciseau et un maillet.'),
+  Q('Le wax est…',['un tissu coloré','un métal','une pierre','un fruit'],'un tissu coloré','Le pagne en wax est très apprécié en Afrique centrale.'),
+  Q('Avec quoi fait-on une poterie ?',['de l’argile','du vent','de l’eau seule','du sel'],'de l’argile','Le potier modèle l’argile puis la cuit.'),
+  Q('Pourquoi garder l’art de nos ancêtres ?',['c’est notre culture et notre mémoire','c’est inutile','c’est obligatoire','c’est ennuyeux'],'c’est notre culture et notre mémoire','L’artisanat transmet l’histoire et l’identité d’un peuple.')
+ ],
+ metiers:[
+  Q('Quel artisan coud les vêtements ?',['le tailleur','le forgeron','le pêcheur','le menuisier'],'le tailleur','Le tailleur ou la couturière coud les habits.'),
+  Q('Quel artisan travaille le bois pour faire des meubles ?',['le menuisier','le potier','le tisserand','le boulanger'],'le menuisier','Le menuisier fabrique tables et chaises.'),
+  Q('Trois pagnes coûtent 4 000 FC chacun. Quel est le total ?',['12 000 FC','7 000 FC','8 000 FC','10 000 FC'],'12 000 FC','3 × 4 000 = 12 000 FC.'),
+  Q('Je vends 5 paniers à 2 500 FC. Combien je reçois ?',['12 500 FC','10 000 FC','7 500 FC','15 000 FC'],'12 500 FC','5 × 2 500 = 12 500 FC.'),
+  Q('Quel artisan travaille le fer ?',['le forgeron','le tailleur','le potier','le coiffeur'],'le forgeron','Le forgeron chauffe et forge le fer.')
+ ]
+});
+Object.assign(NPC,{
+ ndombe:{sc:'aeroport',x:-5,z:-5.5,ry:0.3,name:'Capitaine Ndombe',short:'le capitaine',role:'Pilote',kind:'quiz',sujet:'aeroport',nb:3,needs:'nkulu',
+  look:{s:'h',h:1.03,skin:'#6e4a36',c:'#1f3a6b',k:'uniforme',co:'rase',faceKey:'avatars/h3'},
+  intro:['Bienvenue à l’aéroport de N’Djili !','Je suis pilote : voler, c’est ma passion. Es-tu prêt pour le décollage ?'],
+  outro:'Bien joué ! Va voir Madame Nsimba, au comptoir des voyages.'},
+ nsimba:{sc:'aeroport',x:5.5,z:-5.5,ry:-0.4,name:'Madame Nsimba',short:'Madame Nsimba',role:'Agente d’escale',kind:'quiz',sujet:'voyage',nb:3,needs:'ndombe',
+  look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#c0392b',k:'uniforme',co:'chignon',faceKey:'avatars/f3'},
+  intro:['Bonjour ! Je m’occupe des départs et des arrivées.','Pour voyager, il faut savoir lire l’heure et se repérer sur la carte.'],
+  outro:'Parfait ! Direction le barrage d’Inga, l’ingénieur Kimbembe t’attend.'},
+ kimbembe:{sc:'inga',x:-5,z:-5.5,ry:0.3,name:'Ingénieur Kimbembe',short:'l’ingénieur',role:'Ingénieur électricien',kind:'quiz',sujet:'energie',nb:3,needs:'nsimba',
+  look:{s:'h',h:1.02,skin:'#7d5a44',c:'#e0a526',k:'uniforme',co:'courtes',faceKey:'avatars/h4'},
+  intro:['Voici le barrage d’Inga, l’une des grandes fiertés du Congo.','Ici, la force de l’eau devient de la lumière. Tu veux comprendre comment ?'],
+  outro:'Très bien ! Ma collègue Madame Zola te parlera de l’eau.'},
+ zola:{sc:'inga',x:5.5,z:-5.5,ry:-0.4,name:'Madame Zola',short:'Madame Zola',role:'Hydrologue',kind:'quiz',sujet:'eau',nb:3,needs:'kimbembe',
+  look:{s:'f',h:0.97,skin:'#8a5a3e',c:'#2e86de',k:'uniforme',co:'tresses',faceKey:'avatars/f2'},
+  intro:['Moi, j’étudie l’eau et les fleuves.','Le fleuve Congo est l’un des plus puissants du monde. Voyons ce que tu sais !'],
+  outro:'Bravo ! Le garde Bahati t’attend dans le parc des Virunga.'},
+ bahati:{sc:'virunga',x:-5,z:-5.5,ry:0.3,name:'Garde Bahati',short:'le garde',role:'Ranger',kind:'quiz',sujet:'virunga',nb:3,needs:'zola',
+  look:{s:'h',h:1.02,skin:'#6e4a36',c:'#3f5a2a',k:'uniforme',co:'rase',faceKey:'avatars/h1'},
+  intro:['Chut… bienvenue dans le parc des Virunga.','Je protège les gorilles de montagne. Veux-tu apprendre à les respecter ?'],
+  outro:'Très bien ! La volcanologue Neema va t’expliquer les volcans.'},
+ neema:{sc:'virunga',x:5.5,z:-5.5,ry:-0.4,name:'Docteure Neema',short:'la volcanologue',role:'Volcanologue',kind:'quiz',sujet:'volcans',nb:3,needs:'bahati',
+  look:{s:'f',h:0.98,skin:'#7a4a2e',c:'#c0392b',k:'uniforme',co:'nattes',faceKey:'avatars/f4'},
+  intro:['Regarde ces volcans, ils sont puissants et dangereux.','Mon métier : les surveiller pour protéger les habitants.'],
+  outro:'Excellent ! Direction les chutes de Zongo.'},
+ tuyindi:{sc:'zongo',x:-5,z:-5.5,ry:0.3,name:'Guide Tuyindi',short:'le guide',role:'Guide touristique',kind:'quiz',sujet:'cascade',nb:3,needs:'neema',
+  look:{s:'h',h:1.0,skin:'#916f64',c:'#e67e22',k:'pagne',co:'courtes',faceKey:'portraits/mavungu'},
+  intro:['Bienvenue aux chutes de Zongo !','Écoute le grondement de l’eau. Pour bien guider, il faut savoir s’orienter.'],
+  outro:'Bravo ! La sauveteuse Mfumu va te parler de sécurité.'},
+ mfumu:{sc:'zongo',x:5.5,z:-5.5,ry:-0.4,name:'Sauveteuse Mfumu',short:'la sauveteuse',role:'Sauveteuse',kind:'quiz',sujet:'securite_eau',nb:3,needs:'tuyindi',
+  look:{s:'f',h:0.98,skin:'#7a4a2e',c:'#2e86de',k:'uniforme',co:'tresses',faceKey:'portraits/ilunga'},
+  intro:['L’eau est belle mais elle peut être dangereuse.','Ma mission : éviter les accidents. Et toi, connais-tu les bons réflexes ?'],
+  outro:'Parfait ! Va découvrir l’atelier des artisans.'},
+ kuba:{sc:'atelier',x:-5,z:-5.5,ry:0.3,name:'Maître Kuba',short:'Maître Kuba',role:'Sculpteur',kind:'quiz',sujet:'artisanat',nb:3,needs:'mfumu',
+  look:{s:'h',h:1.0,skin:'#7d5a44',c:'#8e5a2a',k:'pagne',co:'gris',faceKey:'avatars/h2'},
+  intro:['Entre dans mon atelier, jeune ami.','Le bois, le raphia, l’argile… nos mains racontent l’histoire du Congo.'],
+  outro:'Très bien ! Ma voisine Mama Tisse va te parler des métiers.'},
+ tisse:{sc:'atelier',x:5.5,z:-5.5,ry:-0.4,name:'Mama Tisse',short:'Mama Tisse',role:'Tisserande',kind:'quiz',sujet:'metiers',nb:3,needs:'kuba',
+  look:{s:'f',h:0.96,skin:'#8a5a3e',c:'#8e44ad',k:'pagne',co:'chignon',faceKey:'portraits/mama'},
+  intro:['Bienvenue ! Ici on tisse, on coud, on forge, on vend.','Un bon artisan sait aussi compter. Montre-moi !'],
+  outro:'Félicitations ! Tu as terminé les vingt épisodes. Tu es un vrai champion du Congo !'}
+});
+STAGES.push(
+ {id:'aeroport',scene:'aeroport',name:'L’aéroport',icon:'✈️',npcs:['ndombe','nsimba']},
+ {id:'inga',scene:'inga',name:'Le barrage d’Inga',icon:'💡',npcs:['kimbembe','zola']},
+ {id:'virunga',scene:'virunga',name:'Parc des Virunga',icon:'🦍',npcs:['bahati','neema']},
+ {id:'zongo',scene:'zongo',name:'Les chutes de Zongo',icon:'🌊',npcs:['tuyindi','mfumu']},
+ {id:'atelier',scene:'atelier',name:'L’atelier des artisans',icon:'🎨',npcs:['kuba','tisse']}
 );
