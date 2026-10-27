@@ -126,7 +126,7 @@ export const NPC={
   outro:'Mission accomplie ! Tu gagnes 20 pièces et du tissu wax pour ta maison.'},
  bea:{sc:'ville',x:3,z:-6.6,ry:0,name:'Maman Béa',short:'Maman Béa',role:'Marchande',kind:'shop',
   look:{s:'f',h:.97,skin:'#744630',c:'#c0392b',k:'pagne',co:'nattes'}},
- mama:{sc:'maison',x:1.4,z:-0.8,ry:0,name:'Maman',short:'Maman',role:'À la maison',kind:'talk',
+ mama:{sc:'maison',x:1.0,z:-2.2,ry:0,name:'Maman',short:'Maman',role:'À la maison',kind:'talk',
   look:{s:'f',h:.97,skin:'#6b4028',c:'#d35400',k:'pagne',co:'tresses'}}
 };
 export const AUTOP={
@@ -139,6 +139,16 @@ export const ITEMS={
  rideau:{n:'Rideau en wax',p:10,t:1},tableau:{n:'Tableau du village',p:30},plante:{n:'Plante verte',p:15}
 };
 
+// Chantiers de la maison : se paient en pièces et en matériaux récoltés dans les mini-jeux (clés de RESS)
+export const CHANTIERS=[
+ {k:'murs',n:'Murs en briques',ico:'🧱',cout:{pieces:20,brique:12,sable:4},req:[],d:'Remplace les murs en terre par de solides murs en briques, dehors comme dedans.'},
+ {k:'toit',n:'Toit en tôle',ico:'🏠',cout:{pieces:20,fer:8,bois:4},req:['murs'],d:'Un toit en tôle qui ne fuit pas à la saison des pluies.'},
+ {k:'chambre',n:'Une chambre en plus',ico:'🛏️',cout:{pieces:30,brique:15,bois:6,ciment:3},req:['murs'],d:'Une nouvelle pièce avec deux lits et une armoire, côté est de la maison.'},
+ {k:'cuisine',n:'Une vraie cuisine',ico:'🍲',cout:{pieces:30,brique:15,fer:4,sable:5},req:['murs'],d:'Un foyer, une table et des marmites, côté ouest de la maison.'},
+ {k:'jardin',n:'Jardin fleuri',ico:'🌺',cout:{pieces:15,plante:8,bois:6},req:[],d:'Des pots de fleurs devant la maison.'},
+ {k:'solaire',n:'Panneaux solaires',ico:'☀️',cout:{pieces:50,cuivre:6,fer:6},req:['toit'],d:'De la lumière électrique dans toutes les pièces.'},
+ {k:'etage',n:'Un étage',ico:'🏢',cout:{pieces:60,brique:30,ciment:10,bois:10,fer:6},req:['chambre','toit'],d:'Un étage complet avec escalier, deux lits, bureau et bibliothèque.'}
+];
 
 // ---------- Créateur de personnage ----------
 export const SKIN_TONES=['#c58b62','#b07a50','#9a6641','#7a4a2e','#63391f','#4f3020','#3d2416','#d9a67c'];

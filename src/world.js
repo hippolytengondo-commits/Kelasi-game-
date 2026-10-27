@@ -63,16 +63,51 @@ export function buildVille(opts){
   patch(-4,1,64,3.2,0);patch(3,-2,11,9,0);patch(-20,-4,5,6,0);patch(34,0,14,3.2,0);patch(41,-3.5,4,6.5,0);
 
   // maison du joueur
-  const hx=-22,hz=-9;
-  box(g,8,2.7,5.4,new THREE.MeshStandardMaterial({map:T.earthWallTexture(),roughness:1}),hx,1.35,hz);
-  gableRoof(g,hx,2.7,hz,8,5.4,1.8,new THREE.MeshStandardMaterial({map:T.thatchTexture(),roughness:1}),std('#b99a55'),.7);
+  const hx=-22,hz=-9,mf=(opts&&opts.maison)||{};
+  const tinM=new THREE.MeshStandardMaterial({map:T.tinTexture(),roughness:.55,metalness:.35});
+  const wallM=mf.murs?new THREE.MeshStandardMaterial({map:T.brickTexture([198,108,62]),roughness:.9}):new THREE.MeshStandardMaterial({map:T.earthWallTexture(),roughness:1});
+  const roofM=mf.toit?tinM:new THREE.MeshStandardMaterial({map:T.thatchTexture(),roughness:1});
+  const gabM=std(mf.toit?'#cfc6b2':'#b99a55');
+  const ey=mf.etage?2.6:0;
+  const glass=()=>std('#e8f3fa',.2,{emissive:0x4da6d9,emissiveIntensity:.35});
+  box(g,8,2.7,5.4,wallM,hx,1.35,hz);
+  if(mf.etage){
+    box(g,8,2.6,5.4,mf.murs?wallM:std('#d9c7a0',.9),hx,2.7+1.3,hz);
+    box(g,8.4,.2,5.8,std('#cfc6b2'),hx,2.7,hz);
+    [-2.7,0,2.7].forEach(dx=>{box(g,1.1,1.0,.1,glass(),hx+dx,3.9,hz+2.72);box(g,1.25,.1,.14,std('#4a2f1b'),hx+dx,3.35,hz+2.74)});
+  }
+  gableRoof(g,hx,2.7+ey,hz,8,5.4,1.8,roofM,gabM,.7);
   box(g,1.3,2.1,.12,std('#4a2f1b',.8),hx,1.05,hz+2.72);
   box(g,1.5,.1,.3,std('#6e5a45'),hx,.05,hz+2.9);
   [-2.7,2.7].forEach(dx=>{
-    box(g,1.2,1.0,.1,std('#e8f3fa',.2,{emissive:0x4da6d9,emissiveIntensity:.35}),hx+dx,1.6,hz+2.72);
+    box(g,1.2,1.0,.1,glass(),hx+dx,1.6,hz+2.72);
     box(g,1.35,.12,.14,std('#4a2f1b'),hx+dx,1.08,hz+2.74);box(g,1.35,.12,.14,std('#4a2f1b'),hx+dx,2.12,hz+2.74);
   });
   boxes.push({x0:hx-4,x1:hx+4,z0:hz-2.7,z1:hz+2.7});
+  // chambre en plus (côté est) et cuisine (côté ouest)
+  if(mf.chambre){
+    box(g,4.4,2.5,4.6,wallM,hx+6.2,1.25,hz);gableRoof(g,hx+6.2,2.5,hz,4.4,4.6,1.2,roofM,gabM,.5);
+    box(g,1.0,.9,.1,glass(),hx+6.2,1.5,hz+2.32);box(g,1.1,.1,.14,std('#4a2f1b'),hx+6.2,1.0,hz+2.34);
+    boxes.push({x0:hx+4,x1:hx+8.4,z0:hz-2.3,z1:hz+2.3});
+  }
+  if(mf.cuisine){
+    box(g,4.4,2.5,4.6,wallM,hx-6.2,1.25,hz);gableRoof(g,hx-6.2,2.5,hz,4.4,4.6,1.2,roofM,gabM,.5);
+    box(g,1.0,.9,.1,glass(),hx-6.2,1.5,hz+2.32);
+    cyl(g,.22,.26,1.6,std('#5a5a5a',.5,{metalness:.4}),hx-7.4,3.3,hz-1,8);
+    boxes.push({x0:hx-8.4,x1:hx-4,z0:hz-2.3,z1:hz+2.3});
+  }
+  if(mf.solaire){
+    const pm=std('#1d3a63',.25,{metalness:.5});const sl=Math.atan2(1.8,2.7);
+    [-2.4,-.8,.8,2.4].forEach(dx=>{const p=box(g,1.4,.06,1.2,pm,hx+dx,2.7+ey+.98,hz+1.3);p.rotation.x=-sl});
+  }
+  if(mf.jardin){
+    const fm=['#e84a5f','#f9c74f','#ffffff','#ff8c42','#c77dff'];
+    [-4.2,-3.2,-1.9,1.9,3.2,4.2].forEach((dx,i)=>{
+      cyl(g,.45,.5,.25,std('#6b4226'),hx+dx,.12,hz+4.0,10);
+      for(let k=0;k<6;k++){const a=k/6*6.28,f=new THREE.Mesh(new THREE.SphereGeometry(.11,8,6),std(fm[(i+k)%fm.length],.6));f.position.set(hx+dx+Math.cos(a)*.22,.38+(k%2)*.12,hz+4.0+Math.sin(a)*.22);g.add(f)}
+      const lf=new THREE.Mesh(new THREE.SphereGeometry(.3,8,6),std('#2e8b57',.8));lf.scale.y=.5;lf.position.set(hx+dx,.3,hz+4.0);g.add(lf);
+    });
+  }
   // petit abri, bancs, jarres
   box(g,2.2,.12,.8,std('#7a4a26'),-26,.5,-4.2);box(g,.12,.5,.7,std('#6b4226'),-26.9,.25,-4.2);box(g,.12,.5,.7,std('#6b4226'),-25.1,.25,-4.2);
   colliders.push({x:-26,z:-4.2,r:1.1});
@@ -180,7 +215,7 @@ export function buildVille(opts){
   // herbe animée par le vent
   const grass=grassField({area:[-34,58,-15,15],count:34000,seed:5,exclude:(x,z)=>{
     if(Math.abs(z)<2.0&&x<27)return true;
-    if(x>-27&&x<-17&&z>-11.7&&z<-6.3)return true;            // maison
+    if(x>-27-(mf.cuisine?4.4:0)&&x<-17+(mf.chambre?4.4:0)&&z>-11.7&&z<-6.3)return true;            // maison
     if(x>26&&x<44&&z>-8&&z<5)return true;                     // cour de l'école
     if(x>0&&x<7&&z>-8&&z<-3)return true;                      // marché
     if(x>0&&x<8&&z>-5.5&&z<1.5)return true;
@@ -221,7 +256,7 @@ export function flagTexture(){
 }
 
 // ------------------------------------------------------------------ INTÉRIEURS
-function room(g,w,d,h,wallMat,floorMat,openFront){
+export function room(g,w,d,h,wallMat,floorMat,openFront){
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(w,d),floorMat);fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;g.add(fl);
   const back=new THREE.Mesh(new THREE.PlaneGeometry(w,h),wallMat);back.position.set(0,h/2,-d/2);back.receiveShadow=true;g.add(back);
   const left=new THREE.Mesh(new THREE.PlaneGeometry(d,h),wallMat);left.rotation.y=Math.PI/2;left.position.set(-w/2,h/2,0);left.receiveShadow=true;g.add(left);
@@ -279,10 +314,11 @@ export function buildClasse(){
   return {group:g,colliders,boxes,bounds,update(){},exit:{x:0,z:D/2-.9}};
 }
 
-export function buildMaison(items){
+export function buildMaison(items,mf){
+  mf=mf||{};
   const g=new THREE.Group();const colliders=[],boxes=[];
   const W=9.5,D=6.8,Hh=3.2;
-  room(g,W,D,Hh,new THREE.MeshStandardMaterial({map:T.earthWallTexture(),roughness:1}),new THREE.MeshStandardMaterial({map:T.woodTexture('#8d6238'),roughness:.9}));
+  room(g,W,D,Hh,mf.murs?new THREE.MeshStandardMaterial({map:T.plasterTexture('#efe3c8'),roughness:.95}):new THREE.MeshStandardMaterial({map:T.earthWallTexture(),roughness:1}),new THREE.MeshStandardMaterial({map:T.woodTexture('#8d6238'),roughness:.9}));
   // lit
   const bx=-3.2,bz=-2.2;
   box(g,2.2,.35,1.3,new THREE.MeshStandardMaterial({map:T.woodTexture('#7a4a26')}),bx,.3,bz);
@@ -321,6 +357,21 @@ export function buildMaison(items){
     for(let i=0;i<9;i++){const l=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),std(i%2?'#2e8b57':'#3a9a63',.8));l.scale.set(.6,1.6,.6);const a=i/9*6.28;l.position.set(4+Math.cos(a)*.15,.7+(i%3)*.15,-2.7+Math.sin(a)*.15);l.rotation.z=Math.cos(a)*.5;l.rotation.x=Math.sin(a)*.5;l.castShadow=true;g.add(l)}
     colliders.push({x:4,z:-2.7,r:.3});
   }
+  // table à plans : ouvre le chantier de la maison
+  const dk=new THREE.MeshStandardMaterial({map:T.woodTexture('#a87445'),roughness:.8});
+  box(g,1.2,.07,.75,dk,-1.0,.82,-.6);[[-.5,-.3],[.5,-.3],[-.5,.3],[.5,.3]].forEach(p=>box(g,.07,.82,.07,std('#4a2f1b'),-1.0+p[0],.41,-.6+p[1]));
+  box(g,.95,.02,.55,std('#bcd9f2',.6,{emissive:0x4da6d9,emissiveIntensity:.25}),-1.0,.875,-.6);
+  box(g,.4,.12,.12,std('#d9534f'),-.8,.93,-.5);
+  boxes.push({x0:-1.6,x1:-.4,z0:-.97,z1:-.23});
+  // portes des pièces construites
+  const dm=std('#4a2f1b',.8);
+  if(mf.chambre){box(g,.12,2.1,1.1,dm,W/2-.06,1.05,1.2)}
+  if(mf.cuisine){box(g,.12,2.1,1.1,dm,-W/2+.06,1.05,1.2)}
+  if(mf.etage){
+    for(let k=0;k<6;k++)box(g,.9,.18,.32,std('#a87445'),W/2-.6,.18+k*.34,-1.9+k*.28);
+    colliders.push({x:W/2-.7,z:-1.9,r:.4});
+  }
+  if(mf.solaire){const lp=new THREE.Mesh(new THREE.SphereGeometry(.2,12,10),std('#fff6cf',.4,{emissive:0xfff0b0,emissiveIntensity:1.4}));lp.position.set(0,Hh-.3,.5);g.add(lp);const pl=new THREE.PointLight(0xfff0c0,10,12,1.5);pl.position.set(0,Hh-.4,.5);g.add(pl)}
   const bounds={x0:-W/2+.5,x1:W/2-.5,z0:-D/2+.6,z1:D/2-.2};
   return {group:g,colliders,boxes,bounds,update(){},exit:{x:0,z:D/2-.9}};
 }
