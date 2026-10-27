@@ -15,8 +15,10 @@ const THEMES={
   com:{titre:'MARCHÉ DES AFFAIRES',sous:'Commerce et gestion',sol:0x6a7a6a,dalle:0xe2e0cf,accent:0x16a085,sky:{elev:48,azim:190},pil:'#a89a6a'},
   ped:{titre:'SALLE DES MAÎTRES',sous:'Apprendre à enseigner',sol:0x7a6a8a,dalle:0xe6dff0,accent:0x8e44ad,sky:{elev:42,azim:215},pil:'#9a8ab0'},
   lit:{titre:'TERRASSE DES LETTRES',sous:'Philosophie et latin',sol:0x8a5a4a,dalle:0xeedccf,accent:0xc0392b,sky:{elev:38,azim:225},pil:'#b08a7a'},
+  lin:{titre:'PLACE DES LANGUES',sous:'Nos langues nationales',sol:0x4a8a5a,dalle:0xf0e6b8,accent:0xf1c40f,sky:{elev:46,azim:200},pil:'#c9a24a'},
   or:{titre:'CARREFOUR DU SAVOIR',sous:'Histoire, géographie, civisme',sol:0x8a7a4a,dalle:0xe6d9b8,accent:0xc0392b,sky:{elev:36,azim:230},pil:'#b08a5a'}
 };
+THEMES.swa=THEMES.kik=THEMES.tsh=THEMES.lin;
 export function buildArene(matiere){
   const th=THEMES[matiere]||THEMES.fr;
   const g=new THREE.Group(),colliders=[],boxes=[],r=rng(77);

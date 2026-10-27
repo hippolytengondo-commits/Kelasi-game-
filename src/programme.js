@@ -8,6 +8,7 @@ import {C7,J7,K7} from './programme7.js';
 import {C8,J8,K8} from './programme8.js';
 import {C9,J9,K9} from './programme9.js';
 import {C10,J10,K10} from './programme10.js';
+import {C11,J11,K11} from './programme11.js';
 
 // Programme scolaire : niveau → matières → missions (titres). Les missions qui ont un contenu jouable
 // sont listées dans CONTENU, clé « niveau|matière|numéro ». Les autres s'affichent « bientôt ».
@@ -82,7 +83,12 @@ export const PROGRAMME=[
   {id:'mec',nom:'Section technique : mécanique',missions:L('Diagnostic de pannes','Organisation de l’atelier (5S)','Lire un plan','Entretien préventif')},
   {id:'com',nom:'Section commerciale et gestion',missions:L('Bilan et compte de résultat','Gestion des stocks','Création et fiscalité')},
   {id:'ped',nom:'Section pédagogique',missions:L('Le stage pratique','Éthique de l’enseignant')},
-  {id:'lit',nom:'Section littéraire : philosophie et latin',missions:L('Liberté, justice et société','Révision de latin')}]}
+  {id:'lit',nom:'Section littéraire : philosophie et latin',missions:L('Liberté, justice et société','Révision de latin')}]},
+ {id:'ln',nom:'Langues nationales',matieres:[
+  {id:'lin',nom:'Lingala',missions:L('Salutations et politesse','Les nombres de 1 à 10','La famille','Les animaux','Manger et boire','Phrases utiles','La nature et le temps','Au marché')},
+  {id:'swa',nom:'Swahili',missions:L('Salutations et politesse','Les nombres de 1 à 10','La famille','Les animaux','Manger et boire','Phrases utiles','Les jours de la semaine','Les couleurs')},
+  {id:'kik',nom:'Kikongo (bientôt)',missions:L('Salutations et politesse','Les nombres de 1 à 10','La famille','Les animaux','Manger et boire','Phrases utiles','La nature et le temps','Au marché')},
+  {id:'tsh',nom:'Tshiluba (bientôt)',missions:L('Salutations et politesse','Les nombres de 1 à 10','La famille','Les animaux','Manger et boire','Phrases utiles','La nature et le temps','Au marché')}]}
 ];
 
 // Contenu jouable : [explication (2 phrases), questions]
@@ -254,6 +260,6 @@ C['p1|ev|7']=M(['Protéger l’environnement, c’est garder propre notre quarti
 Object.assign(C,C2);
 Object.keys(JEUX).forEach(k=>{if(C[k])C[k].jeux=JEUX[k]});
 Object.keys(COLLECTES).forEach(k=>{if(C[k])C[k].collecte=COLLECTES[k]});
-[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6],[C7,J7,K7],[C8,J8,K8],[C9,J9,K9],[C10,J10,K10]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
+[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6],[C7,J7,K7],[C8,J8,K8],[C9,J9,K9],[C10,J10,K10],[C11,J11,K11]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
 export const CONTENU=C;
 export const missionCle=(n,m,i)=>n+'|'+m+'|'+i;
