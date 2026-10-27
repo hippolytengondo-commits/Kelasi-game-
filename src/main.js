@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {buildMarche,buildFleuve,buildSante,buildUniv} from './stages.js';
 import {buildBiblio,buildGare,buildFerme,buildForet,buildMusee} from './stages2.js';
 import {PROGRAMME,CONTENU,missionCle} from './programme.js';
+import * as CLOUD from './cloud.js';
+import {makeEspace} from './espace.js';
 import {buildAeroport,buildInga,buildVirunga,buildZongo,buildAtelier} from './stages4.js';
 import {buildWagenia,buildGaramba,buildTanganyika,buildSciences,buildRumba,buildPompiers,buildPoste,buildRecyclage,buildNumerique,buildPlace} from './stages5.js';
 import {buildStade,buildMine,buildObservatoire,buildPort,buildParlement} from './stages3.js';
@@ -25,7 +27,8 @@ const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp
 const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,adv:G.adv}))}catch(e){}}
+const getSave=()=>({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,adv:G.adv});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(getSave()))}catch(e){}CLOUD.planifierSauvegarde(getSave)}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
 const doorOpen=()=>doneNpc('lola');
@@ -357,6 +360,7 @@ function openBox(d){
 function closeDialog(){
   resetArmed=false;stopSpeech();spokeKey='';
   $('dlg').style.display='none';G.dialog=null;
+  if(G.depart){G.depart=false;$('dlg').style.zIndex='';return}
   if(G.ui==='photo'){G.mode='pview';PM.refresh();refreshHud();return}
   G.mode='play';
   $('actwrap').classList.remove('hide');
@@ -380,6 +384,7 @@ function renderDialog(){
   else if(d.kind==='map')h=htmlMap(d);
   else if(d.kind==='objs')h=htmlObjs(d);
   else if(d.kind==='prog')h=htmlProg(d);
+  else if(d.kind==='esp')h=Esp.html(d);
   box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
 }
@@ -406,7 +411,9 @@ function htmlQuiz(d){
     else h+=`<p>${esc(n.outro)}</p><p><b>${'★'.repeat(r.stars)+'☆'.repeat(3-r.stars)}</b> · +${d.gain} 🪙${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
     if(d.classe)h+=`<p style="font-size:13px">📘 <b>Tu retrouveras ça en classe :</b> ${esc(d.classe)}.</p>`;
     h+=`<button class="p" onclick="closeDialog()">Continuer</button>`;
-    if(d.back)h+=`<button onclick="progBack()">Autres missions</button>`;
+    if(d.backEsp==='mm')h+=`<button onclick="openEsp('mm')">Mes missions de classe</button>`;
+    else if(d.backEsp==='ens')h+=`<button onclick="openEsp()">Retour à l’espace enseignant</button>`;
+    else if(d.back)h+=`<button onclick="progBack()">Autres missions</button>`;
   }
   return h;
 }
@@ -442,6 +449,7 @@ function completeQuiz(d){
   let tissu=0;
   if(id==='mavungu'){G.adv.pieces+=20;G.adv.tissu+=2;tissu=2;d.gain+=20}
   d.res={stars:st,tissu:tissu};
+  if(String(id).startsWith('cur:')&&!d.preview)CLOUD.enregistrerResultat(String(id).slice(4),d.assign,st,d.errs);
   const nw=G.ui==='photo'?[]:newUnlocks(id);if(nw.length)setTimeout(()=>toast('Débloqué : '+nw.join(', ')),900);
   SFX.win();save();refreshHud();
   setTimeout(checkFin,0);setTimeout(()=>stageCheck(id),400);
@@ -512,6 +520,7 @@ function htmlMenu(){
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +`<button onclick="openProg()">🎓 Missions scolaires</button>`
+   +`<button onclick="openEsp()">👤 Mon compte : classe et sauvegarde</button>`
    +(G.ui==='photo'?'':`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`)
    +(G.ui==='photo'?`<button onclick="openCreatorFromPhoto()">🧍 Mon personnage (visage, tenue)</button>`:'')
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
@@ -820,11 +829,28 @@ function htmlProg(d){
 }
 function progGo(n,m){const d=G.dialog;d.niv=n||null;d.mat=m||null;renderDialog()}
 function progBack(){const d=G.dialog;openBox({kind:'prog',niv:d.backNiv,mat:d.backMat})}
-function startMission(nid,mid,i){
+function startMission(nid,mid,i,opt){
+  opt=opt||{};
   const niv=PROGRAMME.find(n=>n.id===nid),mat=niv.matieres.find(m=>m.id===mid),k=missionCle(nid,mid,i),c=CONTENU[k];
   if(!c)return;
   const n={name:'Mission '+(i+1)+' · '+mat.missions[i],role:niv.nom+' · '+mat.nom,intro:c.intro,outro:'Mission accomplie ! Bravo, tu as bien travaillé.'};
-  openBox({kind:'quiz',id:'cur:'+k,n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+  openBox({kind:'quiz',id:'cur:'+k,assign:opt.assignment||null,preview:!!opt.apercu,backEsp:opt.retourEsp?'mm':(opt.apercu?'ens':''),n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+}
+
+// ---------- Comptes, classes et missions de classe ----------
+const aProgression=()=>Object.keys(G.adv.done).length>0||G.adv.pieces>0;
+function appliquerSave(s){
+  G.nom=s.nom;G.ui=s.ui||'3d';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
+  G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{});G.sexe=G.look.s;G.adv=Object.assign(newAdv(),s.adv||{});
+  try{localStorage.setItem(KEY,JSON.stringify(getSave()))}catch(e){}
+  $('nom').value=G.nom;$('cont').textContent='Continuer · '+G.nom+' (niveau '+lvl()+')';$('cont').classList.remove('hide');
+  $('go').textContent='Nouvelle partie';$('go').className='';
+  if(G.mode!=='start'){buildScene();refreshHud()}
+}
+const Esp=makeEspace({G,esc,renderDialog,PROGRAMME,CONTENU,missionCle,startMission:(a,b,c,o)=>startMission(a,b,c,o),getSave,applySave:appliquerSave,aProgression});
+function openEsp(vue){
+  if(G.mode==='start'){G.depart=true;G.dialog={kind:'esp',vue:vue||'',msg:''};$('dlg').style.zIndex='9';renderDialog();return}
+  openBox({kind:'esp',vue:vue||'',msg:'',liste:null});
 }
 
 function openMap(){openBox({kind:'map'})}
@@ -1103,9 +1129,10 @@ $('go3d').onclick=()=>{
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=null;G.photo=G.sexe==='f'?'f1':'h1';
   save();enterPhoto(true);
 };
+$('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
@@ -1114,6 +1141,7 @@ const PA={makePlayer3D,playerChar,G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,door
 initPhoto(PA);const PM=PA.photo;
 function init(){
   const s=readSave();
+  CLOUD.vider();
   resize();applyQuality();
   if(s&&s.nom){
     G.nom=s.nom;G.ui=s.ui||'photo';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
