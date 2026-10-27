@@ -205,3 +205,39 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 #dlg button.nd-{background:transparent;color:#b0bec5;border:1px dashed #cfd8dc}
 #dlg button.nrev{animation:nrevp 1.2s ease-in-out infinite}
 @keyframes nrevp{50%{box-shadow:0 0 0 3px rgba(244,196,48,.9)}}
+
+/* ---- porte de sortie des missions ---- */
+#sortie{position:absolute;z-index:6;left:50%;top:34%;transform:translateX(-50%);width:min(88%,340px);background:#fff;color:#222;border-radius:16px;padding:14px;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px}
+#sortie.hide{display:none}
+#sortie span{font-size:13px;opacity:.8}
+#sortie div{display:flex;gap:8px;flex-direction:column}
+#sortie button{font:inherit;font-weight:700;border-radius:12px;padding:11px;border:2px solid #cfd8d2;background:#fff;cursor:pointer}
+#sortie button.p{background:#2e9e5b;border-color:#23824a;color:#fff}
+
+/* ---- page d'accueil (présentation) ---- */
+#welcome{position:absolute;inset:0;z-index:10;background:linear-gradient(180deg,#0b5f3a 0%,#1f7a4d 45%,#2e9e5b 100%);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(18px,env(safe-area-inset-bottom,0px));color:#fff;text-align:center}
+#welcome.hide{display:none}
+#welcome .wc{width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:10px;animation:wapp .7s ease-out}
+@keyframes wapp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.wlogo{filter:drop-shadow(0 8px 14px rgba(0,0,0,.35));animation:wflot 3s ease-in-out infinite;margin-top:8px}
+@keyframes wflot{50%{transform:translateY(-6px) rotate(-2deg)}}
+#welcome h1{margin:0;font-size:32px;letter-spacing:2px;text-shadow:0 3px 10px rgba(0,0,0,.35)}
+.wrub{display:flex;width:150px;height:6px;border-radius:3px;overflow:hidden}.wrub i{flex:1}.wrub i:nth-child(1){background:#007fff}.wrub i:nth-child(2){background:#f7d618}.wrub i:nth-child(3){background:#ce1021}
+.wslogan{margin:0;font-size:15px;font-weight:700;color:#ffe97a}
+.wbienv{margin:0;font-size:15px;line-height:1.45;background:rgba(255,255,255,.12);border-radius:14px;padding:12px 14px}
+.wlist{display:flex;flex-direction:column;gap:8px;width:100%;text-align:left}
+.wlist div{background:rgba(255,255,255,.95);color:#1d2b24;border-radius:14px;padding:10px 12px;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.wlist b{display:block;font-size:14px;color:#0b5f3a;margin-bottom:2px}
+.wlist span{font-size:13px;line-height:1.4}
+.wbtn{position:sticky;bottom:6px;width:100%;max-width:360px;font:inherit;font-size:19px;font-weight:800;padding:15px;border-radius:16px;border:0;background:#f7d618;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;animation:wpuls 1.8s ease-in-out infinite}
+@keyframes wpuls{50%{transform:scale(1.03)}}
+.wpied{margin:0;font-size:11px;opacity:.8}
+/* ---- vraie page d'accueil ---- */
+#start .hhead{display:flex;align-items:center;gap:10px}
+#start .hhead h2{font-size:22px}
+#start .hgrille{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#start .hsec{margin:6px 0 0;font-size:15px}
+#start .hide{display:none}
+#start{overflow:auto}
+#start{justify-content:flex-start}
+#start .card{margin:auto}

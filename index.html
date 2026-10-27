@@ -22,8 +22,9 @@
   <div id="pv" class="hide"></div>
   <div id="top" class="hud"><span id="stats"></span><button id="menu" aria-label="Menu">☰</button></div>
   <div id="info" class="hud"></div>
-  <div id="m3" class="hide"><div id="m3t"></div><div id="m3q"></div><div id="m3s"></div><div id="m3f"></div><div id="m3h">☝ Touche une réponse · glisse pour tourner la caméra · pince pour zoomer</div><div id="m3b"><button id="m3v">🔊 Réécouter</button><button id="m3w">🔭 Vue d’ensemble</button><button id="m3x">✖ Quitter la mission</button></div></div>
+  <div id="m3" class="hide"><div id="m3t"></div><div id="m3q"></div><div id="m3s"></div><div id="m3f"></div><div id="m3h">☝ Touche une réponse · glisse pour tourner la caméra · pince pour zoomer · 🚪 la porte SORTIE, derrière toi, ramène au quartier</div><div id="m3b"><button id="m3v">🔊 Réécouter</button><button id="m3w">🔭 Vue d’ensemble</button><button id="m3x">✖ Quitter la mission</button></div></div>
   <div id="mmw"><canvas id="mm" width="150" height="100" aria-label="Mini-carte"></canvas><div id="mml"></div><button id="mmb">🗺 Carte des lieux</button></div>
+  <div id="sortie" class="hide"><b>🚪 Retourner au quartier ?</b><span>La mission en cours sera quittée.</span><div><button id="sx" class="p">Oui, sortir</button><button id="sn">Rester dans la mission</button></div></div>
   <div id="bubble"></div>
   <div id="toast"></div>
   <div id="joy" class="hide"><div id="knob"></div></div>
@@ -32,17 +33,50 @@
   <button id="skip" class="hide">Passer</button>
   <div id="creator" class="hide"></div>
   <div id="dlg"></div>
+  <div id="welcome" class="hide">
+    <div class="wc">
+      <img class="wlogo" src="icons/logo.svg" alt="Logo BOYEKOLI PLAY" width="132" height="132">
+      <h1>BOYEKOLI PLAY</h1>
+      <div class="wrub"><i></i><i></i><i></i></div>
+      <p class="wslogan">Apprendre en jouant, de la 1re primaire aux humanités</p>
+      <p class="wbienv"><b>Bienvenue !</b> Ici, tu deviens <b>Kito</b>, un jeune explorateur de la République démocratique du Congo. Chaque bonne réponse fait grandir ton village, ta maison et ta ville. Prêt pour l’aventure ?</p>
+      <div class="wlist">
+        <div><b>🌍 Une aventure en 3D</b><span>Explore le quartier, entre dans l’école, la maison, le marché, le fleuve, la bibliothèque… Ta ville s’agrandit à chaque mission d’exploration réussie.</span></div>
+        <div><b>📚 Plus de 400 missions</b><span>De la 1re primaire à la 4e des humanités : français, mathématiques, sciences, histoire-géographie, civisme, lingala et swahili, sections technique, commerciale, pédagogique et littéraire.</span></div>
+        <div><b>🎮 Des mini-jeux</b><span>Cueille des mangues, pêche sur le fleuve, tire des penalties au stade, récolte briques, bois ou café à vendre au marché.</span></div>
+        <div><b>🏠 Ta maison évolue</b><span>Avec les matériaux gagnés : murs en briques, toit en tôle, chambre, cuisine, jardin, panneaux solaires, étage…</span></div>
+        <div><b>⭐ Un vrai suivi</b><span>Scores exacts, carnet de progression, carte des compétences et rappels de révision pour ne rien oublier.</span></div>
+        <div><b>🧭 Amina, ta grande sœur</b><span>Elle t’accompagne, te donne des conseils et t’encourage. Voix, musique et sons pour jouer avec plaisir.</span></div>
+        <div><b>🏫 Pour les écoles et les parents</b><span>Comptes élèves, enseignants (classes, devoirs, bilans en pourcentages), établissements et parents qui suivent les progrès.</span></div>
+        <div><b>🆓 Gratuit et léger</b><span>Jouer librement est gratuit, sans publicité, et l’application s’installe sur Android et iPhone.</span></div>
+      </div>
+      <button id="wcont" class="wbtn">Continuer ▶</button>
+      <p class="wpied">LEXARIS ACADÉMIE · fait avec cœur pour les enfants du Congo</p>
+    </div>
+  </div>
   <div id="start" class="hide">
     <div class="card">
-      <h2>BOYEKOLI PLAY</h2>
-      <p>Explore le village en 3D, accomplis des missions, gagne des pièces et meuble ta maison. Jouer est gratuit, sans inscription.</p>
-      <button id="cont" class="p hide"></button>
+      <div class="hhead"><img src="icons/logo.svg" alt="" width="54" height="54"><div><h2>BOYEKOLI PLAY</h2><p id="hstat">Bienvenue ! Choisis comment jouer.</p></div></div>
+      <div id="hcompte" class="hide">
+        <button id="cont" class="p hide"></button>
+        <div class="hgrille">
+          <button id="hmis">📚 Menu des missions</button>
+          <button id="hcla">🏫 Mes classes</button>
+          <button id="hhis">📒 Mon historique</button>
+          <button id="hcom">🗺 Mes compétences</button>
+          <button id="cpt2">👤 Mon compte</button>
+        </div>
+      </div>
+      <div id="hvisiteur">
+        <div class="row"><button id="hlog" class="p">🔑 Connexion</button><button id="hins">📝 Inscription</button></div>
+      </div>
+      <h3 class="hsec">🌍 Exploration libre</h3>
+      <p>Sans compte, gratuit : explore, joue et progresse. Ta partie reste sur cet appareil.</p>
       <input id="nom" maxlength="14" placeholder="Ton prénom (Kito par défaut)" autocomplete="off">
       <div class="row"><button id="fille" class="p">Une fille</button><button id="garcon">Un garçon</button></div>
-      <button id="go" class="p">Jouer librement : commencer l’aventure en 3D</button>
+      <button id="go" class="p">▶ Exploration libre : commencer l’aventure en 3D</button>
       <button id="inst" class="hide">📲 Installer l’application sur mon téléphone</button>
-      <button id="cpt">👤 Élève, enseignant : compte et classe</button>
-      <button id="go3d">Variante : aventure en photos</button>
+      <button id="cpt" class="hide">👤 Élève, enseignant, parent : compte et classe</button>
     </div>
   </div>
   <div id="load">Chargement du village…<i><b id="lb"></b></i></div>

@@ -18,6 +18,7 @@ import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 import {RESS,MJ,mjPos,marqueur,lancer} from './minijeux.js';
 import {extendVille} from './quartiers.js';
+import {createAudio} from './audio.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
 const KEY='kelas_game_v12';
@@ -29,10 +30,10 @@ const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
 const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,stock:{},maison:{},rev:{},xp:0,items:{},bought:{},fin:false});
-const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
+const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,music:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-const getSave=()=>({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,adv:G.adv});
+const getSave=()=>({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,music:G.music,adv:G.adv});
 function save(){try{localStorage.setItem(KEY,JSON.stringify(getSave()))}catch(e){}CLOUD.planifierSauvegarde(getSave)}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
@@ -43,24 +44,17 @@ const nbItems=()=>Object.keys(ITEMS).filter(k=>G.adv.items[k]).length;
 const storyDone=()=>['lola','ilunga','junior','mavungu'].every(doneNpc);
 const parler=n=>'Parler '+(/^le /.test(n.short)?n.short.replace(/^le /,'au '):'à '+n.short);
 
-// ---------- Sons ----------
-let AC=null;
-function beep(f,d,t,v,delay){
-  if(!G.sound)return;
-  try{
-    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
-    const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+(delay||0);
-    o.type=t||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.08,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);
-    o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d);
-  }catch(e){}
+// ---------- Sons et musique ----------
+const AUD=createAudio({sound:()=>G.sound,music:()=>G.sound&&G.music!==false});
+const SFX=AUD.SFX,MUS=AUD.Music;
+function humeurMusique(){
+  if(G.mode==='start')return 'accueil';
+  if(G.sc==='arene')return 'mission';
+  const S=SCENES[G.sc];return S&&S.interior?'maison':'village';
 }
-const SFX={
- ok:()=>{beep(660,.1);beep(880,.15,'sine',.08,.1)},
- ko:()=>beep(180,.25,'square',.04),
- coin:()=>beep(1200,.08,'triangle'),
- win:()=>{[523,659,784,1047].forEach((f,i)=>beep(f,.18,'sine',.08,i*.12))},
- step:()=>beep(90,.05,'sine',.02)
-};
+function majMusique(){MUS.humeur(humeurMusique());MUS.maj()}
+// les navigateurs exigent un geste de l'utilisateur avant de jouer du son : on démarre au premier toucher
+['pointerdown','keydown','touchend'].forEach(ev=>document.addEventListener(ev,()=>{AUD.unlock();majMusique()},{passive:true}));
 
 // ---------- Lecture à voix haute ----------
 const TTS=typeof window!=='undefined'&&'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined';
@@ -84,6 +78,7 @@ function speak(text,id){
     speechSynthesis.cancel();
     const v=VOICE[id]||VOICE._,u=new SpeechSynthesisUtterance(cleanText(text));
     u.lang='fr-FR';u.pitch=v.pitch;u.rate=v.rate;const vo=pickVoice(v.g);if(vo)u.voice=vo;
+    u.onstart=()=>MUS.baisser(true);u.onend=u.onerror=()=>MUS.baisser(false);
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -265,6 +260,7 @@ function buildScene(){
     addNpc('guide',{sc:'arene',x:-9.5,z:3.5,ry:1.0,name:NPC[gid].name,short:NPC[gid].short,look:gl});
   }
   snapCamera();
+  majMusique();
 }
 function addNpc(id,n){
   const obj=makeNpc(id,n);
@@ -406,7 +402,7 @@ function openBox(d){
 function closeDialog(){
   resetArmed=false;stopSpeech();spokeKey='';
   $('dlg').style.display='none';G.dialog=null;
-  if(G.depart){G.depart=false;$('dlg').style.zIndex='';return}
+  if(G.depart){G.depart=false;$('dlg').style.zIndex='';majAccueil();return}
   if(G.sc==='arene')quitterArene();
   if(G.ui==='photo'){G.mode='pview';PM.refresh();refreshHud();return}
   G.mode='play';
@@ -518,7 +514,7 @@ function jeuErreur(d,indice){d.errs++;d.j.err++;d.j.msg=indice||'Pas tout à fai
 function jeuFini(d){
   const first=d.j.err===0,coin=first?5:1;
   if(first)d.pts=(d.pts||0)+1;
-  d.gain+=coin;gain(coin,first?10:3);SFX.ok();
+  d.gain+=coin;gain(coin,first?10:3);SFX.bravo();
   d.ji++;
   if(d.ji>=d.jeux.length){
     if(d.qs.length){d.stage='q';d.qi=0;d.opts=null;d.bad=[];d.qerr=false}
@@ -571,7 +567,7 @@ function answerQ(i){
   const coin=d.rev?(first?2:0):(first?5:1);
   d.gain+=coin;d.fbFirst=first;
   gain(coin,first?(d.rev?4:10):3);
-  SFX.ok();d.stage='fb';renderDialog();
+  SFX.bravo();d.stage='fb';renderDialog();
 }
 function nextQ(){
   const d=G.dialog;
@@ -761,10 +757,12 @@ function htmlMenu(){
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
    +`<button onclick="cycleQuality()">Qualité graphique : ${QNAME[QUALITY]}</button>`
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
+   +`<button onclick="toggleMusic()">Musique : ${G.sound&&G.music!==false?'activée':'coupée'}</button>`
    +`<button onclick="toggleVoice()">Lecture à voix haute : ${G.voice?'activée':'coupée'}</button>`
    +`<button class="s" onclick="resetGame()">${G.dialog&&G.dialog.confirmReset?'Appuie encore pour tout effacer':'Recommencer une nouvelle partie'}</button>`;
 }
-function toggleSound(){G.sound=!G.sound;save();if(G.ui==='photo'){if(G.sound)PM.ambientOn();else PM.ambientOff()}renderDialog()}
+function toggleMusic(){G.music=G.music===false;if(G.music&&!G.sound)G.sound=true;save();majMusique();renderDialog()}
+function toggleSound(){G.sound=!G.sound;save();majMusique();if(G.ui==='photo'){if(G.sound)PM.ambientOn();else PM.ambientOff()}renderDialog()}
 function toggleVoice(){G.voice=!G.voice;if(!G.voice)stopSpeech();save();renderDialog()}
 let resetArmed=false;
 function resetGame(){
@@ -1019,6 +1017,12 @@ function loop(now){
   else updateCamera(dt);
   rig.follow();
   if(G.mode==='m3d'&&M3.actif())M3.mettreAJour(dt,tt,{x:G.x,z:G.z});
+  // porte de sortie de l'arène : proposer de rentrer au quartier
+  if(G.sc==='arene'&&G.mode==='m3d'){
+    const dp=Math.hypot(G.x,G.z-10.3);
+    if(dp<1.9&&!G.sortieDemandee){G.sortieDemandee=true;G.auto=null;G.joy.x=G.joy.y=0;$('sortie').classList.remove('hide')}
+    else if(dp>3.4)G.sortieDemandee=false;
+  }
   // interactions
   if(G.mode==='play'){
     const tg=nearby();
@@ -1128,7 +1132,7 @@ function startMission(nid,mid,i,opt){
 // ---------- Comptes, classes et missions de classe ----------
 const aProgression=()=>Object.keys(G.adv.done).length>0||G.adv.pieces>0;
 function appliquerSave(s){
-  G.nom=s.nom;G.ui=s.ui||'3d';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
+  G.nom=s.nom;G.ui='3d';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;G.music=s.music!==false;
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{});G.sexe=G.look.s;G.adv=Object.assign(newAdv(),s.adv||{});
   try{localStorage.setItem(KEY,JSON.stringify(getSave()))}catch(e){}
   $('nom').value=G.nom;$('cont').textContent='Continuer · '+G.nom+' (niveau '+lvl()+')';$('cont').classList.remove('hide');
@@ -1168,7 +1172,7 @@ const M3=createMission3D({
   scene,
   hud:p=>{$('m3t').textContent=p.prog?'Étape '+p.prog:'';$('m3q').textContent=p.q||'';$('m3s').textContent=p.sous||'';$('m3f').textContent=p.msg||''},
   voix:(t,force)=>{const v=(G.dialog&&(G.dialog.voice||G.dialog.id))||'ilunga';if(force){const w=G.voice;G.voice=true;speak(t,v);G.voice=w}else speak(t,v)},
-  sfx:n=>{if(n==='ok')SFX.ok();else SFX.ko()},
+  sfx:n=>{if(n==='ok')SFX.bravo();else SFX.ko()},
   pos:()=>({x:G.x,z:G.z}),
   recentrer:()=>{G.auto={x:0,z:5}},
   etape:(first,type)=>{
@@ -1217,6 +1221,8 @@ function quitterMission3D(){
 $('m3v').onclick=()=>M3.reecouter();
 $('m3w').onclick=basculerVue;
 $('m3x').onclick=quitterMission3D;
+$('sx').onclick=()=>{$('sortie').classList.add('hide');G.sortieDemandee=false;quitterMission3D()};
+$('sn').onclick=()=>{$('sortie').classList.add('hide');G.auto={x:0,z:5}};
 
 // ---------- Fin de mission : menu pour choisir la suite ----------
 function suivanteScolaire(d){
@@ -1620,16 +1626,36 @@ $('go').onclick=()=>{
   save();
   enterGame(true);
 };
-$('go3d').onclick=()=>{
-  const n=$('nom').value.trim()||'Kito';
-  G.nom=n;G.adv=newAdv();G.ui='photo';
-  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=null;G.photo=G.sexe==='f'?'f1':'h1';
-  save();enterPhoto(true);
-};
 $('cpt').onclick=()=>openEsp();
+// ---------- page d'accueil : présentation puis vraie page d'accueil ----------
+function majAccueil(){
+  const s=CLOUD.session(),sv=readSave(),a=!!(sv&&sv.nom);
+  $('hcompte').classList.toggle('hide',!(s||a));
+  $('hvisiteur').classList.toggle('hide',!!s);
+  $('cont').classList.toggle('hide',!a);
+  ['hmis','hhis','hcom'].forEach(i=>$(i).classList.toggle('hide',!a));
+  ['hcla','cpt2'].forEach(i=>$(i).classList.toggle('hide',!s));
+  $('hstat').textContent=s?('👤 '+s.pseudo+' · '+({eleve:'élève',enseignant:'enseignant',parent:'parent'}[s.role]||s.role)+(a?' · partie de '+sv.nom:'')):(a?'Partie en cours : '+sv.nom+' (niveau '+lvl()+')':'Bienvenue ! Choisis comment jouer.');
+}
+function entrerPuis(f){
+  $('cv').style.display='block';
+  if(G.ui==='photo')enterPhoto(false);else enterGame(false);
+  setTimeout(f,600);
+}
+function openEspForm(mode,role){
+  G.depart=true;G.dialog={kind:'esp',vue:'form',mode:mode,role:role||'eleve',msg:''};$('dlg').style.zIndex='9';renderDialog();
+}
+$('wcont').onclick=()=>{AUD.unlock();$('welcome').classList.add('hide');$('start').classList.remove('hide');majAccueil();majMusique()};
+$('hlog').onclick=()=>openEspForm('connecter');
+$('hins').onclick=()=>openEsp('');
+$('cpt2').onclick=()=>openEsp();
+$('hmis').onclick=()=>entrerPuis(openProg);
+$('hhis').onclick=()=>entrerPuis(openCarnet);
+$('hcom').onclick=()=>entrerPuis(openComp);
+$('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
@@ -1666,7 +1692,7 @@ function init(){
   CLOUD.vider();
   resize();applyQuality();
   if(s&&s.nom){
-    G.nom=s.nom;G.ui=s.ui||'photo';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
+    G.nom=s.nom;G.ui='3d';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;G.music=s.music!==false;
     G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{s:s.sexe||'f',skin:s.skin||3});G.sexe=G.look.s;
     G.adv=Object.assign(newAdv(),s.adv||{});
     $('nom').value=s.nom;
@@ -1679,7 +1705,8 @@ function init(){
   if(G.ui!=='photo'||!s||!s.nom){/* fond 3D inutile : la photo sert de décor */}
   $('cv').style.display='none';
   $('lb').style.width='100%';
-  setTimeout(()=>{$('load').classList.add('hide');$('start').classList.remove('hide')},150);
+  majAccueil();
+  setTimeout(()=>{$('load').classList.add('hide');$('welcome').classList.remove('hide')},150);
   G.mode='start';
   requestAnimationFrame(loop);
 }
