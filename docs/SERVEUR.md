@@ -28,5 +28,11 @@ Une classe rattachée à un établissement n’accepte de nouveaux élèves que 
 Un parent ne voit que les scores (missions libres) des enfants qui lui ont donné leur code parent ; il peut les retirer à tout moment.
 Les licences payantes ne sont pas activées par l’application : aucun paiement n’est simulé. L’activation se fait par l’administrateur de la plateforme (Supabase), après accord.
 
+## Comptes
+- **Élèves** : pseudonyme + date de naissance (JJMMAAAA) comme mot de passe. Aucune adresse e-mail n’est collectée. Compte créé par la fonction `inscription` (adresse interne `pseudo@users.kelasi.game`).
+- **Adultes (enseignants, parents)** : adresse **Gmail** + mot de passe (8 caractères minimum). Inscription par Supabase Auth (`/auth/v1/signup`) : un e-mail de confirmation est envoyé. Le profil (pseudonyme, rôle) est créé automatiquement par le déclencheur `handle_new_user` à partir des informations d’inscription ; seules les adresses Gmail et les rôles enseignant/parent sont acceptés.
+- **Mot de passe oublié (adultes)** : e-mail de récupération (`/auth/v1/recover`) ; le lien ramène sur le jeu qui propose de choisir un nouveau mot de passe.
+- À régler dans le tableau de bord Supabase (Authentication) : « Site URL » et « Redirect URLs » = adresse publique du jeu ; « Confirm email » activé ; pour un usage réel, brancher un serveur d’envoi d’e-mails (SMTP) car l’envoi par défaut est très limité.
+
 ## Pas encore fait
 Paiement en ligne (mobile money, carte), rôle administrateur de la plateforme dans l’application, récupération de mot de passe, limitation du nombre d’inscriptions par appareil, test de bout en bout des licences expirées sur la vraie base.

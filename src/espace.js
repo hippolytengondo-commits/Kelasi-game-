@@ -18,7 +18,10 @@ export function makeEspace(x){
 
   function html(d){
     const s=C.session();
+    if(d.vue==='nouveaumdp')return vueNouveauMdp(d);
     if(d.vue==='form')return vueForm(d);
+    if(d.vue==='oubli')return vueOubli(d);
+    if(d.vue==='attente')return vueAttente(d);
     if(!s)return vueAccueil(d);
     if(d.vue==='choix')return vueChoix(d);
     if(d.vue==='rejoindre')return vueRejoindre(d);
@@ -39,31 +42,119 @@ export function makeEspace(x){
 
   // ---------- accueil / formulaires ----------
   function vueAccueil(d){
-    return entete('👤 Mon compte')+`<p style="font-size:13px">Tu peux jouer sans compte. Un compte gratuit sert à garder ta progression sur plusieurs appareils et à rejoindre une classe.</p>`
-      +`<button onclick="espForm('creer','eleve')">Je suis un élève : créer mon compte</button>`
-      +`<button onclick="espForm('creer','enseignant')">Je suis un enseignant : créer mon compte</button>`
-      +`<button onclick="espForm('connecter')">J’ai déjà un compte : me connecter</button>`
-      +`<button onclick="espForm('creer','parent')">Je suis un parent : créer mon compte</button>`
-      +`<p style="font-size:12px;opacity:.75">Établissements scolaires : crée d’abord un compte enseignant.</p>`
+    return entete('👤 Mon compte')+msg(d)+`<p style="font-size:13px">Tu peux jouer sans compte. Un compte gratuit sert à garder ta progression sur plusieurs appareils et à rejoindre une classe.</p>`
+      +`<button onclick="espForm('creer','eleve')">🎒 Je suis un élève : créer mon compte</button>`
+      +`<button onclick="espForm('creer','enseignant')">👩‍🏫 Je suis enseignant : créer mon compte</button>`
+      +`<button onclick="espForm('creer','parent')">👨‍👩‍👧 Je suis parent : créer mon compte</button>`
+      +`<button class="p" onclick="espForm('connecter','eleve')">🔑 J’ai déjà un compte : me connecter</button>`
       +`<button class="s" onclick="closeDialog()">Fermer</button>`;
   }
+  const adulte=r=>r==='enseignant'||r==='parent';
   function vueForm(d){
-    const creer=d.mode==='creer';
-    return entete(creer?'Créer mon compte '+(d.role==='enseignant'?'enseignant':d.role==='parent'?'parent':'élève'):'Me connecter')+msg(d)
-      +`<p style="font-size:13px">${creer?'Choisis un pseudonyme (3 à 20 caractères : lettres, chiffres, point, tiret) et un mot de passe d’au moins 6 caractères. Aucune autre information n’est demandée.':'Entre ton pseudonyme et ton mot de passe.'}</p>`
-      +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
-      +`<input id="espMdp" type="password" maxlength="72" placeholder="Mot de passe" autocomplete="${creer?'new-password':'current-password'}">`
-      +`<button class="p" ${d.occupe?'disabled':''} onclick="espValider()">${d.occupe?'Un instant…':(creer?'Créer mon compte':'Me connecter')}</button>`
-      +`<button class="s" onclick="espGo('')">← Retour</button>`;
+    const creer=d.mode==='creer',ad=adulte(d.role);
+    let h=entete(creer?'Créer mon compte '+({enseignant:'enseignant',parent:'parent'}[d.role]||'élève'):'Me connecter')+msg(d);
+    if(!creer){
+      h+=`<div class="row"><button class="${ad?'':'p'}" onclick="espForm('connecter','eleve')">🎒 Élève</button><button class="${ad?'p':''}" onclick="espForm('connecter','enseignant')">👤 Adulte</button></div>`;
+    }
+    if(creer&&!ad){
+      h+=`<p style="font-size:13px">Choisis un pseudonyme (3 à 20 caractères : lettres, chiffres, point, tiret). Ton <b>mot de passe, c’est ta date de naissance</b> : tu ne l’oublieras jamais !</p>`
+       +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
+       +`<input id="espNaiss" inputmode="numeric" maxlength="10" placeholder="Date de naissance : JJ/MM/AAAA" autocomplete="off" value="${esc(d.naiss||'')}">`;
+    }else if(creer){
+      h+=`<p style="font-size:13px">Utilise ton adresse <b>Gmail</b> : elle sert à confirmer ton compte et à retrouver ton mot de passe si tu l’oublies. Le pseudonyme est le nom affiché dans le jeu.</p>`
+       +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme (nom affiché)" autocomplete="nickname" value="${esc(d.pseudo||'')}">`
+       +`<input id="espEmail" type="email" maxlength="80" placeholder="Adresse Gmail" autocomplete="email" value="${esc(d.email||'')}">`
+       +`<input id="espMdp" type="password" maxlength="72" placeholder="Mot de passe (8 caractères au moins)" autocomplete="new-password">`
+       +`<input id="espMdp2" type="password" maxlength="72" placeholder="Retape le mot de passe" autocomplete="new-password">`;
+    }else if(!ad){
+      h+=`<p style="font-size:13px">Entre ton pseudonyme et ta date de naissance.</p>`
+       +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
+       +`<input id="espNaiss" inputmode="numeric" maxlength="10" placeholder="Date de naissance : JJ/MM/AAAA" autocomplete="off">`;
+    }else{
+      h+=`<p style="font-size:13px">Entre ton adresse Gmail et ton mot de passe.</p>`
+       +`<input id="espPseudo" maxlength="80" placeholder="Adresse Gmail (ou pseudonyme)" autocomplete="username" value="${esc(d.pseudo||'')}">`
+       +`<input id="espMdp" type="password" maxlength="72" placeholder="Mot de passe" autocomplete="current-password">`;
+    }
+    h+=`<button class="p" ${d.occupe?'disabled':''} onclick="espValider()">${d.occupe?'Un instant…':(creer?'Créer mon compte':'Me connecter')}</button>`;
+    if(!creer&&ad)h+=`<button onclick="espGo('oubli')">Mot de passe oublié ?</button>`;
+    if(!creer&&!ad)h+=`<p style="font-size:12px;opacity:.8">Mot de passe oublié ? C’est ta date de naissance. Tu es enseignant ou parent ? Choisis « Adulte ».</p>`;
+    return h+`<button class="s" onclick="espGo('')">← Retour</button>`;
+  }
+  // « 12/03/2012 », « 12-03-2012 » ou « 12032012 » → 12032012 ; null si ce n'est pas une vraie date
+  function dateNaissance(t){
+    const c=String(t||'').replace(/\D/g,'');
+    if(c.length!==8)return null;
+    const j=+c.slice(0,2),m=+c.slice(2,4),a=+c.slice(4),an=new Date().getFullYear();
+    if(m<1||m>12||j<1||a<1950||a>an-3)return null;
+    const fin=new Date(a,m,0).getDate();if(j>fin)return null;
+    return c;
   }
   async function valider(){
-    const d=D(),pseudo=val('espPseudo'),mdp=document.getElementById('espMdp').value;
-    if(!pseudo||!mdp){maj({msg:'Écris ton pseudonyme et ton mot de passe.',erreur:true,pseudo:pseudo});return}
+    const d=D(),creer=d.mode==='creer',ad=adulte(d.role),pseudo=val('espPseudo');
+    if(creer&&!ad){
+      const dn=dateNaissance(val('espNaiss'));
+      if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true});return}
+      if(!dn){maj({msg:'Écris ta date de naissance sous la forme JJ/MM/AAAA (par exemple 14/03/2012).',erreur:true,pseudo:pseudo,naiss:val('espNaiss')});return}
+      maj({occupe:true,msg:'',pseudo:pseudo,naiss:val('espNaiss')});
+      const r=await C.inscrire(pseudo,dn,'eleve',null);
+      if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
+      maj({occupe:false,vue:'',msg:'',erreur:false,naiss:''});await synchroniser();return;
+    }
+    if(creer){
+      const email=val('espEmail'),m1=document.getElementById('espMdp').value,m2=document.getElementById('espMdp2').value;
+      if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true,email:email});return}
+      if(!C.estGmail(email)){maj({msg:'Écris une adresse Gmail valide (par exemple nom@gmail.com).',erreur:true,pseudo:pseudo,email:email});return}
+      if(m1.length<8){maj({msg:'Le mot de passe doit avoir au moins 8 caractères.',erreur:true,pseudo:pseudo,email:email});return}
+      if(m1!==m2){maj({msg:'Les deux mots de passe ne sont pas identiques.',erreur:true,pseudo:pseudo,email:email});return}
+      maj({occupe:true,msg:'',pseudo:pseudo,email:email});
+      const r=await C.inscrireAdulte(pseudo,email,m1,d.role);
+      if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
+      if(r.attente){maj({occupe:false,vue:'attente',email:email,msg:'',erreur:false});return}
+      maj({occupe:false,vue:'',msg:'',erreur:false});await synchroniser();return;
+    }
+    // connexion
+    let mdp;
+    if(ad){mdp=document.getElementById('espMdp').value}
+    else{const dn=dateNaissance(val('espNaiss'));mdp=dn||val('espNaiss')}
+    if(!pseudo||!mdp){maj({msg:ad?'Écris ton adresse Gmail et ton mot de passe.':'Écris ton pseudonyme et ta date de naissance.',erreur:true,pseudo:pseudo});return}
     maj({occupe:true,msg:'',pseudo:pseudo});
-    const r=d.mode==='creer'?await C.inscrire(pseudo,mdp,d.role,null):await C.connecter(pseudo,mdp);
+    const r=await C.connecter(pseudo,mdp);
     if(!r.ok){maj({occupe:false,msg:r.err,erreur:true,pseudo:pseudo});return}
     maj({occupe:false,vue:'',msg:'',erreur:false});
     await synchroniser();
+  }
+  // ---------- compte adulte : attente de confirmation, mot de passe oublié ----------
+  function vueAttente(d){
+    return entete('📧 Confirme ton adresse Gmail')+`<p style="font-size:14px">Un e-mail a été envoyé à <b>${esc(d.email||'')}</b>. Ouvre ta boîte Gmail (regarde aussi dans « Spam »), clique sur le lien de confirmation, puis reviens ici te connecter.</p>`
+      +`<button class="p" onclick="espForm('connecter','enseignant')">J’ai confirmé : me connecter</button><button class="s" onclick="closeDialog()">Fermer</button>`;
+  }
+  function vueOubli(d){
+    return entete('🔐 Mot de passe oublié')+msg(d)+`<p style="font-size:13px">Écris l’adresse Gmail de ton compte : tu recevras un e-mail avec un lien pour choisir un nouveau mot de passe.</p>`
+      +`<input id="espEmail" type="email" maxlength="80" placeholder="Adresse Gmail" autocomplete="email" value="${esc(d.email||'')}">`
+      +`<button class="p" ${d.occupe?'disabled':''} onclick="espOubli()">${d.occupe?'Un instant…':'Envoyer le lien'}</button>`+`<button class="s" onclick="espForm('connecter','enseignant')">← Retour</button>`;
+  }
+  async function oubli(){
+    const email=val('espEmail');
+    if(!C.estGmail(email)){maj({msg:'Écris une adresse Gmail valide.',erreur:true,email:email});return}
+    maj({occupe:true,msg:'',email:email});
+    const r=await C.demanderReset(email);
+    if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
+    maj({occupe:false,msg:'Si un compte existe avec cette adresse, un e-mail vient d’être envoyé. Ouvre-le et clique sur le lien (regarde aussi dans « Spam »).',erreur:false});
+  }
+  function vueNouveauMdp(d){
+    return entete('🔐 Nouveau mot de passe')+msg(d)+`<p style="font-size:13px">Choisis un nouveau mot de passe (8 caractères au moins).</p>`
+      +`<input id="espMdp" type="password" maxlength="72" placeholder="Nouveau mot de passe" autocomplete="new-password">`
+      +`<input id="espMdp2" type="password" maxlength="72" placeholder="Retape le mot de passe" autocomplete="new-password">`
+      +`<button class="p" ${d.occupe?'disabled':''} onclick="espNouveauMdp()">${d.occupe?'Un instant…':'Enregistrer'}</button>`;
+  }
+  async function nouveauMdp(){
+    const d=D(),m1=document.getElementById('espMdp').value,m2=document.getElementById('espMdp2').value;
+    if(m1.length<8){maj({msg:'Le mot de passe doit avoir au moins 8 caractères.',erreur:true});return}
+    if(m1!==m2){maj({msg:'Les deux mots de passe ne sont pas identiques.',erreur:true});return}
+    maj({occupe:true,msg:''});
+    const r=await C.nouveauMotDePasse(d.jeton,m1);
+    if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
+    maj({occupe:false,vue:'',jeton:null,msg:'Mot de passe changé. Tu es connecté.',erreur:false});await synchroniser();
   }
   // après connexion : récupérer ou envoyer la progression
   async function synchroniser(){
@@ -422,8 +513,9 @@ export function makeEspace(x){
     actions:{
       espGo:(v)=>{const d=D();maj({vue:v,msg:'',erreur:false,liste:(v==='classes'||v==='mm')?null:d.liste,ecoles:v==='ecole'?null:d.ecoles,enfants:v==='enfants'?null:d.enfants,pcode:v==='codeparent'?null:d.pcode})},
       espEcole:ouvrirEcole,espCreerEcole:creerEcole,espRejoindreEcole:rejoindreEcole,espAttacher:attacher,espLier:lier,espEnfant:ouvrirEnfant,espDelier:delier,
-      espForm:(mode,role)=>maj({vue:'form',mode:mode,role:role||'eleve',msg:'',erreur:false}),
-      espValider:valider,espChoisir:choisir,espSauver:sauver,espDeco:deco,
+      espForm:(mode,role)=>maj({vue:'form',mode:mode,role:role||'eleve',msg:'',erreur:false,occupe:false}),
+      espRecuperation:(jeton)=>maj({vue:'nouveaumdp',jeton:jeton,msg:'',erreur:false}),
+      espValider:valider,espOubli:oubli,espNouveauMdp:nouveauMdp,espChoisir:choisir,espSauver:sauver,espDeco:deco,
       espRejoindre:rejoindre,espJouer:jouer,
       espClasse:ouvrirClasse,espCreerClasse:creerClasse,espNouvDevoir:()=>maj({vue:'nouvdevoir',form:{sel:[]},msg:''}),
       espForme:forme,espBasc:basc,espPublier:publier,espPrevisu:previsu,espDevoir:ouvrirDevoir,espExport:exporterDevoir,espBilan:ouvrirBilan

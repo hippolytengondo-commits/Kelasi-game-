@@ -16,7 +16,13 @@ export const connecte=()=>!!session();
 function message(status,corps){
   const t=(corps&&(corps.erreur||corps.message||corps.msg||corps.error_description||corps.error))||'';
   if(status===0)return 'Pas de connexion Internet pour le moment. Réessaie plus tard.';
-  if(/Invalid login/i.test(t))return 'Pseudonyme ou mot de passe incorrect.';
+  if(/Invalid login/i.test(t))return 'Identifiant ou mot de passe incorrect.';
+  if(/already registered|already been registered/i.test(t))return 'Cette adresse Gmail a déjà un compte. Connecte-toi, ou utilise « Mot de passe oublié ».';
+  if(/rate limit|too many|seconds/i.test(t)||status===429)return 'Trop de demandes pour le moment. Réessaie dans quelques minutes.';
+  if(/Database error saving new user|Gmail est requise/i.test(t))return 'Une adresse Gmail valide est requise pour un compte adulte.';
+  if(/Email not confirmed/i.test(t))return 'Ton adresse Gmail n’est pas encore confirmée : ouvre l’e-mail reçu et clique sur le lien.';
+  if(/Password should be|weak/i.test(t))return 'Mot de passe trop faible : au moins 8 caractères.';
+  if(/same password/i.test(t))return 'Choisis un mot de passe différent de l’ancien.';
   if(/Code de classe inconnu/i.test(t))return 'Ce code de classe n’existe pas. Vérifie les lettres et les chiffres.';
   if(/Réservé aux enseignants/i.test(t))return 'Cette action est réservée aux enseignants.';
   if(/duplicate|déjà/i.test(t))return t&&!/duplicate/i.test(t)?t:'Cet élément existe déjà.';
@@ -41,13 +47,40 @@ export async function inscrire(pseudo,mdp,role,niveau){
   if(!r.ok)return r;
   return connecter(pseudo,mdp);
 }
-export async function connecter(pseudo,mdp){
-  const r=await appel('/auth/v1/token?grant_type=password',{method:'POST',body:{email:pseudo.trim().toLowerCase()+DOMAINE,password:mdp}});
+// identifiant : adresse Gmail (adultes) ou pseudonyme (élèves et anciens comptes)
+export async function connecter(identifiant,mdp){
+  const id=identifiant.trim().toLowerCase();
+  const r=await appel('/auth/v1/token?grant_type=password',{method:'POST',body:{email:id.includes('@')?id:id+DOMAINE,password:mdp}});
   if(!r.ok)return r;
   const s=stocker(r.data);
   const p=await appel('/rest/v1/profiles?select=pseudo,role,niveau&id=eq.'+s.uid,{token:s.access});
   if(p.ok&&p.data&&p.data[0]){s.pseudo=p.data[0].pseudo;s.role=p.data[0].role;s.niveau=p.data[0].niveau;ecrire(SK,s)}
   return {ok:true,data:s};
+}
+export const estGmail=e=>/^[^\s@]+@(gmail|googlemail)\.com$/i.test(String(e).trim());
+// compte adulte (enseignant, parent) : adresse Gmail + mot de passe ; Supabase envoie un e-mail de confirmation
+export async function inscrireAdulte(pseudo,email,mdp,role){
+  const r=await appel('/auth/v1/signup',{method:'POST',body:{email:email.trim().toLowerCase(),password:mdp,data:{pseudo:pseudo.trim(),role:role}}});
+  if(!r.ok)return r;
+  if(r.data&&r.data.access_token)return connecter(email,mdp); // confirmation non exigée par le serveur : connexion immédiate
+  return {ok:true,attente:true};
+}
+// mot de passe oublié : e-mail avec un lien pour choisir un nouveau mot de passe
+export function demanderReset(email){
+  const retour=typeof location!=='undefined'?location.origin+location.pathname:'';
+  return appel('/auth/v1/recover?redirect_to='+encodeURIComponent(retour),{method:'POST',body:{email:email.trim().toLowerCase()}});
+}
+// le lien de l'e-mail ramène sur le jeu avec un jeton dans l'adresse (#access_token=…&type=recovery)
+export function jetonRecuperation(){
+  if(typeof location==='undefined'||!/type=recovery/.test(location.hash||''))return null;
+  const h=new URLSearchParams(location.hash.slice(1));
+  try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+  return h.get('access_token')||null;
+}
+export async function nouveauMotDePasse(jeton,mdp){
+  const r=await appel('/auth/v1/user',{method:'PUT',token:jeton,body:{password:mdp}});
+  if(!r.ok)return r;
+  return connecter(r.data&&r.data.email||'',mdp);
 }
 function stocker(d){
   const s={access:d.access_token,refresh:d.refresh_token,exp:Date.now()+(d.expires_in||3600)*1000,uid:d.user&&d.user.id,pseudo:'',role:'eleve',niveau:null};

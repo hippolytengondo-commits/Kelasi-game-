@@ -127,10 +127,7 @@ export const NPC={
  bea:{sc:'ville',x:3,z:-6.6,ry:0,name:'Maman Béa',short:'Maman Béa',role:'Marchande',kind:'shop',
   look:{s:'f',h:.97,skin:'#744630',c:'#c0392b',k:'pagne',co:'nattes'}},
  mama:{sc:'maison',x:1.0,z:-2.2,ry:0,name:'Maman',short:'Maman',role:'À la maison',kind:'talk',
-  look:{s:'f',h:.97,skin:'#6b4028',c:'#d35400',k:'pagne',co:'tresses'}},
- // le guide : la grande sœur Amina accompagne le héros partout à l’extérieur (sc est mis à jour à chaque scène)
- amina:{sc:'',x:0,z:0,ry:0,name:'Amina',short:'Amina',role:'Ta grande sœur et guide',kind:'talk',guide:true,
-  look:{s:'f',h:.98,skin:'#7a4a2e',c:'#2e86de',k:'pagne',co:'tresses'}}
+  look:{s:'f',h:.97,skin:'#6b4028',c:'#d35400',k:'pagne',co:'tresses'}}
 };
 export const AUTOP={
  jer:{sc:'ville',x:11,z:3.2,ry:-1.2,name:'Jérémie',look:{s:'h',h:.9,skin:'#6b4028',c:'#27ae60',k:'uniforme',co:'courtes'}},
