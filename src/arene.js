@@ -11,6 +11,10 @@ const THEMES={
   sc:{titre:'CLAIRIÈRE DES DÉCOUVERTES',sous:'Observer et comprendre',sol:0x3f8a4a,dalle:0xcfe6c4,accent:0x27ae60,sky:{elev:46,azim:210},pil:'#7a9a6a'},
   ev:{titre:'CLAIRIÈRE DES DÉCOUVERTES',sous:'Observer et comprendre',sol:0x3f8a4a,dalle:0xcfe6c4,accent:0x27ae60,sky:{elev:46,azim:210},pil:'#7a9a6a'},
   hg:{titre:'CARREFOUR DU SAVOIR',sous:'Histoire, géographie, civisme',sol:0x8a7a4a,dalle:0xe6d9b8,accent:0xc0392b,sky:{elev:36,azim:230},pil:'#b08a5a'},
+  mec:{titre:'ATELIER DES TECHNICIENS',sous:'Mécanique et techniques',sol:0x7a6a5a,dalle:0xd8d2c8,accent:0xe67e22,sky:{elev:44,azim:200},pil:'#8a8a8a'},
+  com:{titre:'MARCHÉ DES AFFAIRES',sous:'Commerce et gestion',sol:0x6a7a6a,dalle:0xe2e0cf,accent:0x16a085,sky:{elev:48,azim:190},pil:'#a89a6a'},
+  ped:{titre:'SALLE DES MAÎTRES',sous:'Apprendre à enseigner',sol:0x7a6a8a,dalle:0xe6dff0,accent:0x8e44ad,sky:{elev:42,azim:215},pil:'#9a8ab0'},
+  lit:{titre:'TERRASSE DES LETTRES',sous:'Philosophie et latin',sol:0x8a5a4a,dalle:0xeedccf,accent:0xc0392b,sky:{elev:38,azim:225},pil:'#b08a7a'},
   or:{titre:'CARREFOUR DU SAVOIR',sous:'Histoire, géographie, civisme',sol:0x8a7a4a,dalle:0xe6d9b8,accent:0xc0392b,sky:{elev:36,azim:230},pil:'#b08a5a'}
 };
 export function buildArene(matiere){

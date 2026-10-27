@@ -229,10 +229,12 @@ function construireVille(){
   ext.lots.forEach(l=>{const dd=SCENES[l.scene].doors[0];dd.tx=l.retour.x;dd.tz=l.retour.z;dd.phi=l.retour.phi});
   return w;
 }
+// libère la mémoire graphique des scènes quittées (important sur téléphone)
+function liberer(o){o.traverse(c=>{if(c.geometry)c.geometry.dispose();const m=c.material;if(m)(Array.isArray(m)?m:[m]).forEach(x=>x.dispose())})}
 function clearScene(){
-  if(W){scene.remove(W.group)}
-  if(playerObj)scene.remove(playerObj);
-  Object.values(npcObjs).forEach(o=>scene.remove(o.obj));
+  if(W){scene.remove(W.group);liberer(W.group)}
+  if(playerObj){scene.remove(playerObj);liberer(playerObj)}
+  Object.values(npcObjs).forEach(o=>{scene.remove(o.obj);liberer(o.obj)});
   npcObjs={};
 }
 let curSky='';

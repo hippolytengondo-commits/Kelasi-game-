@@ -6,6 +6,8 @@ import {C5,J5,K5} from './programme5.js';
 import {C6,J6,K6} from './programme6.js';
 import {C7,J7,K7} from './programme7.js';
 import {C8,J8,K8} from './programme8.js';
+import {C9,J9,K9} from './programme9.js';
+import {C10,J10,K10} from './programme10.js';
 
 // Programme scolaire : niveau → matières → missions (titres). Les missions qui ont un contenu jouable
 // sont listées dans CONTENU, clé « niveau|matière|numéro ». Les autres s'affichent « bientôt ».
@@ -44,7 +46,43 @@ export const PROGRAMME=[
   {id:'fr',nom:'Français',missions:L('Les subordonnées','Le discours direct et indirect','Les temps du passé','Le style et les figures de style','L’analyse littéraire','La lecture d’un roman ou d’une nouvelle','Le résumé de texte','La dissertation littéraire','La dissertation argumentative','Le débat et l’exposé oral')},
   {id:'ma',nom:'Mathématiques',missions:L('Les puissances et racines','Les identités remarquables','Les équations et inéquations','Les systèmes d’équations','Les fonctions linéaires','Les fonctions affines','La géométrie du cercle','Les théorèmes de Thalès et Pythagore','Les vecteurs simples','Les statistiques','Les probabilités simples','Les problèmes de synthèse')},
   {id:'sc',nom:'Sciences',missions:L('La structure de la matière','Les réactions chimiques','Les acides et les bases','La génétique et l’hérédité','La reproduction humaine','Les maladies et l’immunité','L’électricité et les circuits','Les forces et les machines simples','L’énergie et ses transformations','L’environnement et les technologies')},
-  {id:'or',nom:'Orientation',missions:L('Les humanités scientifiques','Les humanités littéraires','Les humanités commerciales','Les humanités pédagogiques','Les humanités techniques et professionnelles','Choisir son orientation selon ses talents et projets')}]}
+  {id:'or',nom:'Orientation',missions:L('Les humanités scientifiques','Les humanités littéraires','Les humanités commerciales','Les humanités pédagogiques','Les humanités techniques et professionnelles','Choisir son orientation selon ses talents et projets')}]},
+ {id:'h1',nom:'1re humanités',matieres:[
+  {id:'fr',nom:'Français',missions:L('Le texte argumentatif','La versification et la poésie','La Négritude','La contraction de texte','Les registres littéraires')},
+  {id:'ma',nom:'Mathématiques',missions:L('Ensembles et logique','Le second degré : fonctions','Équations et inéquations du 2e degré','Trigonométrie','Géométrie analytique','Suites arithmétiques')},
+  {id:'sc',nom:'Sciences (physique, chimie, biologie)',missions:L('Cinématique','Les lois de Newton','La mole et la masse molaire','La mitose','Travail et énergie')},
+  {id:'hg',nom:'Histoire, géographie et civisme',missions:L('La Première Guerre mondiale','La Seconde Guerre mondiale','Les institutions de la RDC')},
+  {id:'mec',nom:'Section technique : mécanique',missions:L('Sécurité à l’atelier','Instruments de mesure','Les matériaux métalliques','Dessin technique')},
+  {id:'com',nom:'Section commerciale et gestion',missions:L('Bilan : actif et passif','Offre, demande et prix','La correspondance commerciale')},
+  {id:'ped',nom:'Section pédagogique',missions:L('Les stades de Piaget','Les méthodes d’enseignement')},
+  {id:'lit',nom:'Section littéraire : philosophie et latin',missions:L('Initiation à la philosophie','Initiation au latin')}]},
+ {id:'h2',nom:'2e humanités',matieres:[
+  {id:'fr',nom:'Français',missions:L('Le théâtre classique','Le roman réaliste et naturaliste','La littérature d’Afrique centrale','La dissertation','Le commentaire composé')},
+  {id:'ma',nom:'Mathématiques',missions:L('Exponentielle et logarithme','La dérivation','Suites géométriques','Variance et écart-type','Dénombrement et probabilités','Transformations du plan')},
+  {id:'sc',nom:'Sciences (physique, chimie, biologie)',missions:L('Les lentilles','Acides, bases et pH','La génétique mendélienne','Système nerveux et hormones','Courant alternatif et transformateurs')},
+  {id:'hg',nom:'Histoire, géographie et civisme',missions:L('La décolonisation de l’Afrique','La RDC de 1965 à 1997','La mondialisation')},
+  {id:'mec',nom:'Section technique : mécanique',missions:L('Le moteur à quatre temps','La transmission','Le freinage hydraulique','Usinage et soudure')},
+  {id:'com',nom:'Section commerciale et gestion',missions:L('Journal et grand livre','Notions de marketing','TVA et droit commercial')},
+  {id:'ped',nom:'Section pédagogique',missions:L('Préparer une leçon','Évaluer les élèves')},
+  {id:'lit',nom:'Section littéraire : philosophie et latin',missions:L('La connaissance','Verbes latins')}]},
+ {id:'h3',nom:'3e humanités',matieres:[
+  {id:'fr',nom:'Français',missions:L('L’existentialisme','La poésie moderne','La dissertation littéraire','Le discours argumentatif','Lire la presse')},
+  {id:'ma',nom:'Mathématiques',missions:L('Limites et continuité','Étude de fonctions','Primitives et intégrales','Nombres complexes','Loi binomiale','Géométrie dans l’espace')},
+  {id:'sc',nom:'Sciences (physique, chimie, biologie)',missions:L('Énergie mécanique et rendement','Magnétisme et induction','Chimie organique','Métabolisme cellulaire','Immunologie')},
+  {id:'hg',nom:'Histoire, géographie et civisme',missions:L('La Guerre froide','Les Grands Lacs','Ressources et développement durable')},
+  {id:'mec',nom:'Section technique : mécanique',missions:L('Résistance des matériaux','Pression et fluides','Électricité automobile','Maintenance et diagnostic')},
+  {id:'com',nom:'Section commerciale et gestion',missions:L('Gestion financière','Comptabilité analytique','Créer son entreprise')},
+  {id:'ped',nom:'Section pédagogique',missions:L('Psychologie de l’adolescent','Gestion de classe')},
+  {id:'lit',nom:'Section littéraire : philosophie et latin',missions:L('Morale et liberté','Expressions latines')}]},
+ {id:'h4',nom:'4e humanités',matieres:[
+  {id:'fr',nom:'Français',missions:L('La dissertation à l’Exétat','L’analyse de texte','La synthèse de documents','Grammaire et orthographe','Rapports et comptes rendus')},
+  {id:'ma',nom:'Mathématiques',missions:L('Révision : algèbre','Révision : analyse','Révision : trigonométrie et géométrie','Révision : probabilités et statistiques','Problèmes types','Récurrence et logique')},
+  {id:'sc',nom:'Sciences (physique, chimie, biologie)',missions:L('Révision : mécanique','Révision : électricité','Révision : chimie','Révision : biologie humaine','Révision : écologie')},
+  {id:'hg',nom:'Histoire, géographie et civisme',missions:L('La RDC contemporaine','Le monde actuel','Élections et civisme')},
+  {id:'mec',nom:'Section technique : mécanique',missions:L('Diagnostic de pannes','Organisation de l’atelier (5S)','Lire un plan','Entretien préventif')},
+  {id:'com',nom:'Section commerciale et gestion',missions:L('Bilan et compte de résultat','Gestion des stocks','Création et fiscalité')},
+  {id:'ped',nom:'Section pédagogique',missions:L('Le stage pratique','Éthique de l’enseignant')},
+  {id:'lit',nom:'Section littéraire : philosophie et latin',missions:L('Liberté, justice et société','Révision de latin')}]}
 ];
 
 // Contenu jouable : [explication (2 phrases), questions]
@@ -216,6 +254,6 @@ C['p1|ev|7']=M(['Protéger l’environnement, c’est garder propre notre quarti
 Object.assign(C,C2);
 Object.keys(JEUX).forEach(k=>{if(C[k])C[k].jeux=JEUX[k]});
 Object.keys(COLLECTES).forEach(k=>{if(C[k])C[k].collecte=COLLECTES[k]});
-[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6],[C7,J7,K7],[C8,J8,K8]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
+[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6],[C7,J7,K7],[C8,J8,K8],[C9,J9,K9],[C10,J10,K10]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
 export const CONTENU=C;
 export const missionCle=(n,m,i)=>n+'|'+m+'|'+i;
