@@ -2,19 +2,19 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import {leafyTree,palm,grassField,bush} from './nature.js';
 
-const std=(c,r,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:r===undefined?.85:r},o||{}));
-function box(g,w,h,d,m,x,y,z,ry){
+export const std=(c,r,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:r===undefined?.85:r},o||{}));
+export function box(g,w,h,d,m,x,y,z,ry){
   const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
   b.position.set(x,y,z);if(ry)b.rotation.y=ry;b.castShadow=true;b.receiveShadow=true;g.add(b);return b;
 }
-function cyl(g,rt,rb,h,m,x,y,z,seg){
+export function cyl(g,rt,rb,h,m,x,y,z,seg){
   const c=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||12),m);
   c.position.set(x,y,z);c.castShadow=true;c.receiveShadow=true;g.add(c);return c;
 }
-function rng(seed){let s=seed>>>0||1;return()=>((s=Math.imul(s^s>>>15,s|1),s^=s+Math.imul(s^s>>>7,s|61),((s^s>>>14)>>>0)/4294967296))}
+export function rng(seed){let s=seed>>>0||1;return()=>((s=Math.imul(s^s>>>15,s|1),s^=s+Math.imul(s^s>>>7,s|61),((s^s>>>14)>>>0)/4294967296))}
 
 // Toit à deux pans : deux dalles inclinées + pignons.
-function gableRoof(g,cx,cy,cz,w,d,rise,mat,gableMat,overhang){
+export function gableRoof(g,cx,cy,cz,w,d,rise,mat,gableMat,overhang){
   const oh=overhang||.5;
   const half=d/2+oh, len=w+oh*2;
   const slope=Math.atan2(rise,d/2);
@@ -43,7 +43,7 @@ function clouds(g){
   return out;
 }
 
-function tree(g,x,z,s,mango,cols,colliders,pal){
+export function tree(g,x,z,s,mango,cols,colliders,pal){
   const t=pal?palm(Math.floor(Math.abs(x*7+z*3))+2):leafyTree({kind:mango?'mango':'leafy',seed:Math.floor(Math.abs(x*13+z*7))+3,fruits:!!mango,trunk:3.0+((s*7)%1)*1.4});
   t.position.set(x,0,z);t.scale.setScalar(pal?1:s);g.add(t);
   if(colliders)colliders.push({x:x,z:z,r:(pal?.35:.6)*(pal?1:s)});
@@ -102,6 +102,10 @@ export function buildVille(opts){
   bd.position.set(bx,3.1,bz+.05);bd.castShadow=true;g.add(bd);
   colliders.push({x:bx-1.7,z:bz,r:.3},{x:bx+1.7,z:bz,r:.3});
 
+  // panneau « carte des lieux »
+  cyl(g,.07,.09,2.6,std('#5a3a22',.9),-9,1.3,-3.6,8);
+  const cm=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.5),new THREE.MeshStandardMaterial({map:T.textBoard([{t:'CARTE',s:70,y:.2},{t:'🛒 Marché · 🌊 Fleuve',s:34,y:.45,b:false,c:'#f1c40f'},{t:'🏥 Santé · 🎓 Université',s:34,y:.65,b:false,c:'#f1c40f'},{t:'Touche pour voyager',s:28,y:.85,b:false}],512,350,'#6b4a2a','#ffffff','#e0a526'),roughness:.7}));
+  cm.position.set(-9,2.5,-3.52);cm.castShadow=true;g.add(cm);colliders.push({x:-9,z:-3.6,r:.35});
   // banc
   box(g,2,.1,.5,std('#7a4a26'),9,.5,-5.2);box(g,.1,.5,.45,std('#4a2f1b'),8.1,.25,-5.2);box(g,.1,.5,.45,std('#4a2f1b'),9.9,.25,-5.2);
   colliders.push({x:9,z:-5.2,r:1.0});
@@ -206,7 +210,7 @@ export function buildVille(opts){
   return {group:g,colliders,boxes,dyn,bounds,update,mangoTree:dyn.mangoTree};
 }
 
-function flagTexture(){
+export function flagTexture(){
   const c=document.createElement('canvas');c.width=256;c.height=170;const x=c.getContext('2d');
   x.fillStyle='#007fff';x.fillRect(0,0,256,170);
   x.strokeStyle='#f7d618';x.lineWidth=40;x.beginPath();x.moveTo(-10,190);x.lineTo(270,-20);x.stroke();

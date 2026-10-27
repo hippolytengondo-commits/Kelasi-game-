@@ -59,5 +59,12 @@ export function createRig(renderer,scene,camera){
   rig.render=()=>{if(rig.composer&&rig.quality!=='low')rig.composer.render();else renderer.render(scene,camera)};
   rig.follow=()=>{sky.position.copy(camera.position)};
   rig.setSun=setSun;
+  // ambiance d'un lieu : hauteur du soleil, orientation, voile atmosphérique
+  rig.setSky=(o)=>{
+    o=o||{};
+    u.turbidity.value=o.turb===undefined?3.2:o.turb;u.rayleigh.value=o.ray===undefined?1.25:o.ray;
+    setSun(o.elev===undefined?34:o.elev,o.azim===undefined?205:o.azim);
+    rig.envTex=bakeEnv();scene.environment=rig.envTex;
+  };
   return rig;
 }

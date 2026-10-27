@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
+import {buildMarche,buildFleuve,buildSante,buildUniv} from './stages.js';
+import {buildBiblio,buildGare,buildFerme,buildForet,buildMusee} from './stages2.js';
+import {buildStade,buildMine,buildObservatoire,buildPort,buildParlement} from './stages3.js';
+import {STAGES,BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
 import {makeHuman,setFaces} from './chars.js';
 import {makePhotoChar} from './sprites.js';
 import {createRig} from './render.js';
@@ -151,11 +154,25 @@ function makeNpc(id,n){
   return makeHuman(npcLook(id,n.look));
 }
 const SCENES={
- ville:{build:()=>buildVille(),interior:false,doors:[
+ ville:{build:()=>buildVille(),interior:false,spots:[{x:-9,z:-2.2,r:2.6,label:'Carte des lieux',run:()=>openMap()}],doors:[
    {x:-22,z:-5.4,r:1.9,to:'maison',label:'Entrer dans la maison',tx:0,tz:1.0,phi:-Math.PI/2},
    {x:42,z:-5.3,r:2.6,to:'classe',label:'Entrer dans l’école',ok:()=>doorOpen(),closed:'Porte fermée',tx:0,tz:2.6,phi:-Math.PI/2}]},
  maison:{build:()=>buildMaison(G.adv.items),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}],
    spots:[{x:-1.6,z:-2.2,r:1.9,label:'Miroir : changer mon look',run:()=>openCreator('play')}]},
+marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},doors:[{x:-3.8,z:9.6,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ fleuve:{build:()=>buildFleuve(),interior:false,spawn:{x:0,z:6.5,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ sante:{build:()=>buildSante(),interior:false,spawn:{x:0,z:6.4,phi:-Math.PI/2},doors:[{x:-3.8,z:10,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ univ:{build:()=>buildUniv(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ biblio:{build:()=>buildBiblio(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ gare:{build:()=>buildGare(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ ferme:{build:()=>buildFerme(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ foret:{build:()=>buildForet(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ musee:{build:()=>buildMusee(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ stade:{build:()=>buildStade(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ mine:{build:()=>buildMine(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ observatoire:{build:()=>buildObservatoire(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ port:{build:()=>buildPort(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ parlement:{build:()=>buildParlement(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
 function clearScene(){
@@ -164,15 +181,21 @@ function clearScene(){
   Object.values(npcObjs).forEach(o=>scene.remove(o.obj));
   npcObjs={};
 }
+let curSky='';
 function buildScene(){
   clearScene();
   const S=SCENES[G.sc];
   W=S.build();scene.add(W.group);
   skyDome.visible=true;
+  const sk=(!S.interior&&W.sky)||null,skKey=sk?JSON.stringify(sk):'';
+  if(!S.interior&&skKey!==curSky){rig.setSky(sk||undefined);curSky=skKey}
   scene.environment=S.interior?null:rig.envTex;
-  hemi.intensity=S.interior?1.9:.45;
-  scene.fog.density=S.interior?.0006:.0052;
-  sun.intensity=S.interior?2.4:3.4;
+  const el=sk&&sk.elev!==undefined?sk.elev:34;
+  hemi.intensity=S.interior?1.9:(el<=0?1.1:.45);
+  scene.fog.density=S.interior?.0006:(W.fog||.0052);
+  scene.fog.color.set(el<=0?0x0b1330:el<14?0xe0b894:0xbcd0e0);
+  sun.color.set(el<=0?0x9db4ff:el<14?0xffb070:0xfff0d4);
+  sun.intensity=S.interior?2.4:(el<=0?.35:el<14?2.2:3.4);
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
@@ -242,6 +265,7 @@ function objective(){
   if(!a.ilunga)return 'Objectif : entre dans l’école et va voir la Professeure Ilunga.';
   if(!a.junior)return 'Objectif : rejoins Junior, assis dans la classe.';
   if(!a.mavungu)return 'Objectif : le Directeur Mavungu t’attend dans la classe.';
+  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st)&&G.ui!=='photo')return 'Objectif : ouvre la carte (panneau près de ta maison, ou menu ☰) et va ici : '+st.icon+' '+st.name+'.'}
   const n=nbItems(),t=Object.keys(ITEMS).length;
   if(n<t)return 'Objectif : cueille des mangues, révise et meuble ta maison ('+n+'/'+t+').';
   return 'Tu as tout accompli ! Continue à réviser pour gagner des étoiles.';
@@ -335,6 +359,7 @@ function renderDialog(){
   else if(d.kind==='shop')h=htmlShop(d);
   else if(d.kind==='menu')h=htmlMenu(d);
   else if(d.kind==='profile')h=htmlProfile(d);
+  else if(d.kind==='map')h=htmlMap(d);
   else if(d.kind==='objs')h=htmlObjs(d);
   box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
@@ -398,7 +423,7 @@ function completeQuiz(d){
   d.res={stars:st,tissu:tissu};
   const nw=G.ui==='photo'?[]:newUnlocks(id);if(nw.length)setTimeout(()=>toast('Débloqué : '+nw.join(', ')),900);
   SFX.win();save();refreshHud();
-  setTimeout(checkFin,0);
+  setTimeout(checkFin,0);setTimeout(()=>stageCheck(id),400);
 }
 function openTalk(id){
   const n=NPC[id];
@@ -465,6 +490,7 @@ function htmlMenu(){
    +`<h4>Ma maison</h4>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${a.items[k]?'✔':'—'}</b></div>`).join('')
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
+   +(G.ui==='photo'?'':`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`)
    +(G.ui==='photo'?`<button onclick="openCreatorFromPhoto()">🧍 Mon personnage (visage, tenue)</button>`:'')
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
    +`<button onclick="cycleQuality()">Qualité graphique : ${QNAME[QUALITY]}</button>`
@@ -677,6 +703,45 @@ function endCine(){
     'En chemin, cueille des mangues au manguier, vends-les à Maman Béa et meuble ta maison.']});
 }
 $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
+
+// ---------- Niveaux et carte ----------
+const stageDone=st=>st.npcs.every(doneNpc);
+const stageUnlocked=i=>i===0||stageDone(STAGES[i-1]);
+function stageStars(st){return st.npcs.reduce((a,id)=>a+(G.adv.stars[id]||0),0)}
+function openMap(){openBox({kind:'map'})}
+function htmlMap(){
+  let h='<h3>Carte des lieux</h3><p style="font-size:13px">Choisis un lieu. Chaque niveau se débloque quand tu as fini le précédent.</p>';
+  STAGES.forEach((st,i)=>{
+    const ok=stageUnlocked(i),n=st.npcs.filter(doneNpc).length,done=stageDone(st);
+    h+=`<button ${ok?'':'disabled'} onclick="travel('${st.id}')"><b>${st.icon} ${esc(st.name)}</b><br><small>${ok?(done?'✔ Terminé · ':'')+n+'/'+st.npcs.length+' personnes rencontrées · ★ '+stageStars(st):'🔒 Termine « '+esc(STAGES[i-1].name)+' » pour débloquer'}</small></button>`;
+  });
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function travel(id){
+  const st=STAGES.find(s=>s.id===id);if(!st)return;
+  const sc=SCENES[st.scene];
+  closeDialog();
+  G.sc=st.scene;
+  if(sc.spawn){G.x=sc.spawn.x;G.z=sc.spawn.z;G.phi=sc.spawn.phi}else{G.x=-12;G.z=0;G.phi=0}
+  G.near=null;hideBubble();buildScene();toast(st.icon+' '+st.name);
+  refreshHud();
+}
+function stageCheck(id){
+  // bonus à la fin d'un niveau, puis diplôme quand tout est terminé
+  const st=STAGES.find(s=>s.npcs.includes(id));
+  if(!st||!stageDone(st))return;
+  G.adv.stageBonus=G.adv.stageBonus||{};
+  if(!G.adv.stageBonus[st.id]){
+    G.adv.stageBonus[st.id]=true;gain(30,30);
+    toast(st.icon+' Niveau terminé : '+st.name+' ! +30 pièces');SFX.win();
+  }
+  if(STAGES.every(stageDone)&&!G.adv.diplome){
+    G.adv.diplome=true;save();
+    setTimeout(()=>openBox({kind:'info',title:'Diplôme de LEXARIS ACADÉMIE',i:0,lines:[
+      'Félicitations '+G.nom+' ! Tu as terminé les quinze épisodes, de l’école au Parlement.',
+      'Tu sais compter, lire, protéger la nature, prendre soin de ta santé, connaître ton pays et tes droits. Tu es un vrai citoyen et un champion !']}),1500);
+  }
+}
 
 // ---------- Profil et objets (mode photo) ----------
 function openProfile(){openBox({kind:'profile'})}
@@ -921,7 +986,7 @@ $('go3d').onclick=()=>{
 };
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');

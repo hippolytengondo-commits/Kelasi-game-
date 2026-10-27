@@ -13,7 +13,15 @@ Jeu d'aventure éducatif en 3D temps réel (Three.js) : village, école LEXARIS 
 npm install
 npm run build   # src/ -> dist/game.js
 ```
-Ouvrir `index.html` via un serveur statique. Déploiement : site statique (Netlify, `netlify.toml`).
+Ouvrir `index.html` via un serveur statique (voir « Publication » ci-dessous).
 
 ## Aventure photographique (mode principal)
 Lieux réalistes en photo (`img/scenes/`), personnages photographiques détourés (`img/chars/`), déplacement de lieu en lieu par les flèches, glisser pour regarder autour, ambiance sonore générée, dialogues lus à voix haute. Le mode 3D libre reste disponible (« Explorer en 3D (bêta) »).
+
+## Publication gratuite, sans publicité (GitHub Pages)
+
+1. Fusionner la branche de travail dans `main` (GitHub › « Compare & pull request » › « Merge »).
+2. Dépôt › Settings › Pages › **Source : GitHub Actions**.
+3. Le jeu est publié automatiquement à `https://<compte>.github.io/Kelasi-game-/` à chaque mise à jour de `main`.
+
+Aucune bannière publicitaire. Le jeu est aussi consultable via la page Artifact de Claude.
