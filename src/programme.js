@@ -1,5 +1,9 @@
 import {Q} from './data.js';
-import {C2,JEUX} from './programme2.js';
+import {C2,JEUX,COLLECTES} from './programme2.js';
+import {C3,J3,K3} from './programme3.js';
+import {C4,J4,K4} from './programme4.js';
+import {C5,J5,K5} from './programme5.js';
+import {C6,J6,K6} from './programme6.js';
 
 // Programme scolaire : niveau → matières → missions (titres). Les missions qui ont un contenu jouable
 // sont listées dans CONTENU, clé « niveau|matière|numéro ». Les autres s'affichent « bientôt ».
@@ -26,8 +30,8 @@ export const PROGRAMME=[
   {id:'ma',nom:'Mathématiques',missions:L('Les grands nombres','Les quatre opérations','Les fractions : notion et lecture','Comparer les fractions','Additionner des fractions simples','Les nombres décimaux','Comparer les décimaux','Addition et soustraction des décimaux','Multiplication des décimaux','Les pourcentages simples','Les unités de mesure et conversions','Le périmètre et l’aire','Le volume du cube et du pavé','Les problèmes de la vie courante','Révision et évaluation')},
   {id:'sc',nom:'Sciences, histoire-géographie et civisme',missions:L('La nutrition et la santé','Les maladies et leur prévention','Les écosystèmes de la RDC','La faune et la flore congolaises','L’eau, l’air et la pollution','Les énergies renouvelables','Les grandes périodes de l’histoire de la RDC','La géographie physique de la RDC','Les provinces et les villes principales','Les droits humains','La citoyenneté et la responsabilité','Le développement durable')}]},
  {id:'p6',nom:'6e primaire',matieres:[
-  {id:'fr',nom:'Français',missions:L('Révision grammaticale','Les fonctions avancées','La voix active et la voix passive','Le discours direct et indirect','Les temps du récit','Les connecteurs logiques','La lecture d’un texte argumentatif','L’idée principale et les idées secondaires','Le résumé de texte','La dissertation simple','Le compte rendu','La lettre formelle','Le débat oral','La correction et la réécriture','Préparation à l’examen')},
-  {id:'ma',nom:'Mathématiques',missions:L('Les nombres entiers et décimaux','Les quatre opérations sur les décimaux','Les fractions et les décimaux','Les pourcentages','La proportionnalité','Les échelles','Les mesures de longueur, masse et capacité','Les conversions complexes','Le périmètre et l’aire des figures','Le volume des solides','Les angles et les figures','Les statistiques simples','Les problèmes de la vie quotidienne','Les problèmes de l’examen','Révision générale et préparation à l’examen')},
+  {id:'fr',nom:'Français',missions:L('Révision grammaticale','Les fonctions avancées','La voix active et la voix passive','Le discours direct et indirect','Les temps du récit','Les connecteurs logiques','La lecture d’un texte argumentatif','L’idée principale et les idées secondaires','Le résumé de texte','La dissertation simple','Le compte rendu','La lettre formelle','Le débat oral','La correction et la réécriture','Préparation à l’épreuve de l’aventure')},
+  {id:'ma',nom:'Mathématiques',missions:L('Les nombres entiers et décimaux','Les quatre opérations sur les décimaux','Les fractions et les décimaux','Les pourcentages','La proportionnalité','Les échelles','Les mesures de longueur, masse et capacité','Les conversions complexes','Le périmètre et l’aire des figures','Le volume des solides','Les angles et les figures','Les statistiques simples','Les problèmes de la vie quotidienne','Les défis de l’épreuve de l’aventure','Révision générale et préparation à l’épreuve de l’aventure')},
   {id:'sc',nom:'Sciences, histoire-géographie et civisme',missions:L('Le corps humain et la reproduction','Les maladies courantes et la prévention','L’hygiène alimentaire','L’environnement et le changement climatique','Les ressources naturelles et leur gestion','Les technologies utiles à la communauté','L’histoire de la RDC avant et pendant la colonisation','L’indépendance et la RDC contemporaine','La géographie économique de la RDC','Les institutions de la RDC','Les droits humains et la citoyenneté','Projet citoyen de fin d’année')}]},
  {id:'s7',nom:'7e année',matieres:[
   {id:'fr',nom:'Français',missions:L('La phrase complexe','Les propositions','Les temps du récit','Les modes et les temps verbaux','L’analyse grammaticale','La lecture d’un texte littéraire','Le résumé','Le compte rendu','La dissertation simple','L’expression orale')},
@@ -209,5 +213,7 @@ C['p1|ev|7']=M(['Protéger l’environnement, c’est garder propre notre quarti
 
 Object.assign(C,C2);
 Object.keys(JEUX).forEach(k=>{if(C[k])C[k].jeux=JEUX[k]});
+Object.keys(COLLECTES).forEach(k=>{if(C[k])C[k].collecte=COLLECTES[k]});
+[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
 export const CONTENU=C;
 export const missionCle=(n,m,i)=>n+'|'+m+'|'+i;

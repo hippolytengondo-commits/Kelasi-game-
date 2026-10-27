@@ -185,3 +185,16 @@ export const JEUX={
  'p1|ma|9':[TRI('Trie les objets : fruits ou animaux ?',['Fruits','Animaux'],[['mangue','Fruits'],['chien','Animaux'],['banane','Fruits'],['lion','Animaux'],['orange','Fruits'],['chat','Animaux']])],
  'p1|ev|2':[TRI('Où vit chaque animal ? À la maison ou dans la forêt ?',['Maison','Forêt'],[['chien','Maison'],['poule','Maison'],['singe','Forêt'],['éléphant','Forêt'],['chèvre','Maison'],['lion','Forêt']])]
 };
+
+// ---------------- Missions « attrape dans l'air » : éléments flottants à collecter ----------------
+const COL=(consigne,items,indice,exp)=>({consigne:consigne,items:items.map(i=>[String(i[0]),i[1]]),indice:indice,exp:exp});
+export const COLLECTES={
+ 'p1|fr|0':[COL('Attrape toutes les voyelles !',[['a',1],['b',0],['e',1],['m',0],['i',1],['t',0],['o',1],['u',1],['r',0]],'Les voyelles sont a, e, i, o, u.','Bravo ! Les voyelles sont a, e, i, o, u.')],
+ 'p1|fr|1':[COL('Attrape toutes les consonnes !',[['b',1],['a',0],['m',1],['e',0],['t',1],['o',0],['l',1],['i',0],['s',1]],'Les consonnes sont les lettres qui ne sont pas des voyelles.','Bravo ! Ce sont toutes des consonnes.')],
+ 'p1|ma|1':[COL('Attrape les nombres de 6 à 10 !',[[3,0],[6,1],[9,1],[2,0],[8,1],[10,1],[7,1],[1,0]],'On cherche les nombres de 6 jusqu’à 10.','Bravo ! 6, 7, 8, 9 et 10.')],
+ 'p1|ma|3':[COL('Attrape les nombres plus grands que 15 !',[[12,0],[17,1],[20,1],[14,0],[19,1],[11,0],[16,1],[18,1]],'Il faut un nombre qui vient après 15.','Bravo ! 16, 17, 18, 19 et 20 sont plus grands que 15.')],
+ 'p2|fr|4':[COL('Attrape tous les verbes d’action !',[['courir',1],['table',0],['manger',1],['livre',0],['chanter',1],['rouge',0],['écrire',1]],'Un verbe d’action dit ce que l’on fait.','Bravo ! Courir, manger, chanter, écrire : ce sont des actions.')],
+ 'p2|fr|5':[COL('Attrape tous les mots au pluriel !',[['chats',1],['chat',0],['livres',1],['livre',0],['mangues',1],['mangue',0]],'Au pluriel, il y a plusieurs choses : le mot finit souvent par « s ».','Bravo ! Chats, livres, mangues : plusieurs choses.')],
+ 'p2|ma|0':[COL('Attrape les nombres plus grands que 50 !',[[48,0],[52,1],[67,1],[50,0],[75,1],[30,0],[91,1]],'Il faut un nombre qui vient après 50.','Bravo ! 52, 67, 75 et 91 sont plus grands que 50.')],
+ 'p2|ma|6':[COL('Attrape les doubles de 5, 10 et 20 !',[[10,1],[15,0],[20,1],[25,0],[40,1],[30,0]],'Le double de 5 est 10, de 10 est 20, de 20 est 40.','Bravo ! 10, 20 et 40.')]
+};

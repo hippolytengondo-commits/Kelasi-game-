@@ -3,6 +3,8 @@ import {buildMarche,buildFleuve,buildSante,buildUniv} from './stages.js';
 import {buildBiblio,buildGare,buildFerme,buildForet,buildMusee} from './stages2.js';
 import {PROGRAMME,CONTENU,missionCle} from './programme.js';
 import * as CLOUD from './cloud.js';
+import {buildArene} from './arene.js';
+import {createMission3D} from './mission3d.js';
 import {makeEspace} from './espace.js';
 import {buildAeroport,buildInga,buildVirunga,buildZongo,buildAtelier} from './stages4.js';
 import {buildWagenia,buildGaramba,buildTanganyika,buildSciences,buildRumba,buildPompiers,buildPoste,buildRecyclage,buildNumerique,buildPlace} from './stages5.js';
@@ -195,6 +197,7 @@ marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},
  recyclage:{build:()=>buildRecyclage(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
  numerique:{build:()=>buildNumerique(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
  place:{build:()=>buildPlace(),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]},
+ arene:{build:()=>buildArene(G.areneMat),interior:false,spawn:{x:0,z:5,phi:-Math.PI/2},doors:[]},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
 function clearScene(){
@@ -221,6 +224,7 @@ function buildScene(){
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
+  if(G.sc==='arene')addNpc('guide',{sc:'arene',x:-9.5,z:3.5,ry:1.0,name:'Professeure Ilunga',short:'la maîtresse',look:Object.assign({},NPC.ilunga.look,{faceKey:'portraits/ilunga'})});
   snapCamera();
 }
 function addNpc(id,n){
@@ -362,6 +366,7 @@ function closeDialog(){
   resetArmed=false;stopSpeech();spokeKey='';
   $('dlg').style.display='none';G.dialog=null;
   if(G.depart){G.depart=false;$('dlg').style.zIndex='';return}
+  if(G.sc==='arene')quitterArene();
   if(G.ui==='photo'){G.mode='pview';PM.refresh();refreshHud();return}
   G.mode='play';
   $('actwrap').classList.remove('hide');
@@ -492,6 +497,7 @@ function jeuTriPose(b){
 function nextLine(){
   const d=G.dialog,n=d.n||NPC[d.id];
   d.i++;
+  if(d.i>=n.intro.length&&d.m3d){lancerMission3D(d);return}
   if(d.i>=n.intro.length){d.qi=0;d.opts=null;if(d.jeux&&d.jeux.length){d.ji=0;d.stage='jeu';jeuInit(d)}else d.stage='q'}
   renderDialog();
 }
@@ -718,7 +724,7 @@ function missionTarget(){
 function drawMini(now){
   const cvm=$('mm'),w=$('mmw');
   if(!w||w.classList.contains('hide'))return;
-  if(G.mode==='mini'||G.ui==='photo'){w.style.display='none';return}
+  if(G.mode==='mini'||G.mode==='m3d'||G.sc==='arene'||G.ui==='photo'){w.style.display='none';return}
   w.style.display='';
   if(now-mmLast<90)return;mmLast=now;
   const B=W.bounds,bw=B.x1-B.x0,bh=B.z1-B.z0,cw=cvm.clientWidth||150;
@@ -757,7 +763,7 @@ function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
   if(!W||(G.ui==='photo'&&G.mode!=='creator'))return;
   drawMini(now*1);
-  const playing=G.mode==='play'||G.mode==='mini';
+  const playing=G.mode==='play'||G.mode==='mini'||G.mode==='m3d';
   // déplacement
   let sp=0;
   if(playing){
@@ -805,6 +811,7 @@ function loop(now){
   else if(G.mode==='start'){const a=tt*.08;camera.position.set(8+Math.cos(a)*34,9,2+Math.sin(a)*22);camera.lookAt(10,2,-2)}
   else updateCamera(dt);
   rig.follow();
+  if(G.mode==='m3d'&&M3.actif())M3.mettreAJour(dt,tt,{x:G.x,z:G.z});
   // interactions
   if(G.mode==='play'){
     const tg=nearby();
@@ -900,13 +907,15 @@ function htmlProg(d){
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
 }
 function progGo(n,m){const d=G.dialog;d.niv=n||null;d.mat=m||null;renderDialog()}
-function progBack(){const d=G.dialog;openBox({kind:'prog',niv:d.backNiv,mat:d.backMat})}
+function progBack(){quitterArene();const d=G.dialog;openBox({kind:'prog',niv:d.backNiv,mat:d.backMat})}
 function startMission(nid,mid,i,opt){
   opt=opt||{};
   const niv=PROGRAMME.find(n=>n.id===nid),mat=niv.matieres.find(m=>m.id===mid),k=missionCle(nid,mid,i),c=CONTENU[k];
   if(!c)return;
   const n={name:'Mission '+(i+1)+' · '+mat.missions[i],role:niv.nom+' · '+mat.nom,intro:c.intro,outro:'Mission accomplie ! Bravo, tu as bien travaillé.'};
-  openBox({kind:'quiz',id:'cur:'+k,assign:opt.assignment||null,preview:!!opt.apercu,backEsp:opt.retourEsp?'mm':(opt.apercu?'ens':''),n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,jeux:c.jeux||null,ji:0,j:null,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+  const m3d=G.ui==='3d';
+  if(m3d)entrerArene(mat.id);
+  openBox({kind:'quiz',id:'cur:'+k,m3d:m3d,collecte:c.collecte||null,assign:opt.assignment||null,preview:!!opt.apercu,backEsp:opt.retourEsp?'mm':(opt.apercu?'ens':''),n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,jeux:c.jeux||null,ji:0,j:null,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
 }
 
 // ---------- Comptes, classes et missions de classe ----------
@@ -921,9 +930,68 @@ function appliquerSave(s){
 }
 const Esp=makeEspace({G,esc,renderDialog,PROGRAMME,CONTENU,missionCle,startMission:(a,b,c,o)=>startMission(a,b,c,o),getSave,applySave:appliquerSave,aProgression});
 function openEsp(vue){
+  quitterArene();
   if(G.mode==='start'){G.depart=true;G.dialog={kind:'esp',vue:vue||'',msg:''};$('dlg').style.zIndex='9';renderDialog();return}
   openBox({kind:'esp',vue:vue||'',msg:'',liste:null});
 }
+
+// ---------- Missions en 3D : on joue dans l'arène ----------
+function entrerArene(mat){
+  if(G.sc!=='arene')G.retour={sc:G.sc,x:G.x,z:G.z,phi:G.phi,pitch:G.pitch};
+  G.areneMat=mat;G.sc='arene';G.x=0;G.z=5;G.phi=-Math.PI/2;G.pitch=.44;G.camOverride=7.4;G.near=null;hideBubble();buildScene();
+}
+function quitterArene(){
+  if(G.sc!=='arene'||!G.retour)return;
+  const r=G.retour;G.retour=null;
+  M3.arreter();$('m3').classList.add('hide');
+  G.sc=r.sc;G.x=r.x;G.z=r.z;G.phi=r.phi;G.pitch=r.pitch;G.camOverride=null;G.near=null;buildScene();
+}
+function etapesMission(d){
+  const a=[];
+  (d.collecte||[]).forEach(c=>a.push(Object.assign({type:'collecte'},c)));
+  (d.jeux||[]).forEach(j=>{
+    if(j.t==='ordre')a.push({type:'ordre',consigne:j.consigne,mots:j.mots,rep:j.rep,indice:j.indice});
+    else if(j.t==='tri')a.push({type:'tri',consigne:j.consigne,paniers:j.paniers,objets:j.objets,indice:j.indice});
+    else if(j.t==='panier')a.push({type:'panier',consigne:j.consigne,articles:j.articles,cible:j.cible,total:j.total});
+  });
+  d.qs.forEach(q=>a.push({type:'choix',q:q.q,choices:q.c,answer:q.a,exp:q.exp}));
+  return a;
+}
+const M3=createMission3D({
+  scene,
+  hud:p=>{$('m3t').textContent=p.prog?'Étape '+p.prog:'';$('m3q').textContent=p.q||'';$('m3s').textContent=p.sous||'';$('m3f').textContent=p.msg||''},
+  voix:(t,force)=>{if(force){const w=G.voice;G.voice=true;speak(t,'ilunga');G.voice=w}else speak(t,'ilunga')},
+  sfx:n=>{if(n==='ok')SFX.ok();else SFX.ko()},
+  etape:(first,type)=>{
+    const d=G.dialog;if(!d)return;
+    if(type==='choix'){G.adv.total++;if(first){G.adv.good++;d.firsts++}}
+    const coin=first?5:1;d.gain+=coin;gain(coin,first?10:3);
+  },
+  erreur:()=>{if(G.dialog)G.dialog.errs++},
+  fin:()=>finMission3D()
+});
+function lancerMission3D(d){
+  stopSpeech();
+  $('dlg').style.display='none';
+  G.mode='m3d';G.joy.x=G.joy.y=0;
+  $('actwrap').classList.add('hide');$('info').classList.add('hide');
+  $('m3').classList.remove('hide');
+  M3.demarrer(etapesMission(d));
+}
+function finMission3D(){
+  const d=G.dialog;if(!d)return;
+  M3.arreter();$('m3').classList.add('hide');$('info').classList.remove('hide');
+  G.camOverride=7.2;
+  completeQuiz(d);d.stage='out';
+  G.mode='dialog';G.joy.x=G.joy.y=0;resetKnob();
+  renderDialog();
+}
+function quitterMission3D(){
+  M3.arreter();$('m3').classList.add('hide');$('info').classList.remove('hide');
+  closeDialog();
+}
+$('m3v').onclick=()=>M3.reecouter();
+$('m3x').onclick=quitterMission3D;
 
 function openMap(){openBox({kind:'map'})}
 function htmlMap(){
@@ -1204,7 +1272,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{__M3:M3,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
