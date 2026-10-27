@@ -16,6 +16,7 @@ import {createRig} from './render.js';
 import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
+import {RESS,MJ,mjPos,marqueur,lancer} from './minijeux.js';
 
 const KEY='kelas_game_v12';
 const $=id=>document.getElementById(id);
@@ -25,7 +26,7 @@ const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])
 const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
-const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,xp:0,items:{},bought:{},fin:false});
+const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,stock:{},xp:0,items:{},bought:{},fin:false});
 const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
@@ -221,6 +222,7 @@ function buildScene(){
   scene.fog.color.set(el<=0?0x0b1330:el<14?0xe0b894:0xbcd0e0);
   sun.color.set(el<=0?0x9db4ff:el<14?0xffb070:0xfff0d4);
   sun.intensity=S.interior?2.4:(el<=0?.35:el<14?2.2:3.4);
+  W.mjMark=MJ[G.sc]?marqueur(G.sc):null;if(W.mjMark)W.group.add(W.mjMark);
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
@@ -337,6 +339,7 @@ function nearby(){
   Object.keys(NPC).forEach(id=>{const n=NPC[id];if(n.sc===G.sc){const d=dist(G.x,G.z,n.x,n.z);if(d<(n.kind==='shop'?3.9:2.7))out.push({t:'npc',id:id,d:d})}});
   SCENES[G.sc].doors.forEach((d,i)=>{const dd=dist(G.x,G.z,d.x,d.z);if(dd<d.r)out.push({t:'door',i:i,d:dd})});
   (SCENES[G.sc].spots||[]).forEach((sp,i)=>{const dd=dist(G.x,G.z,sp.x,sp.z);if(dd<sp.r)out.push({t:'spot',i:i,d:dd})});
+  if(MJ[G.sc]){const q=mjPos(G.sc),dd=dist(G.x,G.z,q.x,q.z);if(dd<q.r)out.push({t:'mj',d:dd})}
   if(G.sc==='ville'&&W.mangoTree){const dd=dist(G.x,G.z,W.mangoTree.x,W.mangoTree.z);if(dd<4)out.push({t:'tree',d:dd})}
   return out.sort((a,b)=>(a.t==='npc'?0:1)-(b.t==='npc'?0:1)||a.d-b.d);
 }
@@ -351,6 +354,7 @@ function actionFor(t){
     return {label:parler(n),enabled:true,run:()=>startQuiz(t.id,false)};
   }
   if(t.t==='tree')return {label:'Cueillir des mangues',enabled:true,run:startMini};
+  if(t.t==='mj')return {label:'Mini-jeu : '+MJ[G.sc].t,enabled:true,run:startMJ};
   if(t.t==='spot'){const sp=SCENES[G.sc].spots[t.i];return {label:sp.label,enabled:true,run:sp.run}}
   const d=SCENES[G.sc].doors[t.i];
   if(d.ok&&!d.ok())return {label:d.closed,enabled:false,run:null};
@@ -588,6 +592,7 @@ function htmlShop(d){
   const a=G.adv;
   let h=head('bea','Maman Béa · Marchande')+`<p>${esc(d.msg)}</p><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Mes mangues · tissu wax</span><b>${a.mangues} 🥭 · ${a.tissu}</b></p>`;
   if(a.mangues>0)h+=`<button onclick="sellMangoes()">Vendre mes ${a.mangues} mangues (+${a.mangues*2} 🪙)</button>`;
+  if(valeurSac()>0)h+=`<p class="row"><span>Mon sac</span><b>${esc(texteSac())}</b></p><button onclick="sellSac()">Vendre tout mon sac (+${valeurSac()} 🪙)</button>`;
   h+=Object.keys(ITEMS).map(k=>{
     const it=ITEMS[k];
     if(a.items[k])return `<button disabled>✔ ${esc(it.n)} (dans ta maison)</button>`;
@@ -595,6 +600,28 @@ function htmlShop(d){
   }).join('');
   if(G.ui!=='photo')h+=`<button onclick="shopMode()">👗 Mode : essayer tenues et coiffures</button>`;
   return h+`<button class="s" onclick="closeDialog()">Quitter le marché</button>`;
+}
+// ---------- Mini-jeux de ressources ----------
+const stock=()=>{const a=G.adv;if(!a.stock)a.stock={};return a.stock};
+const valeurSac=()=>Object.keys(stock()).reduce((t,k)=>t+(RESS[k]?stock()[k]*RESS[k].p:0),0);
+const texteSac=()=>Object.keys(stock()).filter(k=>RESS[k]&&stock()[k]>0).map(k=>stock()[k]+' '+RESS[k].e).join(' · ')||'vide';
+function sellSac(){
+  const v=valeurSac();if(!v)return;
+  G.adv.stock={};gain(v,0);SFX.coin();
+  G.dialog.msg='Merci ! Tout ton sac est vendu : +'+v+' pièces.';renderDialog();
+}
+let mjJeu=null;
+function startMJ(){
+  if(G.mode!=='play'||!MJ[G.sc])return;
+  G.mode='mj';G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;resetKnob();hideBubble();
+  mjJeu=lancer(G.sc,{host:$('world'),sfx:SFX,duree:window.__MJD||20,fin:(r)=>{
+    if(r&&r!=='fermer'){
+      if(r.res&&r.n){stock()[r.res]=(stock()[r.res]||0)+r.n}
+      if(r.pieces||r.n)gain(r.pieces,r.n);else save();
+      refreshHud();
+    }
+    if(!r||r==='fermer'){mjJeu=null;G.mode='play'}
+  }});
 }
 function sellMangoes(){
   const a=G.adv,n=a.mangues;
@@ -626,6 +653,7 @@ function htmlMenu(){
   const a=G.adv;
   const pu=photoUrl();
   return `<div class="hd">${pu?`<img class="pt" src="${pu}" alt="">`:''}<h3>${esc(G.nom)} · Niveau ${lvl()}</h3></div><p class="row"><span>Pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Tissu wax · mangues</span><b>${a.tissu} · ${a.mangues} 🥭</b></p>`
+   +`<p class="row"><span>Mon sac de matériaux</span><b>${esc(texteSac())}</b></p>`
    +`<p class="row"><span>Réponses justes du premier coup</span><b>${a.good}/${a.total}</b></p>`
    +`<h4>Missions</h4>`+['lola','ilunga','junior','mavungu'].map(id=>{
       const s=a.stars[id]||0;
@@ -882,7 +910,7 @@ function loop(now){
     if(o.wave>0)o.wave-=dt;
     o.obj.userData.update(dt,{cam:camera.position,talk:talking||(!!AUTOP[id]&&bub&&bub.who===id),wave:o.wave>0,sit:!!n.sit});
   });
-  W.update(dt,tt,{open:doorOpen()});
+  W.update(dt,tt,{open:doorOpen()});if(W.mjMark)W.mjMark.userData.update(tt);
   // soleil qui suit le joueur
   sun.position.set(G.x+rig.sunDir.x*70,rig.sunDir.y*70,G.z+rig.sunDir.z*70);sun.target.position.set(G.x,0,G.z);
   if(G.mode==='cine')cineStep(dt);
@@ -1457,7 +1485,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{startMini,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{startMini,startMJ,sellSac,openShop,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

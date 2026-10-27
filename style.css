@@ -159,3 +159,23 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 #dlg .mscore{font-size:38px;font-weight:900;text-align:center;color:#1f7a4d;animation:mpop .7s ease-out}
 #dlg button.j{background:#f4c430;border-color:#d9a400;color:#2b2110;text-align:center;font-weight:700}
 #dlg button.p{font-weight:700}
+
+/* ---- mini-jeux de ressources ---- */
+.mj{position:absolute;inset:0;z-index:7;background:rgba(14,24,20,.55);display:flex;flex-direction:column;touch-action:none;user-select:none;-webkit-user-select:none}
+.mjc{margin:auto;width:min(92%,420px);background:#fff;color:#222;border-radius:18px;padding:16px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px}
+.mjc h3{margin:0;font-size:19px}.mjc p{margin:0;font-size:14px;line-height:1.4}.mjg{background:#fff6d8;border-radius:10px;padding:6px 8px}
+.mjc button{font:inherit;font-weight:700;border-radius:12px;padding:11px;border:2px solid #cfd8d2;background:#fff;cursor:pointer}
+.mjc button.p{background:#2e9e5b;border-color:#23824a;color:#fff}
+.mjh{display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top,0px)) 14px 8px;color:#fff;font-size:15px}
+.mjh b{flex:1}.mjs{background:rgba(255,255,255,.2);padding:3px 10px;border-radius:12px;font-weight:700}.mjt{background:#f4c430;color:#2b2110;padding:3px 10px;border-radius:12px;font-weight:700}
+.mja{position:relative;flex:1;margin:0 10px 10px;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:2px solid rgba(255,255,255,.3)}
+.mjo{position:absolute;width:56px;height:56px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:32px;line-height:56px;padding:0;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.mjo.pop{animation:mjpop .18s ease-out}@keyframes mjpop{from{transform:scale(.2)}to{transform:scale(1)}}
+.mjz{position:absolute;left:36%;width:28%;top:0;bottom:0;background:rgba(255,236,120,.28);border-left:2px dashed #ffe97a;border-right:2px dashed #ffe97a;pointer-events:none}
+.mjl{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:2;font:inherit;font-weight:800;font-size:18px;padding:14px 30px;border-radius:16px;border:0;background:#2e9e5b;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.pen{background:linear-gradient(180deg,#5aa8e0 0%,#7cc2ee 38%,#3f9a4a 38%,#2f7d3a 100%)}
+.pen .but{position:absolute;left:8%;right:8%;top:8%;height:36%;border:5px solid #fff;border-bottom:0;display:flex;background:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 6px,transparent 6px 12px)}
+.pen .zone{flex:1;border:0;background:transparent;cursor:pointer}.pen .zone:active{background:rgba(255,255,255,.35)}
+.pen .gb{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:44px;transition:left .35s;pointer-events:none}
+.pen .bal{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);font-size:40px;transition:all .6s ease-out;pointer-events:none}
+.pen .pmsg{position:absolute;left:0;right:0;bottom:16%;text-align:center;color:#fff;font-weight:800;font-size:17px;text-shadow:0 2px 8px rgba(0,0,0,.6);margin:0;pointer-events:none}
