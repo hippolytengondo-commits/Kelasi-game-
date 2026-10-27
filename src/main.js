@@ -254,6 +254,9 @@ function buildScene(){
   sun.intensity=S.interior?2.4:(el<=0?.35:el<14?2.2:3.4);
   W.mjMark=MJ[G.sc]?marqueur(G.sc):null;if(W.mjMark)W.group.add(W.mjMark);
   playerObj=makePlayer();scene.add(playerObj);
+  // la grande sœur Amina suit le héros à l'extérieur
+  NPC.amina.sc=(!S.interior&&G.sc!=='arene')?G.sc:'';
+  if(NPC.amina.sc){NPC.amina.x=G.x-Math.cos(G.phi)*2.2+Math.sin(G.phi)*1.2;NPC.amina.z=G.z-Math.sin(G.phi)*2.2-Math.cos(G.phi)*1.2;NPC.amina.ry=G.phi}
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
   if(G.sc==='arene'){
@@ -271,7 +274,7 @@ function addNpc(id,n){
 
 // ---------- Collisions ----------
 const PR=.36;
-function collide(nx,nz){
+function collide(nx,nz,sansPnj){
   let x=nx,z=nz;
   const cs=W.colliders;
   for(let i=0;i<cs.length;i++){
@@ -291,7 +294,7 @@ function collide(nx,nz){
       }
     }
   });
-  Object.keys(npcObjs).forEach(id=>{
+  if(!sansPnj)Object.keys(npcObjs).forEach(id=>{
     const o=npcObjs[id].n;if(o.sit)return;
     const dx=x-o.x,dz=z-o.z,d=Math.hypot(dx,dz),m=.5+PR;
     if(d<m&&d>1e-4){x=o.x+dx/d*m;z=o.z+dz/d*m}
@@ -604,8 +607,24 @@ function completeQuiz(d){
   SFX.win();save();refreshHud();
   setTimeout(checkFin,0);setTimeout(()=>stageCheck(id),400);
 }
+const CONSEILS=[
+  'Récolte des matériaux dans les mini-jeux (l’anneau doré dans chaque lieu) pour agrandir ta maison.',
+  'La table à plans, dans ton salon, lance les chantiers de ta maison : murs, toit, chambre, étage…',
+  'Chaque mission d’exploration réussie ouvre un nouveau quartier : suis la route jaune !',
+  'Vends tes mangues et tes matériaux chez Maman Béa, au marché.',
+  'Pour avoir trois étoiles, réponds juste du premier coup. Tu peux réviser autant que tu veux.',
+  'Tu peux changer de caméra en faisant glisser un doigt, et zoomer avec deux doigts.'];
 function openTalk(id){
   const n=NPC[id];
+  if(n.guide){
+    const t=Object.keys(G.adv.done).length+(G.adv.total||0);
+    openBox({kind:'info',id:id,title:n.name+' · '+n.role,i:0,lines:[
+      'Salut '+G.nom+' ! Je suis Amina, ta grande sœur. Je t’accompagne partout.',
+      objective().replace('Objectif : ','Ton objectif : '),
+      'Un conseil : '+CONSEILS[t%CONSEILS.length],
+      'Courage, tu progresses très bien. Je suis fière de toi !']});
+    return;
+  }
   openBox({kind:'info',id:id,title:n.name+' · '+n.role,i:0,lines:[
     'Bonjour '+G.nom+' !',
     objective().replace('Objectif : ','Ton objectif : '),
@@ -971,11 +990,16 @@ function loop(now){
     const talking=G.dialog&&G.dialog.id===id&&G.mode==='dialog';
     let tr=n.ry||0;
     if(!n.sit&&(talking||d<5))tr=Math.atan2(G.x-n.x,G.z-n.z);
+    o.spd=0;
+    if(n.guide&&G.mode==='play'&&d>3.4){
+      const v=Math.min(4.6,1.5+(d-2.6)*1.6),c=collide(n.x+(G.x-n.x)/d*v*dt,n.z+(G.z-n.z)/d*v*dt,true);
+      n.x=c[0];n.z=c[1];o.obj.position.set(n.x,0,n.z);o.spd=v;tr=Math.atan2(G.x-n.x,G.z-n.z);
+    }
     if(n.sit&&talking)tr=Math.atan2(G.x-n.x,G.z-n.z)*.3+(n.ry||0)*.7;
     o.ry+=angDiff(o.ry,tr)*Math.min(1,dt*5);
     o.obj.rotation.y=o.ry;
     if(o.wave>0)o.wave-=dt;
-    o.obj.userData.update(dt,{cam:camera.position,talk:talking||(!!AUTOP[id]&&bub&&bub.who===id),wave:o.wave>0,sit:!!n.sit});
+    o.obj.userData.update(dt,{cam:camera.position,speed:o.spd||0,talk:talking||(!!AUTOP[id]&&bub&&bub.who===id),wave:o.wave>0,sit:!!n.sit});
   });
   W.update(dt,tt,{open:doorOpen()});if(W.mjMark)W.mjMark.userData.update(tt);
   // soleil qui suit le joueur
@@ -1536,8 +1560,7 @@ function enterGame(newGame){
   }
 }
 $('go').onclick=()=>{
-  const n=$('nom').value.trim();
-  if(!n){$('nom').focus();return}
+  const n=$('nom').value.trim()||'Kito';
   G.ui='3d';G.photo=G.sexe==='f'?'f1':'h1';$('cv').style.display='block';
   G.nom=n;G.adv=newAdv();G.real=null;
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe,hair:G.sexe==='f'?'tresses':'courtes'});
@@ -1545,8 +1568,7 @@ $('go').onclick=()=>{
   enterGame(true);
 };
 $('go3d').onclick=()=>{
-  const n=$('nom').value.trim();
-  if(!n){$('nom').focus();return}
+  const n=$('nom').value.trim()||'Kito';
   G.nom=n;G.adv=newAdv();G.ui='photo';
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=null;G.photo=G.sexe==='f'?'f1':'h1';
   save();enterPhoto(true);
