@@ -20,7 +20,7 @@ export const RESS={
 const L=(r,s,t,d)=>({r:r,s:s,t:t,d:d});
 export const MJ={
   marche:L('legume','fall','Récolte au marché','Rattrape les légumes qui tombent des étals. Évite les cailloux !'),
-  fleuve:L('poisson','peche','Pêche sur le fleuve','Appuie sur « Lancer » quand un poisson passe dans la zone claire.'),
+  fleuve:L('poisson','peche','Pêche sur le fleuve','Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'),
   sante:L('plante','tap','Plantes médicinales','Touche les plantes qui poussent pour les cueillir avant qu’elles disparaissent.'),
   univ:L('papier','fall','Feuilles du campus','Rattrape les feuilles de cours qui s’envolent.'),
   biblio:L('papier','tap','Rangement de la bibliothèque','Touche les feuilles et livres égarés pour les ramasser.'),
@@ -38,9 +38,9 @@ export const MJ={
   virunga:L('plante','tap','Plantes de Virunga','Touche les plantes rares pour les cueillir.'),
   zongo:L('bois','tap','Bois des chutes','Touche les troncs portés par l’eau pour les récupérer.'),
   atelier:L('brique','tap','Atelier du maçon','Touche les briques cuites pour les empiler.'),
-  wagenia:L('poisson','peche','Pêche Wagenia','Appuie sur « Lancer » quand un poisson passe dans la zone claire.'),
+  wagenia:L('poisson','peche','Pêche Wagenia','Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'),
   garamba:L('plante','tap','Savane de Garamba','Touche les herbes utiles pour les cueillir.'),
-  tanganyika:L('poisson','peche','Pêche sur le lac','Appuie sur « Lancer » quand un poisson passe dans la zone claire.'),
+  tanganyika:L('poisson','peche','Pêche sur le lac','Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'),
   sciences:L('cuivre','fall','Laboratoire','Rattrape les fils de cuivre qui tombent.'),
   rumba:L('cafe','fall','Café de la rumba','Rattrape les grains de café qui tombent.'),
   pompiers:L('sable','fall','Seaux de sable','Rattrape les seaux de sable lancés par les pompiers.'),
@@ -109,6 +109,7 @@ export function lancer(id,opt){
   }
   function demarrer(){
     if(c.s==='penalty')return penalty();
+    if(c.s==='peche')return pecher();
     const dur=opt.duree||20;
     box.innerHTML=`<div class="mjh"><b>${esc(c.t)}</b><span class="mjs">${R.e} 0</span><span class="mjt">${dur} s</span></div><div class="mja"></div>`
       +(c.s==='peche'?`<button class="p mjl" data-a="lancer">🎣 Lancer</button>`:'');
@@ -158,6 +159,66 @@ export function lancer(id,opt){
       raf=requestAnimationFrame(boucle);
     };
     etat={n:()=>n};
+    raf=requestAnimationFrame(boucle);
+  }
+  function pecher(){
+    clear();
+    const dur=opt.duree||20;
+    box.innerHTML=`<div class="mjh"><b>${esc(c.t)}</b><span class="mjs">🐟 0</span><span class="mjt">${dur} s</span></div>`
+      +`<div class="mja pe"><div class="ciel"><span class="bateau">🛶</span></div><div class="eau"></div><div class="canne"></div><div class="hame">🪝</div><p class="pmsg2">Touche l’eau à la profondeur du poisson, quand il passe sous la canne.</p></div>`;
+    const arene=box.querySelector('.mja'),sc=box.querySelector('.mjs'),tm=box.querySelector('.mjt');
+    const canne=box.querySelector('.canne'),hame=box.querySelector('.hame'),msg=box.querySelector('.pmsg2');
+    const W=()=>arene.clientWidth||300,H=()=>arene.clientHeight||300;
+    let n=0,t=dur,sp=.2,last=performance.now();const poissons=[];
+    let h={y:0,cible:0,etat:'repos'};
+    const top0=()=>H()*.2;
+    const poser=()=>{hame.style.top=h.y+'px';canne.style.height=Math.max(0,h.y-top0())+'px'};
+    h.y=top0();poser();
+    const SORTES=[['🐟',1,.62],['🐠',2,.2],['🐡',1,.1],['🥾',-1,.08]];
+    const tirer=()=>{let r=Math.random(),a=0;for(const x of SORTES){a+=x[2];if(r<a)return x}return SORTES[0]};
+    const flotte=(txt,x,y,bon)=>{const f=document.createElement('div');f.className='flot'+(bon?'':' mal');f.textContent=txt;f.style.left=x+'px';f.style.top=y+'px';arene.appendChild(f);setTimeout(()=>f.remove(),800)};
+    arene.addEventListener('pointerdown',e=>{
+      if(h.etat!=='repos')return;
+      const r=arene.getBoundingClientRect();
+      h.cible=Math.min(H()-30,Math.max(top0()+30,e.clientY-r.top));h.etat='descend';msg.style.display='none';
+    });
+    const boucle=(now)=>{
+      if(!vivant)return;
+      const dt=Math.min(.1,(now-last)/1000);last=now;t-=dt;sp-=dt;
+      tm.textContent=Math.max(0,Math.ceil(t))+' s';
+      if(sp<=0){
+        sp=.6+Math.random()*.6;
+        const so=tirer(),el=document.createElement('div');el.className='poi';el.textContent=so[0];arene.appendChild(el);
+        const g=Math.random()<.5;
+        poissons.push({el:el,e:so[0],v:so[1],x:g?-40:W(),y:top0()+50+Math.random()*(H()-top0()-110),vx:(g?1:-1)*(60+Math.random()*80),fait:false});
+        if(!g)el.style.transform='scaleX(-1)';
+      }
+      poissons.forEach(o=>{
+        if(o.fait)return;
+        o.x+=o.vx*dt;o.y+=Math.sin(now/500+o.x/40)*10*dt;
+        if(o.x<-70||o.x>W()+30){o.fait=true;o.el.remove();return}
+        o.el.style.left=o.x+'px';o.el.style.top=o.y+'px';
+      });
+      if(h.etat==='descend'){
+        h.y+=900*dt;
+        if(h.y>=h.cible){
+          h.y=h.cible;h.etat='monte';
+          const cx=W()/2;let best=null,bd=1e9;
+          poissons.forEach(o=>{if(o.fait)return;const dx=Math.abs(o.x+22-cx),dy=Math.abs(o.y+22-h.cible);if(dx<W()*.1+18&&dy<40&&dx+dy<bd){bd=dx+dy;best=o}});
+          if(best){
+            best.fait=true;best.el.remove();
+            if(best.v>0){n+=best.v;play('coin');flotte('+'+best.v,cx,h.cible-20,true)}
+            else{n=Math.max(0,n-1);play('ko');flotte('−1 🥾',cx,h.cible-20,false)}
+            sc.textContent='🐟 '+n;
+          }else{flotte('raté',cx,h.cible-20,false)}
+        }
+      }else if(h.etat==='monte'){
+        h.y-=700*dt;if(h.y<=top0()){h.y=top0();h.etat='repos'}
+      }
+      poser();
+      if(t<=0){poissons.forEach(o=>o.el.remove());return fin(n)}
+      raf=requestAnimationFrame(boucle);
+    };
     raf=requestAnimationFrame(boucle);
   }
   function penalty(){
