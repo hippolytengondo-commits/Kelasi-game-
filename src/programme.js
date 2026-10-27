@@ -4,6 +4,8 @@ import {C3,J3,K3} from './programme3.js';
 import {C4,J4,K4} from './programme4.js';
 import {C5,J5,K5} from './programme5.js';
 import {C6,J6,K6} from './programme6.js';
+import {C7,J7,K7} from './programme7.js';
+import {C8,J8,K8} from './programme8.js';
 
 // Programme scolaire : niveau → matières → missions (titres). Les missions qui ont un contenu jouable
 // sont listées dans CONTENU, clé « niveau|matière|numéro ». Les autres s'affichent « bientôt ».
@@ -214,6 +216,6 @@ C['p1|ev|7']=M(['Protéger l’environnement, c’est garder propre notre quarti
 Object.assign(C,C2);
 Object.keys(JEUX).forEach(k=>{if(C[k])C[k].jeux=JEUX[k]});
 Object.keys(COLLECTES).forEach(k=>{if(C[k])C[k].collecte=COLLECTES[k]});
-[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
+[[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6],[C7,J7,K7],[C8,J8,K8]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
 export const CONTENU=C;
 export const missionCle=(n,m,i)=>n+'|'+m+'|'+i;
