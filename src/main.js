@@ -606,10 +606,71 @@ $('menu').addEventListener('click',openMenu);
 // ---------- Boucle ----------
 let last=performance.now(),tt=0,stepT=0,autoT=3,autoIdx=0;
 function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d}
+// ---------- Mini-carte (GPS) ----------
+let mmBig=false,mmLast=0;
+function missionTarget(){
+  const a=G.adv.done;let ts=null,tn=null;
+  if(!a.lola){ts='ville';tn='lola'}
+  else if(!a.ilunga){ts='classe';tn='ilunga'}
+  else if(!a.junior){ts='classe';tn='junior'}
+  else if(!a.mavungu){ts='classe';tn='mavungu'}
+  else{
+    for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st)){ts=st.scene;tn=st.npcs.find(k=>!a[k])||st.npcs[0];break}}
+  }
+  if(!ts)return null;
+  if(G.sc===ts&&NPC[tn])return {x:NPC[tn].x,z:NPC[tn].z,label:NPC[tn].short||NPC[tn].name,kind:'npc'};
+  const S=SCENES[G.sc];
+  if(G.sc==='ville'){
+    const d=S.doors.find(d=>d.to===ts);
+    if(d)return {x:d.x,z:d.z,label:d.label,kind:'door'};
+    const sp=(S.spots||[]).find(s=>s.label==='Carte des lieux');
+    if(sp)return {x:sp.x,z:sp.z,label:'Panneau « Carte des lieux »',kind:'sign'};
+  }
+  const d=(S.doors||[])[0];
+  return d?{x:d.x,z:d.z,label:d.label||'Sortie',kind:'door'}:null;
+}
+function drawMini(now){
+  const cvm=$('mm'),w=$('mmw');
+  if(!w||w.classList.contains('hide'))return;
+  if(G.mode==='mini'||G.ui==='photo'){w.style.display='none';return}
+  w.style.display='';
+  if(now-mmLast<90)return;mmLast=now;
+  const B=W.bounds,bw=B.x1-B.x0,bh=B.z1-B.z0,cw=cvm.clientWidth||150;
+  const ch=Math.round(Math.max(.45*cw,Math.min(1.05*cw,cw*bh/bw)));
+  const px=cw*2,py=ch*2;if(cvm.width!==px||cvm.height!==py){cvm.width=px;cvm.height=py}
+  const c=cvm.getContext('2d'),pad=10,sc=Math.min((px-pad*2)/bw,(py-pad*2)/bh);
+  const ox=(px-bw*sc)/2-B.x0*sc,oz=(py-bh*sc)/2-B.z0*sc;
+  const X=x=>ox+x*sc,Z=z=>oz+z*sc;
+  c.clearRect(0,0,px,py);
+  c.fillStyle='rgba(30,60,40,.55)';c.fillRect(X(B.x0),Z(B.z0),bw*sc,bh*sc);
+  c.fillStyle='rgba(205,190,160,.75)';
+  (W.boxes||[]).forEach(b=>c.fillRect(X(b.x0),Z(b.z0),Math.max(2,(b.x1-b.x0)*sc),Math.max(2,(b.z1-b.z0)*sc)));
+  c.fillStyle='rgba(120,180,110,.8)';
+  (W.colliders||[]).forEach(o=>{const r=Math.max(1.5,Math.min(4,o.r*sc*.6));c.beginPath();c.arc(X(o.x),Z(o.z),r,0,6.3);c.fill()});
+  const S=SCENES[G.sc];
+  (S.doors||[]).forEach(d=>{c.fillStyle='#4fd18b';c.fillRect(X(d.x)-5,Z(d.z)-5,10,10)});
+  (S.spots||[]).forEach(s=>{c.fillStyle='#8ec9ff';c.save();c.translate(X(s.x),Z(s.z));c.rotate(.785);c.fillRect(-4,-4,8,8);c.restore()});
+  const tg=missionTarget(),pulse=(Math.sin(now/260)+1)/2;
+  Object.keys(NPC).concat(Object.keys(AUTOP)).forEach(id=>{const n=NPC[id]||AUTOP[id];if(n.sc!==G.sc)return;
+    c.fillStyle=G.adv.done[id]?'#9aa5b1':'#ffd34a';c.beginPath();c.arc(X(n.x),Z(n.z),4,0,6.3);c.fill()});
+  const pxp=X(G.x),pzp=Z(G.z);
+  if(tg){
+    const tx=X(tg.x),tz=Z(tg.z);
+    c.strokeStyle='rgba(255,90,80,.85)';c.lineWidth=2;c.setLineDash([6,6]);c.beginPath();c.moveTo(pxp,pzp);c.lineTo(tx,tz);c.stroke();c.setLineDash([]);
+    c.fillStyle='#ff4d4d';c.beginPath();c.arc(tx,tz,6,0,6.3);c.fill();
+    c.strokeStyle='rgba(255,90,80,'+(.9-pulse*.6)+')';c.lineWidth=3;c.beginPath();c.arc(tx,tz,8+pulse*10,0,6.3);c.stroke();
+  }
+  c.save();c.translate(pxp,pzp);c.rotate(G.phi);
+  c.fillStyle='#fff';c.strokeStyle='#0b5fa5';c.lineWidth=2.5;c.beginPath();c.moveTo(11,0);c.lineTo(-7,7);c.lineTo(-3,0);c.lineTo(-7,-7);c.closePath();c.fill();c.stroke();c.restore();
+  $('mml').textContent=tg?'🎯 '+tg.label+' · '+Math.round(dist(G.x,G.z,tg.x,tg.z))+' m':'Explore librement';
+}
+$('mm').addEventListener('click',()=>{mmBig=!mmBig;$('mmw').classList.toggle('big',mmBig);mmLast=0});
+$('mmb').addEventListener('click',()=>{if(G.mode==='play')openMap()});
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
   if(!W||(G.ui==='photo'&&G.mode!=='creator'))return;
+  drawMini(now*1);
   const playing=G.mode==='play'||G.mode==='mini';
   // déplacement
   let sp=0;
@@ -692,7 +753,7 @@ function loop(now){
 // ---------- Cinématique d'introduction ----------
 function startCine(){
   G.mode='cine';G.cine={t:0,dur:9};
-  ['joy','actwrap','top','info'].forEach(i=>$(i).classList.add('hide'));
+  ['joy','actwrap','top','info','mmw'].forEach(i=>$(i).classList.add('hide'));
   $('cine').classList.remove('hide');$('skip').classList.remove('hide');
   G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;buildScene();
 }
@@ -711,7 +772,7 @@ function cineStep(dt){
 }
 function endCine(){
   G.cine=null;G.mode='play';
-  ['joy','actwrap','top','info'].forEach(i=>$(i).classList.remove('hide'));
+  ['joy','actwrap','top','info','mmw'].forEach(i=>$(i).classList.remove('hide'));
   $('cine').classList.add('hide');$('skip').classList.add('hide');
   snapCamera();refreshHud();
   openBox({kind:'info',title:'Bienvenue, '+G.nom+' !',i:0,lines:[
@@ -859,7 +920,7 @@ function rebuildPlayer(){
 }
 let rbPend=false;
 function rebuildSoon(){if(rbPend)return;rbPend=true;requestAnimationFrame(()=>{rbPend=false;rebuildPlayer()})}
-function hudVisible(v){['joy','actwrap','top','info'].forEach(i=>$(i).classList.toggle('hide',!v))}
+function hudVisible(v){['joy','actwrap','top','info','mmw'].forEach(i=>$(i).classList.toggle('hide',!v))}
 function openCreator(from){
   CR.from=from;CR.tab='perso';CR.prev=JSON.parse(JSON.stringify(G.look));
   G.mode='creator';G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;resetKnob();hideBubble();
