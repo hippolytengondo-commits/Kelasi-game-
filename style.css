@@ -193,3 +193,15 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 .pe .flot.mal{color:#ffb4a8}
 @keyframes flot{to{transform:translate(-50%,-90px);opacity:0}}
 .pe .pmsg2{position:absolute;left:8%;right:8%;bottom:12px;margin:0;text-align:center;color:#fff;font-size:14px;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,.7);pointer-events:none}
+
+/* ---- carte des compétences ---- */
+.cases{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}
+#dlg button.nd{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;margin:0;border-radius:10px;font-weight:800;font-size:14px;text-align:center;border:2px solid transparent}
+#dlg button.nd0{background:#eceff1;color:#78909c;border-color:#cfd8dc}
+#dlg button.nd1{background:#f8c4bd;color:#7a1d12;border-color:#e57368}
+#dlg button.nd2{background:#fde2b0;color:#7a4a00;border-color:#f0a93b}
+#dlg button.nd3{background:#bfe8c8;color:#14532d;border-color:#4caf6a}
+#dlg button.nd4{background:#ffe27a;color:#5a4300;border-color:#e0a800}
+#dlg button.nd-{background:transparent;color:#b0bec5;border:1px dashed #cfd8dc}
+#dlg button.nrev{animation:nrevp 1.2s ease-in-out infinite}
+@keyframes nrevp{50%{box-shadow:0 0 0 3px rgba(244,196,48,.9)}}

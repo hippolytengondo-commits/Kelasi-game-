@@ -28,7 +28,7 @@ const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1])
 const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
-const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,stock:{},maison:{},xp:0,items:{},bought:{},fin:false});
+const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,stock:{},maison:{},rev:{},xp:0,items:{},bought:{},fin:false});
 const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
@@ -442,6 +442,7 @@ function renderDialog(){
   else if(d.kind==='esp')h=Esp.html(d);
   else if(d.kind==='suite')h=htmlSuite(d);
   else if(d.kind==='carnet')h=htmlCarnet(d);
+  else if(d.kind==='comp')h=htmlComp(d);
   box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
 }
@@ -592,6 +593,7 @@ function memoriserScore(d){
   G.adv.hist=(G.adv.hist||[]).concat([{k:key,p:pts,t:tot,d:Date.now()}]).slice(-400);
   d.score={p:pts,t:tot,best:sc.best,n:sc.n};
   if(String(d.id).startsWith('cur:')&&!d.preview)CLOUD.enregistrerScore(key,d.assign,pts,tot);
+  planifier(key,pts,tot);
 }
 function completeQuiz(d){
   memoriserScore(d);
@@ -621,7 +623,7 @@ function openTalk(id){
     openBox({kind:'info',id:id,title:n.name+' · '+n.role,i:0,lines:[
       'Salut '+G.nom+' ! Je suis Amina, ta grande sœur. Je t’accompagne partout.',
       objective().replace('Objectif : ','Ton objectif : '),
-      'Un conseil : '+CONSEILS[t%CONSEILS.length],
+      aReviser().length?'Tu as '+aReviser().length+' mission(s) à réviser aujourd’hui : ouvre la carte des compétences dans le menu.':'Un conseil : '+CONSEILS[t%CONSEILS.length],
       'Courage, tu progresses très bien. Je suis fière de toi !']});
     return;
   }
@@ -750,6 +752,7 @@ function htmlMenu(){
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +`<button onclick="openProg()">🎓 Missions scolaires</button>`
+   +`<button onclick="openComp()">🗺 Carte des compétences${aReviser().length?' · 🔁 '+aReviser().length+' à réviser':''}</button>`
    +`<button onclick="openCarnet()">📒 Mon carnet de progression</button>`
    +`<button onclick="openEsp()">👤 Mon compte : classe et sauvegarde</button>`
    +(autonome()?'':`<button onclick="installer()">📲 Installer l’application</button>`)
@@ -1261,6 +1264,56 @@ function infoCle(k){
   const nn=NPC[k];
   return {groupe:'Aventure',matiere:nn?(SUJETS[nn.sujet]||nn.sujet):k,titre:nn?nn.name+' · '+(SUJETS[nn.sujet]||''):k,ordre:0};
 }
+// ---------- Révision espacée (méthode des boîtes de Leitner) et carte des compétences ----------
+const JOUR=86400000,PAS=[1,3,7,14,30];
+function planifier(key,pts,tot){
+  if(!String(key).includes('|')||!tot)return;
+  const r=G.adv.rev||(G.adv.rev={}),x=r[key]||{b:-1},ok=pts/tot>=.8;
+  x.b=ok?Math.min(x.b<0?0:x.b+1,PAS.length-1):0;
+  x.due=pts/tot<.5?Date.now():Date.now()+PAS[x.b]*JOUR;
+  r[key]=x;
+}
+function aReviser(){
+  const r=G.adv.rev||{},sc=G.adv.scores||{},now=Date.now();
+  return Object.keys(sc).filter(k=>k.includes('|')&&sc[k].best&&CONTENU[k]).filter(k=>r[k]?r[k].due<=now:pct(sc[k].best.p,sc[k].best.t)<60)
+    .sort((a,b)=>pct(sc[a].best.p,sc[a].best.t)-pct(sc[b].best.p,sc[b].best.t));
+}
+function reviserCle(k){const [n,m,i]=k.split('|');startMission(n,m,+i)}
+function openComp(){quitterArene();openBox({kind:'comp',niv:null})}
+function compNiv(n){G.dialog.niv=n||null;renderDialog()}
+const classeNoeud=(b)=>!b?'nd0':pct(b.p,b.t)>=100?'nd4':pct(b.p,b.t)>=80?'nd3':pct(b.p,b.t)>=50?'nd2':'nd1';
+function htmlComp(d){
+  const sc=G.adv.scores||{};
+  const nivs=PROGRAMME.filter(n=>n.matieres.some(m=>m.missions.some((t,i)=>CONTENU[missionCle(n.id,m.id,i)])));
+  let h=`<div class="hd"><h3>🗺 Ma carte des compétences</h3></div>`;
+  if(!d.niv){
+    const rev=aReviser();
+    h+=`<p style="font-size:13px">Chaque case est une compétence (une mission). ⬜ pas encore faite · 🟥 à retravailler · 🟧 en progrès · 🟩 acquise · ⭐ maîtrisée. Touche une case pour jouer la mission.</p>`;
+    if(rev.length)h+=`<button class="j" onclick="reviserCle('${rev[0]}')">🔁 ${rev.length} mission(s) à réviser aujourd’hui — commencer</button>`;
+    else h+=`<p class="ok" style="font-size:13px">🔁 Rien à réviser aujourd’hui. Bravo !</p>`;
+    nivs.forEach(n=>{
+      let f=0,t=0,sp=0,st=0;
+      n.matieres.forEach(m=>m.missions.forEach((x,i)=>{const k=missionCle(n.id,m.id,i);if(!CONTENU[k])return;t++;const b=sc[k]&&sc[k].best;if(b){f++;sp+=b.p;st+=b.t}}));
+      h+=`<button onclick="compNiv('${n.id}')">${esc(n.nom)} · ${f}/${t} compétences${st?' · maîtrise '+pct(sp,st)+' %':''}</button>`;
+    });
+    return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+  }
+  const n=PROGRAMME.find(x=>x.id===d.niv),due=new Set(aReviser());
+  h+=`<p><b>${esc(n.nom)}</b></p>`;
+  n.matieres.forEach(m=>{
+    const cases=m.missions.map((t,i)=>{
+      const k=missionCle(n.id,m.id,i);
+      if(!CONTENU[k])return `<button class="nd nd-" disabled title="${esc(t)}">·</button>`;
+      const b=sc[k]&&sc[k].best;
+      return `<button class="nd ${classeNoeud(b)}${due.has(k)?' nrev':''}" title="${esc(t)}" onclick="startMission('${n.id}','${m.id}',${i})">${b&&pct(b.p,b.t)>=100?'⭐':i+1}</button>`;
+    }).join('');
+    if(!m.missions.some((t,i)=>CONTENU[missionCle(n.id,m.id,i)]))return;
+    let sp=0,st=0;m.missions.forEach((t,i)=>{const b=sc[missionCle(n.id,m.id,i)]&&sc[missionCle(n.id,m.id,i)].best;if(b){sp+=b.p;st+=b.t}});
+    h+=`<h4>${esc(m.nom)}${st?' · '+pct(sp,st)+' %':''}</h4><div class="cases">${cases}</div>`;
+  });
+  h+=`<p style="font-size:12px">Un contour clignotant ⏰ signale une mission à réviser aujourd’hui.</p>`;
+  return h+`<button class="s" onclick="compNiv(null)">← Tous les niveaux</button>`;
+}
 function openCarnet(){quitterArene();openBox({kind:'carnet',ouvert:{}})}
 function carnetSommes(rows){let p=0,t=0;rows.forEach(r=>{p+=r.best.p;t+=r.best.t});return {p,t}}
 function htmlCarnet(d){
@@ -1576,7 +1629,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{startMini,construire,buyRes,openMaison,startMJ,sellSac,openShop,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
