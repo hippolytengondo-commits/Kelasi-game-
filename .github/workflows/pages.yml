@@ -1,7 +1,7 @@
 name: Publier le jeu (GitHub Pages)
 on:
   push:
-    branches: [main]
+    branches: [main, claude/new-session-h3plsh]
   workflow_dispatch:
 permissions:
   contents: read

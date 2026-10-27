@@ -20,8 +20,7 @@ Lieux réalistes en photo (`img/scenes/`), personnages photographiques détouré
 
 ## Publication gratuite, sans publicité (GitHub Pages)
 
-1. Fusionner la branche de travail dans `main` (GitHub › « Compare & pull request » › « Merge »).
-2. Dépôt › Settings › Pages › **Source : GitHub Actions**.
-3. Le jeu est publié automatiquement à `https://<compte>.github.io/Kelasi-game-/` à chaque mise à jour de `main`.
+1. Dépôt › Settings › Pages › **Source : GitHub Actions**.
+2. La publication démarre à chaque mise à jour de la branche principale ; l'adresse est `https://<compte>.github.io/Kelasi-game-/`.
 
-Aucune bannière publicitaire. Le jeu est aussi consultable via la page Artifact de Claude.
+Aucune bannière publicitaire.
