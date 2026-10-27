@@ -17,6 +17,7 @@ import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 import {RESS,MJ,mjPos,marqueur,lancer} from './minijeux.js';
+import {extendVille} from './quartiers.js';
 
 const KEY='kelas_game_v12';
 const $=id=>document.getElementById(id);
@@ -164,7 +165,7 @@ function makeNpc(id,n){
   return makeHuman(npcLook(id,n.look));
 }
 const SCENES={
- ville:{build:()=>buildVille(),interior:false,spots:[{x:-9,z:-2.2,r:2.6,label:'Carte des lieux',run:()=>openMap()}],doors:[
+ ville:{build:()=>construireVille(),interior:false,spots:[{x:-9,z:-2.2,r:2.6,label:'Carte des lieux',run:()=>openMap()}],doors:[
    {x:-22,z:-5.4,r:1.9,to:'maison',label:'Entrer dans la maison',tx:0,tz:1.0,phi:-Math.PI/2},
    {x:42,z:-5.3,r:2.6,to:'classe',label:'Entrer dans l’école',ok:()=>doorOpen(),closed:'Porte fermée',tx:0,tz:2.6,phi:-Math.PI/2}]},
  maison:{build:()=>buildMaison(G.adv.items),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}],
@@ -201,6 +202,19 @@ marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},
  arene:{build:()=>buildArene(G.areneMat),interior:false,spawn:{x:0,z:5,phi:-Math.PI/2},doors:[]},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
+const DOORS_VILLE=SCENES.ville.doors.slice();
+// la ville s'agrandit : les quartiers s'ouvrent au fil des missions d'exploration réussies
+function etatQuartiers(){
+  return STAGES.slice(1).map((st,k)=>({id:st.id,scene:st.scene,name:st.name,icon:st.icon,ouvert:stageUnlocked(k+1),fini:stageDone(st),precedent:STAGES[k].name}));
+}
+function construireVille(){
+  const w=buildVille();
+  const ext=extendVille(w,etatQuartiers());
+  ext.doors.forEach(d=>{const sp=SCENES[d.to].spawn;d.tx=sp.x;d.tz=sp.z;d.phi=sp.phi});
+  SCENES.ville.doors=DOORS_VILLE.concat(ext.doors);
+  ext.lots.forEach(l=>{const dd=SCENES[l.scene].doors[0];dd.tx=l.retour.x;dd.tz=l.retour.z;dd.phi=l.retour.phi});
+  return w;
+}
 function clearScene(){
   if(W){scene.remove(W.group)}
   if(playerObj)scene.remove(playerObj);
@@ -297,7 +311,7 @@ function objective(){
   if(!a.ilunga)return 'Objectif : entre dans l’école et va voir la Professeure Ilunga.';
   if(!a.junior)return 'Objectif : rejoins Junior, assis dans la classe.';
   if(!a.mavungu)return 'Objectif : le Directeur Mavungu t’attend dans la classe.';
-  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st)&&G.ui!=='photo')return 'Objectif : ouvre la carte (panneau près de ta maison, ou menu ☰) et va ici : '+st.icon+' '+st.name+'.'}
+  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st)&&G.ui!=='photo')return 'Objectif : suis la route jaune vers les nouveaux quartiers (sud du village) et entre ici : '+st.icon+' '+st.name+'.'}
   const n=nbItems(),t=Object.keys(ITEMS).length;
   if(n<t)return 'Objectif : cueille des mangues, révise et meuble ta maison ('+n+'/'+t+').';
   return 'Tu as tout accompli ! Continue à réviser pour gagner des étoiles.';
@@ -1232,6 +1246,8 @@ function stageCheck(id){
   if(!G.adv.stageBonus[st.id]){
     G.adv.stageBonus[st.id]=true;gain(30,30);
     toast(st.icon+' Niveau terminé : '+st.name+' ! +30 pièces');SFX.win();
+    const nx=STAGES[STAGES.indexOf(st)+1];
+    if(nx)setTimeout(()=>toast('🏗 Un nouveau quartier s’ouvre : '+nx.icon+' '+nx.name+'. Suis la route jaune dans la ville !'),2800);
   }
   if(STAGES.every(stageDone)&&!G.adv.diplome){
     G.adv.diplome=true;save();
@@ -1485,7 +1501,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{startMini,startMJ,sellSac,openShop,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{startMini,startMJ,sellSac,openShop,__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
