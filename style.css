@@ -112,3 +112,17 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 .pblur{position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(18px) brightness(.72) saturate(1.1)}
 .phint{position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:3;background:rgba(255,255,255,.92);color:#222;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:none;animation:pulse2 1.4s ease-in-out infinite}
 @keyframes pulse2{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.06)}}
+
+.pn.me{cursor:default;pointer-events:none}
+.pn.me .mp{position:relative;height:100%;aspect-ratio:var(--ar,.28)}
+.pn.me .ly{position:absolute;inset:0;background-size:100% 100%;background-repeat:no-repeat;filter:brightness(.97) contrast(1.04) saturate(.95) sepia(.05)}
+.pn.me .ly.u{clip-path:inset(0 0 49.5% 0)}
+.pn.me .ly.l{clip-path:inset(49% 50% 0 0)}
+.pn.me .ly.r{clip-path:inset(49% 0 0 50%)}
+.pn.me.walk .ly.u{animation:mbob .5s ease-in-out infinite}
+.pn.me.walk .ly.l{animation:legl .5s ease-in-out infinite}
+.pn.me.walk .ly.r{animation:legr .5s ease-in-out infinite}
+@keyframes mbob{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-1.2%) rotate(.6deg)}75%{transform:translateY(-1.2%) rotate(-.6deg)}}
+@keyframes legl{0%,50%,100%{transform:translateY(0)}25%{transform:translateY(-7%) translateX(-1%)}}
+@keyframes legr{0%,25%,100%{transform:translateY(0)}75%{transform:translateY(-7%) translateX(1%)}}
+.hs{z-index:3000}

@@ -662,11 +662,13 @@ $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 function openProfile(){openBox({kind:'profile'})}
 function htmlProfile(){
   const av=((window.__MAN&&window.__MAN.avatars)||[]).filter(a=>a[0]===(G.look.s||'f'));
-  return `<h3>Ma photo de profil</h3><div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.look.s==='f'?' on':''}" onclick="setGenre('f')" style="width:auto">Fille</button><button class="chip${G.look.s==='h'?' on':''}" onclick="setGenre('h')" style="width:auto">Garçon</button></div>`
+  const pcs=['pf1','pf2','ph1','ph2'].map(c=>`<button class="avb${playerChar()===c?' on':''}" onclick="setChar('${c}')"><img src="img/chars/${c}.webp" alt="" style="object-fit:contain;object-position:top"></button>`).join('');
+  return `<h3>Mon personnage</h3><div class="avs" style="margin-bottom:10px">${pcs}</div><h3>Ma photo de profil</h3><div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.photo==='c'?' on':''}" onclick="crPhoto('c')" style="width:auto">Mon visage de personnage</button></div>`+`<div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.look.s==='f'?' on':''}" onclick="setGenre('f')" style="width:auto">Fille</button><button class="chip${G.look.s==='h'?' on':''}" onclick="setGenre('h')" style="width:auto">Garçon</button></div>`
    +`<div class="avs">`+av.map(a=>`<button class="avb${G.photo===a?' on':''}" onclick="crPhoto('${a}')"><img src="img/avatars/${a}.jpg" alt=""></button>`).join('')+(userPhoto()?`<button class="avb${G.photo==='u'?' on':''}" onclick="crPhoto('u')"><img src="${userPhoto()}" alt=""></button>`:'')+`</div>`
    +`<label class="chip" style="cursor:pointer;display:block;margin-top:8px">📷 Ajouter ma propre photo<small>Reste sur cet appareil</small><input type="file" accept="image/*" style="display:none" onchange="crUpload(this)"></label>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`;
 }
+function setChar(c){G.real=c;G.look.s=c[1]==='f'?'f':'h';G.sexe=G.look.s;save();charAvatar(c);refreshHud();PM.refresh();renderDialog()}
 function setGenre(g){G.look.s=g;G.sexe=g;save();renderDialog()}
 function openObjs(){openBox({kind:'objs'})}
 function htmlObjs(){
@@ -678,7 +680,18 @@ function htmlObjs(){
 // ---------- Photo de profil ----------
 const PHOTO_KEY='kelas_photo_v1';
 function userPhoto(){try{return localStorage.getItem(PHOTO_KEY)}catch(e){return null}}
+let charAv={};
+function charAvatar(id){
+  if(charAv[id])return charAv[id];
+  charAv[id]=null;
+  const im=new Image();im.onload=()=>{
+    const c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d'),sw=im.width,sh=im.height*.2;
+    const k=Math.max(96/sw,96/sh),w=sw*k,h=im.height*k;x.drawImage(im,(96-w)/2,0,w,h);
+    charAv[id]=c.toDataURL('image/png');refreshHud();
+  };im.src='img/chars/'+id+'.webp';return null;
+}
 function photoUrl(){
+  if(G.photo==='c')return charAvatar(playerChar());
   if(G.photo==='u')return userPhoto();
   if(G.photo&&window.__MAN&&(window.__MAN.avatars||[]).includes(G.photo))return 'img/avatars/'+G.photo+'.jpg';
   return null;
@@ -863,7 +876,7 @@ $('go').onclick=()=>{
   const n=$('nom').value.trim();
   if(!n){$('nom').focus();return}
   G.nom=n;G.adv=newAdv();G.ui='photo';
-  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.photo=G.sexe==='f'?'f1':'h1';
+  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=G.sexe==='f'?'pf1':'ph1';G.photo='c';
   save();enterPhoto(true);
 };
 $('go3d').onclick=()=>{
@@ -877,10 +890,11 @@ $('go3d').onclick=()=>{
 };
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
-const PA={G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
+const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
+const PA={playerChar,G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
 initPhoto(PA);const PM=PA.photo;
 function init(){
   const s=readSave();

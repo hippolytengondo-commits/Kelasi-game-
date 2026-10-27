@@ -3,6 +3,16 @@
 import {CHAR_HEIGHT} from './sprites.js';
 
 // x, y : position en % de l'image (pour un personnage : ses pieds) ; h : hauteur en % de l'image pour 1,70 m.
+const ASPECT={pf1:.256,pf2:.28,ph1:.29,ph2:.306};
+// scale : [y1,h1,y2,h2] (hauteur en % pour 1,70 m à deux profondeurs) ; walk : [ymin,ymax] ; spawn/entry : arrivée du joueur
+const GEO={
+ village:{scale:[95,47,70,32],walk:[66,99],spawn:{x:30,y:92},entry:{marche:{x:70,y:86},maison:{x:24,y:88},fleuve:{x:34,y:95}}},
+ marche:{scale:[98,56,75,38],walk:[72,99],spawn:{x:22,y:96},entry:{village:{x:14,y:96},portail:{x:62,y:80}}},
+ portail:{scale:[98,56,78,40],walk:[76,99],spawn:{x:24,y:96},entry:{marche:{x:15,y:96},classe:{x:55,y:82}}},
+ classe:{scale:[62,34,84,48],walk:[62,99],spawn:{x:26,y:92},entry:{portail:{x:50,y:92}}},
+ maison:{scale:[98,64,80,48],walk:[78,99],spawn:{x:26,y:96},entry:{village:{x:76,y:96}}},
+ fleuve:{scale:[95,50,75,34],walk:[78,99],spawn:{x:26,y:95},entry:{village:{x:16,y:95}}}
+};
 const SCENES={
  village:{img:'village',name:'Mon quartier',focus:48,amb:'village',items:[
   {k:'npc',id:'jer',x:60,y:93,h:44},{k:'npc',id:'kasa',x:71,y:95,h:44},
@@ -37,7 +47,7 @@ export function initPhoto(A){
   const stage=pv.querySelector('#pstage'),drift=pv.querySelector('#pdrift'),bg=pv.querySelector('.pbg'),items=pv.querySelector('#pitems');
   const blur=pv.querySelector('.pblur'),hint=pv.querySelector('.phint');
   const fade=pv.querySelector('.pfade'),place=pv.querySelector('.pplace'),stopBtn=pv.querySelector('.pstop');
-  const S={id:null,panX:0,W:0,H:0,dragged:false,greeted:{},busy:false};
+  const S={id:null,panX:0,W:0,H:0,dragged:false,greeted:{},busy:false,me:{x:30,y:92,walking:false,cb:null}};
 
   // ---------- mise en page : l'image couvre l'écran, on la fait glisser pour regarder autour ----------
   function layout(keepPan){
@@ -64,9 +74,53 @@ export function initPhoto(A){
   const endDrag=()=>{if(drag&&drag.moved)setTimeout(()=>{S.dragged=false},80);drag=null};
   pv.addEventListener('pointerup',endDrag);pv.addEventListener('pointercancel',endDrag);
 
+  // ---------- le joueur ----------
+  const pc=()=>A.playerChar();
+  function hFor(id,y){const g=GEO[id].scale,t=(y-g[2])/(g[0]-g[2]);return g[3]+(g[1]-g[3])*t}
+  function meHtml(){
+    const c=pc();if(!hasChar(c))return '';
+    const sc=S.id,h=hFor(sc,S.me.y)*(CHAR_HEIGHT[c]||1.7)/1.7,url=`img/chars/${c}.webp`;
+    return `<div class="pn me" style="left:${S.me.x}%;top:${S.me.y}%;height:${h}%;z-index:${Math.round(S.me.y*10)};--ar:${ASPECT[c]||.28}"><i class="sh"></i><div class="mp"><div class="ly u" style="background-image:url(${url})"></div><div class="ly l" style="background-image:url(${url})"></div><div class="ly r" style="background-image:url(${url})"></div></div></div>`;
+  }
+  function meEl(){return items.querySelector('.me')}
+  function placeMe(){
+    const el=meEl();if(!el)return;
+    const c=pc(),h=hFor(S.id,S.me.y)*(CHAR_HEIGHT[c]||1.7)/1.7;
+    el.style.left=S.me.x+'%';el.style.top=S.me.y+'%';el.style.height=h+'%';el.style.zIndex=Math.round(S.me.y*10);
+  }
+  function followPan(){
+    const px=S.panX+S.W*S.me.x/100,lo=S.vw*.26,hi=S.vw*.74;
+    if(S.W<=S.vw+4)return;
+    if(px<lo)S.panX+=(lo-px)*.18;else if(px>hi)S.panX-=(px-hi)*.18;else return;
+    clampPan();apply();
+  }
+  let walkRaf=0;
+  function walkTo(x,y,cb){
+    const g=GEO[S.id],m=S.me;
+    m.tx=Math.min(95,Math.max(5,x));m.ty=Math.min(g.walk[1],Math.max(g.walk[0],y));m.cb=cb||null;
+    const el=meEl();if(!el){if(cb)cb();return}
+    if(m.walking)return;
+    m.walking=true;el.classList.add('walk');
+    let last=performance.now();
+    const step=now=>{
+      if(!m.walking||!meEl())return;
+      const dt=Math.min(.05,(now-last)/1000);last=now;
+      const dx=m.tx-m.x,dy=(m.ty-m.y),d=Math.hypot(dx,dy*.7),sp=30*dt;
+      if(d<=sp+.2){
+        m.x=m.tx;m.y=m.ty;m.walking=false;placeMe();meEl()&&meEl().classList.remove('walk');
+        const f=m.cb;m.cb=null;if(f)f();return;
+      }
+      m.x+=dx/d*sp;m.y+=dy/d*sp;
+      placeMe();followPan();walkRaf=requestAnimationFrame(step);
+    };
+    walkRaf=requestAnimationFrame(step);
+  }
+  const stand=(npcItem)=>{const side=S.me.x<=npcItem.x?-1:1;return {x:npcItem.x+side*9,y:npcItem.y}};
+
   // ---------- construction d'une scène ----------
-  function build(id){
+  function build(id,keep,from){
     const sc=SCENES[id];S.id=id;
+    if(!keep){const g=GEO[id],e=(from&&g.entry[from])||g.spawn;S.me.x=e.x;S.me.y=e.y;S.me.walking=false;S.me.cb=null}
     bg.style.backgroundImage=`url(img/scenes/${sc.img}.jpg)`;blur.style.backgroundImage=`url(img/scenes/${sc.img}.jpg)`;
     place.textContent='📍 '+sc.name;
     let h='';
@@ -75,7 +129,7 @@ export function initPhoto(A){
         if(!hasChar(it.id))return;
         const n=NPC[it.id]||AUTOP[it.id],hh=it.h*(CHAR_HEIGHT[it.id]||1.7)/1.7;
         const st=npcState(it.id);
-        h+=`<div class="pn ${st.cls}" data-i="${i}" style="left:${it.x}%;top:${it.y}%;height:${hh}%"><i class="sh"></i><img src="img/chars/${it.id}.webp" alt="" draggable="false"><span class="tag">${st.ico} ${esc(n.short||n.name)}</span></div>`;
+        h+=`<div class="pn ${st.cls}" data-i="${i}" style="left:${it.x}%;top:${it.y}%;height:${hh}%;z-index:${Math.round(it.y*10)}"><i class="sh"></i><img src="img/chars/${it.id}.webp" alt="" draggable="false"><span class="tag">${st.ico} ${esc(n.short||n.name)}</span></div>`;
       }else if(it.k==='go'){
         const lock=it.need&&!A.doneNpc(it.need);
         h+=`<button class="hs go${lock?' locked':''}" data-i="${i}" style="left:${it.x}%;top:${it.y}%"><span class="ic">${lock?'🔒':it.ico}</span><span class="lb">${esc(lock?'Mama Lola garde le passage':it.label)}</span></button>`;
@@ -83,8 +137,9 @@ export function initPhoto(A){
         h+=`<button class="hs ${it.k}" data-i="${i}" style="left:${it.x}%;top:${it.y}%"><span class="ic">${it.k==='tree'?'🥭':it.k==='objs'?'🧺':'ℹ️'}</span><span class="lb">${esc(it.label)}</span></button>`;
       }
     });
-    items.innerHTML=h;
+    items.innerHTML=h+meHtml();
     layout(false);
+    if(!keep){const f=sc.items.find(it=>it.k==='npc'),fx=f?(S.me.x+f.x)/2:sc.focus;S.panX=S.vw/2-S.W*fx/100;clampPan();apply()}
   }
   function npcState(id){
     const n=NPC[id];
@@ -102,11 +157,11 @@ export function initPhoto(A){
     if(S.busy)return;
     S.busy=true;hideBubble();
     const first=!S.id;
-    if(first){build(id);S.busy=false;enterScene(id);return}
+    if(first){build(id,false);S.busy=false;enterScene(id);return}
     drift.style.transition='transform .28s ease-in,opacity .28s ease-in';
     drift.style.transform=`scale(${opt&&opt.back?.94:1.18})`;drift.style.opacity='0';fade.style.opacity='1';
     setTimeout(()=>{
-      build(id);
+      build(id,false,opt&&opt.from);
       drift.style.transition='none';drift.style.transform=`scale(${opt&&opt.back?1.1:.94})`;
       void drift.offsetWidth;
       drift.style.transition='transform .42s ease-out,opacity .42s ease-out';drift.style.transform='scale(1)';drift.style.opacity='1';fade.style.opacity='0';
@@ -146,19 +201,23 @@ export function initPhoto(A){
   // ---------- interactions ----------
   items.addEventListener('click',e=>{
     if(S.dragged||G.mode!=='pview')return;
-    const el=e.target.closest('[data-i]');if(!el)return;
+    const el=e.target.closest('[data-i]');
+    if(!el){ // toucher le sol : le joueur y marche
+      const r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*100,y=(e.clientY-r.top)/r.height*100;
+      hideBubble();walkTo(x,y);return;
+    }
     const it=SCENES[S.id].items[+el.dataset.i];
     if(it.k==='npc'){
+      if(!NPC[it.id]){const t=stand(it);walkTo(t.x,t.y);return}
       const a=actionFor({t:'npc',id:it.id});
-      if(!NPC[it.id])return;                       // enfants du quartier : simple conversation
       if(!a.enabled){toast(NPC[it.id].short+' est occupé(e). Reviens plus tard.');return}
-      hideBubble();a.run();
+      const t=stand(it);hideBubble();walkTo(t.x,t.y,()=>{if(G.mode==='pview')a.run()});
     }else if(it.k==='go'){
       if(it.need&&!A.doneNpc(it.need)){toast('Mama Lola garde le passage : réponds d’abord à ses questions.');SFX.ko();return}
-      show(it.to,{back:it.ico==='⬇'||it.ico==='⬅'});
-    }else if(it.k==='tree')startMango();
-    else if(it.k==='objs')A.openObjs();
-    else if(it.k==='fact')fact();
+      const from=S.id;walkTo(it.x,it.y,()=>show(it.to,{back:it.ico==='⬇'||it.ico==='⬅',from:from}));
+    }else if(it.k==='tree')walkTo(50,91,()=>startMango());
+    else if(it.k==='objs')walkTo(it.x+8,it.y+14,()=>A.openObjs());
+    else if(it.k==='fact')walkTo(it.x,it.y+20,()=>fact());
   });
   // les enfants du quartier bavardent
   setInterval(()=>{
@@ -255,7 +314,7 @@ export function initPhoto(A){
   A.photo={
     show:id=>{pv.classList.remove('hide');S.id=null;S.busy=false;show(id)},
     hide:()=>{pv.classList.add('hide');stopAmb();hideBubble()},
-    refresh:()=>{if(!S.id)return;const pan=S.panX;build(S.id);S.panX=pan;layout(true)},
+    refresh:()=>{if(!S.id)return;const pan=S.panX;build(S.id,true);S.panX=pan;layout(true)},
     scene:()=>S.id,
     ambientOff:stopAmb,
     ambientOn:()=>{if(S.id)ambient(SCENES[S.id].amb)}
