@@ -565,7 +565,7 @@ Object.assign(NPC,{
  tisse:{sc:'atelier',x:5.5,z:-5.5,ry:-0.4,name:'Mama Tisse',short:'Mama Tisse',role:'Tisserande',kind:'quiz',sujet:'metiers',nb:3,needs:'kuba',
   look:{s:'f',h:0.96,skin:'#8a5a3e',c:'#8e44ad',k:'pagne',co:'chignon',faceKey:'portraits/mama'},
   intro:['Bienvenue ! Ici on tisse, on coud, on forge, on vend.','Un bon artisan sait aussi compter. Montre-moi !'],
-  outro:'Félicitations ! Tu as terminé les vingt épisodes. Tu es un vrai champion du Congo !'}
+  outro:'Parfait ! Le voyage continue : direction la pêche de Kisangani.'}
 });
 STAGES.push(
  {id:'aeroport',scene:'aeroport',name:'L’aéroport',icon:'✈️',npcs:['ndombe','nsimba']},
@@ -573,4 +573,244 @@ STAGES.push(
  {id:'virunga',scene:'virunga',name:'Parc des Virunga',icon:'🦍',npcs:['bahati','neema']},
  {id:'zongo',scene:'zongo',name:'Les chutes de Zongo',icon:'🌊',npcs:['tuyindi','mfumu']},
  {id:'atelier',scene:'atelier',name:'L’atelier des artisans',icon:'🎨',npcs:['kuba','tisse']}
+);
+
+// ---------- Épisodes 21 à 30 ----------
+Object.assign(SUJETS,{wagenia:'Les pêcheurs Wagenia',poissons:'Pêche et calcul',savane:'La savane',chaine:'Qui mange quoi ?',tanganyika:'Le lac Tanganyika',lacvie:'La vie dans l’eau',sciences2:'Sciences : expériences',meteo:'Météo et énergie',rumba:'La rumba congolaise',musique:'Les instruments',incendie:'Prévenir l’incendie',secours:'Les secours',poste:'La poste',epargne:'Épargner son argent',recyclage:'Trier et recycler',arbres:'Les arbres et le climat',numerique:'L’informatique',internet:'Internet en sécurité',independance:'L’indépendance',symboles:'Les symboles du pays'});
+Object.assign(BANK,{
+ wagenia:[
+  Q('Comment s’appellent les pêcheurs célèbres de Kisangani ?',['les Wagenia','les Kuba','les Luba','les Tetela'],'les Wagenia','Les Wagenia pêchent depuis des siècles près des chutes de Kisangani.'),
+  Q('Dans quelle ville se trouvent les chutes Wagenia (Boyoma) ?',['Kisangani','Matadi','Lubumbashi','Goma'],'Kisangani','Les chutes Boyoma sont à Kisangani, sur le fleuve Congo.'),
+  Q('Avec quoi les Wagenia pêchent-ils surtout ?',['des nasses en bois installées dans les rapides','des avions','des moteurs','des bombes'],'des nasses en bois installées dans les rapides','Leurs grandes nasses coniques attrapent les poissons dans le courant.'),
+  Q('Pourquoi cette pêche est-elle un savoir précieux ?',['il se transmet de père en fils','il vient d’Internet','il est récent','il est interdit'],'il se transmet de père en fils','Ce savoir-faire traditionnel passe d’une génération à l’autre.'),
+  Q('Que faut-il faire pour ne pas épuiser les poissons ?',['pêcher raisonnablement','tout prendre d’un coup','pêcher avec du poison','jeter les filets'],'pêcher raisonnablement','On laisse le temps aux poissons de se reproduire.')
+ ],
+ poissons:[
+  Q('Un pêcheur prend 12 poissons le matin et 15 l’après-midi. Combien en tout ?',['27','25','30','17'],'27','12 + 15 = 27.'),
+  Q('Il vend 4 poissons à 1 500 FC pièce. Combien reçoit-il ?',['6 000 FC','4 500 FC','5 000 FC','7 500 FC'],'6 000 FC','4 × 1 500 = 6 000 FC.'),
+  Q('Comment les poissons respirent-ils ?',['avec des branchies','avec des poumons','avec le nez','avec la queue'],'avec des branchies','Les branchies prennent l’oxygène dans l’eau.'),
+  Q('On partage 20 poissons entre 4 familles. Combien chacune ?',['5','4','6','10'],'5','20 ÷ 4 = 5.'),
+  Q('Comment conserver du poisson sans frigo ?',['le fumer ou le sécher','le laisser au soleil sans rien','le poser par terre','le mouiller'],'le fumer ou le sécher','Fumer ou sécher le poisson permet de le garder plus longtemps.')
+ ],
+ savane:[
+  Q('Quel est le plus grand animal terrestre ?',['l’éléphant','la girafe','le lion','le buffle'],'l’éléphant','L’éléphant d’Afrique est le plus grand animal terrestre.'),
+  Q('Quel animal a un très long cou ?',['la girafe','le zèbre','le singe','le crocodile'],'la girafe','La girafe mange les feuilles des hauts arbres.'),
+  Q('Comment appelle-t-on un grand espace d’herbes hautes avec peu d’arbres ?',['une savane','un désert de glace','un océan','une montagne'],'une savane','La savane est couverte d’herbe et de quelques arbres.'),
+  Q('Quel arbre en forme de parasol pousse dans la savane ?',['l’acacia','le sapin','le palmier à huile','le cerisier'],'l’acacia','L’acacia a une cime plate qui fait de l’ombre.'),
+  Q('Pourquoi faut-il rester à distance des animaux sauvages ?',['ils peuvent être dangereux','ils s’ennuient','ils aiment les cris','ils vendent des billets'],'ils peuvent être dangereux','On observe les animaux de loin, avec un guide.')
+ ],
+ chaine:[
+  Q('Que mange un herbivore ?',['des plantes','de la viande','des cailloux','du sable'],'des plantes','Les herbivores se nourrissent de plantes.'),
+  Q('Quel animal est un carnivore ?',['le lion','la girafe','l’éléphant','le zèbre'],'le lion','Le lion mange de la viande.'),
+  Q('Comment appelle-t-on un animal qui mange de tout ?',['un omnivore','un herbivore','un carnivore','un végétarien'],'un omnivore','L’homme est un omnivore : il mange plantes et viande.'),
+  Q('Qu’est-ce qu’une chaîne alimentaire ?',['qui mange qui dans la nature','une chaîne de vélo','une chaîne de télé','un collier'],'qui mange qui dans la nature','Herbe → zèbre → lion : c’est une chaîne alimentaire.'),
+  Q('Que se passe-t-il si on chasse trop d’animaux ?',['l’équilibre de la nature est rompu','rien du tout','il y a plus de pluie','la savane grandit'],'l’équilibre de la nature est rompu','Chaque animal a un rôle : il faut les protéger.')
+ ],
+ tanganyika:[
+  Q('Le lac Tanganyika est le plus long lac d’eau douce…',['du monde','de France','d’Europe','d’Asie'],'du monde','Le Tanganyika mesure environ 670 km de long.'),
+  Q('Quel pays n’est PAS au bord du lac Tanganyika ?',['le Kenya','la RDC','la Tanzanie','la Zambie'],'le Kenya','Le lac borde la RDC, la Tanzanie, le Burundi et la Zambie.'),
+  Q('Quelle ville congolaise est au bord du lac Tanganyika ?',['Kalemie','Kinshasa','Kisangani','Matadi'],'Kalemie','Kalemie est un port important sur le lac.'),
+  Q('Un lac d’eau douce contient de l’eau…',['non salée','très salée','sucrée','gelée'],'non salée','L’eau douce n’est pas salée, contrairement à la mer.'),
+  Q('Que transportent les bateaux du lac ?',['des personnes et des marchandises','des avions','des trains','des montagnes'],'des personnes et des marchandises','Le lac est une route de transport pour toute la région.')
+ ],
+ lacvie:[
+  Q('Quel animal vit dans l’eau et respire avec des branchies ?',['le poisson','le chien','la poule','le chat'],'le poisson','Le poisson respire sous l’eau grâce à ses branchies.'),
+  Q('Pourquoi ne faut-il pas jeter de plastique dans le lac ?',['il pollue et tue les animaux','il fait du bien','il nourrit les poissons','il décore'],'il pollue et tue les animaux','Les déchets polluent l’eau et blessent la faune.'),
+  Q('Comment appelle-t-on un petit bateau en bois creusé dans un tronc ?',['une pirogue','un avion','une voiture','un train'],'une pirogue','La pirogue est le bateau traditionnel des fleuves et lacs.'),
+  Q('Un pêcheur navigue 3 heures à 6 km/h. Quelle distance ?',['18 km','9 km','12 km','24 km'],'18 km','6 × 3 = 18 km.'),
+  Q('Avant d’embarquer, que doit-on porter ?',['un gilet de sauvetage','un manteau lourd','des bottes en fer','un sac de sable'],'un gilet de sauvetage','Le gilet de sauvetage sauve des vies sur l’eau.')
+ ],
+ sciences2:[
+  Q('À quelle température l’eau bout-elle ?',['100 °C','50 °C','0 °C','10 °C'],'100 °C','L’eau bout à 100 °C.'),
+  Q('Que devient l’eau quand elle gèle ?',['de la glace','de la vapeur','du sable','du feu'],'de la glace','L’eau gèle à 0 °C et devient de la glace.'),
+  Q('Qu’attire un aimant ?',['le fer','le bois','le verre','le papier'],'le fer','Un aimant attire les objets en fer.'),
+  Q('De quoi une plante a-t-elle besoin pour pousser ?',['d’eau, de lumière et d’air','de bruit','de plastique','de sucre'],'d’eau, de lumière et d’air','Une plante fabrique sa nourriture grâce à la lumière.'),
+  Q('Autour de quoi la Terre tourne-t-elle ?',['le Soleil','la Lune','Mars','une étoile filante'],'le Soleil','La Terre fait le tour du Soleil en un an.')
+ ],
+ meteo:[
+  Q('Quel instrument mesure la quantité de pluie ?',['un pluviomètre','une boussole','une règle','une balance'],'un pluviomètre','Le pluviomètre recueille la pluie pour la mesurer.'),
+  Q('Que produit une éolienne ?',['de l’électricité grâce au vent','de la pluie','de la neige','du pain'],'de l’électricité grâce au vent','Le vent fait tourner les pales et produit du courant.'),
+  Q('Que produit un panneau solaire ?',['de l’électricité grâce au soleil','du vent','de l’eau','de la glace'],'de l’électricité grâce au soleil','Le panneau solaire transforme la lumière en électricité.'),
+  Q('Quand voit-on un arc-en-ciel ?',['quand il pleut et que le soleil brille','en pleine nuit','quand il neige','sous la terre'],'quand il pleut et que le soleil brille','La lumière du soleil se décompose dans les gouttes de pluie.'),
+  Q('Quelle saison est pluvieuse dans une grande partie de la RDC ?',['la saison des pluies','la saison de la neige','la saison du gel','la saison des glaciers'],'la saison des pluies','La RDC connaît une saison des pluies et une saison sèche.')
+ ],
+ rumba:[
+  Q('La rumba congolaise est inscrite au patrimoine de…',['l’UNESCO','la Lune','la FIFA','Internet'],'l’UNESCO','La rumba congolaise a été reconnue par l’UNESCO en 2021.'),
+  Q('Quelles deux villes sont liées à la rumba congolaise ?',['Kinshasa et Brazzaville','Paris et Londres','Tokyo et Pékin','Lima et Quito'],'Kinshasa et Brazzaville','La rumba est née de part et d’autre du fleuve Congo.'),
+  Q('Quel instrument à cordes est central dans la rumba ?',['la guitare','le piano à queue','le violoncelle','la harpe'],'la guitare','La guitare électrique et acoustique est au cœur de la rumba.'),
+  Q('La musique est un moyen de…',['partager la culture et la joie','faire peur','se disputer','fuir'],'partager la culture et la joie','La musique rassemble et transmet la culture.'),
+  Q('Comment appelle-t-on un groupe qui joue ensemble ?',['un orchestre','un marché','un hôpital','un atelier'],'un orchestre','Un orchestre ou un groupe réunit plusieurs musiciens.')
+ ],
+ musique:[
+  Q('Combien de cordes a une guitare classique ?',['6','2','10','20'],'6','Une guitare classique a 6 cordes.'),
+  Q('Le tambour est un instrument…',['à percussion','à cordes','à vent','électronique'],'à percussion','On frappe un tambour pour le faire sonner.'),
+  Q('Quel instrument africain a des lamelles que l’on pince avec les pouces ?',['le likembé','le violon','la trompette','la flûte'],'le likembé','Le likembé est un petit instrument à lamelles métalliques.'),
+  Q('Une chanson dure 4 minutes. Combien de secondes ?',['240','120','400','60'],'240','4 × 60 = 240 secondes.'),
+  Q('Pour bien jouer ensemble, il faut…',['écouter les autres musiciens','jouer plus fort que tous','arriver en retard','ne pas répéter'],'écouter les autres musiciens','Un bon groupe s’écoute et suit le même rythme.')
+ ],
+ incendie:[
+  Q('Qui éteint les grands incendies ?',['les pompiers','les cuisiniers','les facteurs','les chauffeurs'],'les pompiers','Les pompiers sont formés pour éteindre le feu et secourir.'),
+  Q('Avec quel objet éteint-on un petit feu ?',['un extincteur','un ballon','un livre','une chaise'],'un extincteur','L’extincteur sert à éteindre un début d’incendie.'),
+  Q('Les enfants doivent-ils jouer avec des allumettes ?',['non, jamais','oui, souvent','oui, la nuit','oui, dehors'],'non, jamais','Les allumettes et les briquets sont dangereux.'),
+  Q('S’il y a de la fumée dans une pièce, on…',['se baisse près du sol et sort','se tient debout au milieu','se cache sous le lit','ouvre toutes les portes en courant'],'se baisse près du sol et sort','La fumée monte : l’air est plus sain près du sol.'),
+  Q('Que faire en premier si tu vois un feu qui grandit ?',['sortir et prévenir un adulte','le regarder','jeter de l’huile dessus','prendre des photos'],'sortir et prévenir un adulte','Ta sécurité d’abord : on sort et on appelle les secours.')
+ ],
+ secours:[
+  Q('Que fait-on en cas d’accident grave ?',['on appelle les secours','on s’enfuit','on crie sans rien faire','on déplace la victime brusquement'],'on appelle les secours','Appeler vite les secours peut sauver une vie.'),
+  Q('Qu’est-ce qu’une trousse de premiers secours ?',['une boîte avec des pansements et du matériel','une boîte à jouets','une valise de vêtements','un sac de riz'],'une boîte avec des pansements et du matériel','On y trouve de quoi soigner une petite blessure.'),
+  Q('Comment s’appelle le véhicule qui transporte les blessés ?',['l’ambulance','le taxi-moto','le camion à bétail','le bus scolaire'],'l’ambulance','L’ambulance emmène les blessés à l’hôpital.'),
+  Q('Il y a 8 pompiers par camion. Combien de pompiers pour 3 camions ?',['24','11','16','32'],'24','8 × 3 = 24.'),
+  Q('Que veut dire « garder son calme » ?',['rester tranquille pour bien agir','paniquer','crier','se cacher'],'rester tranquille pour bien agir','Garder son calme aide à prendre les bonnes décisions.')
+ ],
+ poste:[
+  Q('À quoi sert la poste ?',['envoyer des lettres et des colis','soigner les malades','vendre des légumes','réparer les routes'],'envoyer des lettres et des colis','La poste achemine le courrier.'),
+  Q('Que colle-t-on sur une lettre pour l’envoyer ?',['un timbre','un bonbon','un ticket de bus','une photo'],'un timbre','Le timbre paie l’envoi de la lettre.'),
+  Q('Que doit-on écrire sur l’enveloppe ?',['l’adresse du destinataire','une recette','une chanson','rien du tout'],'l’adresse du destinataire','Sans adresse, la lettre ne peut pas arriver.'),
+  Q('Qui apporte le courrier à la maison ?',['le facteur','le médecin','le pêcheur','le pilote'],'le facteur','Le facteur distribue lettres et colis.'),
+  Q('Un colis pèse 3 kg et coûte 2 000 FC par kg. Quel prix ?',['6 000 FC','5 000 FC','3 000 FC','9 000 FC'],'6 000 FC','3 × 2 000 = 6 000 FC.')
+ ],
+ epargne:[
+  Q('Que veut dire « épargner » ?',['mettre de l’argent de côté','dépenser tout de suite','perdre son argent','prêter à n’importe qui'],'mettre de l’argent de côté','Épargner, c’est garder une partie de son argent pour plus tard.'),
+  Q('Où garde-t-on son argent en sécurité ?',['dans une banque','dans la rue','sous un arbre','dans un sac ouvert'],'dans une banque','La banque protège et gère l’argent des clients.'),
+  Q('Tu mets 500 FC de côté chaque semaine. Combien après 4 semaines ?',['2 000 FC','1 500 FC','2 500 FC','4 000 FC'],'2 000 FC','500 × 4 = 2 000 FC.'),
+  Q('Pourquoi épargner ?',['pour réaliser un projet ou faire face à un imprévu','pour perdre son argent','pour impressionner','pour rien'],'pour réaliser un projet ou faire face à un imprévu','L’épargne aide à acheter plus tard ou à traverser une difficulté.'),
+  Q('Faut-il donner son code secret à un inconnu ?',['non, jamais','oui, s’il sourit','oui, au marché','oui, par téléphone'],'non, jamais','Le code secret ne se partage avec personne.')
+ ],
+ recyclage:[
+  Q('Que veut dire « recycler » ?',['donner une nouvelle vie aux déchets','brûler les déchets','enterrer le plastique','jeter dans le fleuve'],'donner une nouvelle vie aux déchets','Le recyclage transforme les déchets en nouveaux objets.'),
+  Q('Quelles sont les trois règles : réduire, réutiliser et…',['recycler','gaspiller','casser','oublier'],'recycler','Réduire, réutiliser, recycler : les trois gestes verts.'),
+  Q('Dans quelle poubelle jette-t-on une bouteille en plastique ?',['celle du plastique','celle des légumes','celle du verre cassé','nulle part'],'celle du plastique','On trie pour que le plastique soit recyclé.'),
+  Q('Que devient un épluchage de légumes dans un compost ?',['de l’engrais pour les plantes','du plastique','du métal','du verre'],'de l’engrais pour les plantes','Le compost nourrit la terre.'),
+  Q('Pourquoi le plastique est-il dangereux dans la nature ?',['il met très longtemps à disparaître','il est très léger','il est brillant','il sent bon'],'il met très longtemps à disparaître','Le plastique reste des centaines d’années.')
+ ],
+ arbres:[
+  Q('Que produisent les arbres que l’on respire ?',['de l’oxygène','du plastique','de la fumée','du sable'],'de l’oxygène','Les arbres produisent de l’oxygène et absorbent du gaz carbonique.'),
+  Q('Que veut dire « reboiser » ?',['replanter des arbres','couper les arbres','brûler la forêt','vendre le bois'],'replanter des arbres','Reboiser aide la nature à se reconstituer.'),
+  Q('Pourquoi les arbres protègent-ils le sol ?',['leurs racines le retiennent','ils le mangent','ils le lavent','ils le chauffent'],'leurs racines le retiennent','Les racines évitent que la terre soit emportée par la pluie.'),
+  Q('Qu’est-ce que le réchauffement climatique ?',['la hausse des températures sur Terre','une fête','une maladie','un fleuve'],'la hausse des températures sur Terre','Il perturbe les saisons et la nature.'),
+  Q('Tu plantes 3 arbres par mois pendant 6 mois. Combien d’arbres ?',['18','9','12','24'],'18','3 × 6 = 18.')
+ ],
+ numerique:[
+  Q('Comment s’appelle l’écran sur lequel on regarde ?',['le moniteur','la souris','le clavier','le câble'],'le moniteur','Le moniteur affiche ce que fait l’ordinateur.'),
+  Q('Avec quoi tape-t-on du texte sur un ordinateur ?',['un clavier','une souris','un haut-parleur','une imprimante'],'un clavier','Le clavier sert à écrire.'),
+  Q('Quel appareil déplace le curseur à l’écran ?',['la souris','le clavier','l’écran','la prise'],'la souris','La souris pointe et clique.'),
+  Q('À quoi sert Internet ?',['chercher des informations et communiquer','laver les vêtements','cuire le riz','construire des routes'],'chercher des informations et communiquer','Internet relie le monde entier.'),
+  Q('Que veut dire « sauvegarder » un fichier ?',['en garder une copie en sécurité','le supprimer','le déchirer','le cacher'],'en garder une copie en sécurité','Sauvegarder évite de perdre son travail.')
+ ],
+ internet:[
+  Q('Faut-il partager son mot de passe ?',['non, jamais','oui, avec tous','oui, avec un inconnu','oui, en ligne'],'non, jamais','Un mot de passe est secret.'),
+  Q('Un inconnu t’écrit en ligne et veut ton adresse. Que fais-tu ?',['je ne réponds pas et j’en parle à un adulte','je donne mon adresse','je lui envoie des photos','je donne mon code'],'je ne réponds pas et j’en parle à un adulte','On ne donne jamais d’informations privées à un inconnu.'),
+  Q('Un lien étrange promet un cadeau gratuit. Que faire ?',['ne pas cliquer','cliquer vite','le partager','l’ouvrir sur tous les appareils'],'ne pas cliquer','Les liens suspects peuvent voler des informations.'),
+  Q('Comment doit-on se comporter en ligne ?',['avec respect','avec méchanceté','avec moquerie','en insultant'],'avec respect','On est aussi poli en ligne que dans la vraie vie.'),
+  Q('Combien de temps passer devant un écran chaque jour ?',['un temps raisonnable, avec des pauses','toute la nuit','sans arrêt','sans dormir'],'un temps raisonnable, avec des pauses','Les yeux et le corps ont besoin de repos.')
+ ],
+ independance:[
+  Q('En quelle année la RDC est-elle devenue indépendante ?',['1960','1900','1990','2000'],'1960','L’indépendance a été proclamée le 30 juin 1960.'),
+  Q('Qui fut le premier Premier ministre du Congo indépendant ?',['Patrice Lumumba','Mobutu Sese Seko','Laurent-Désiré Kabila','Joseph Kabila'],'Patrice Lumumba','Patrice Lumumba a été le premier Premier ministre.'),
+  Q('Quel jour fête-t-on l’indépendance ?',['le 30 juin','le 1er mai','le 25 décembre','le 14 juillet'],'le 30 juin','La fête nationale est le 30 juin.'),
+  Q('De quel pays le Congo est-il devenu indépendant en 1960 ?',['de la Belgique','de la France','du Portugal','de l’Italie'],'de la Belgique','Le Congo était une colonie belge.'),
+  Q('Que veut dire « être indépendant » pour un pays ?',['se gouverner soi-même','être gouverné par d’autres','ne plus avoir de frontières','ne plus avoir de villes'],'se gouverner soi-même','Un pays indépendant décide lui-même de son avenir.')
+ ],
+ symboles:[
+  Q('Comment s’appelle l’hymne national de la RDC ?',['Debout Congolais','La Marseillaise','Vive le roi','Hymne à la joie'],'Debout Congolais','L’hymne national est « Debout Congolais ».'),
+  Q('Quelle est la devise de la RDC ?',['Justice – Paix – Travail','Liberté – Égalité – Fraternité','Force – Honneur – Patrie','Dieu et mon droit'],'Justice – Paix – Travail','Justice, Paix, Travail est la devise nationale.'),
+  Q('Quelle forme a l’étoile du drapeau ?',['jaune à cinq branches','bleue à six branches','verte à quatre branches','rouge à trois branches'],'jaune à cinq branches','Le drapeau porte une étoile jaune sur fond bleu ciel.'),
+  Q('Que fait-on quand on entend l’hymne national ?',['on se tient debout avec respect','on court','on ricane','on s’en va'],'on se tient debout avec respect','On respecte les symboles de son pays.'),
+  Q('Quel est le premier devoir d’un bon citoyen envers son pays ?',['le respecter et le servir','le critiquer sans agir','l’oublier','le quitter'],'le respecter et le servir','Servir son pays, c’est participer à son développement.')
+ ]
+});
+
+Object.assign(NPC,{
+ ndombi:{sc:'wagenia',x:-5,z:-5.5,ry:0.3,name:'Pêcheur Ndombi',short:'le pêcheur',role:'Pêcheur',kind:'quiz',sujet:'wagenia',nb:3,needs:'tisse',
+  look:{s:'h',h:1.02,skin:'#6e4a36',c:'#2e86de',k:'pagne',co:'rase',faceKey:'avatars/h2'},
+  intro:['Bienvenue à Kisangani, au bord des chutes !','Mes ancêtres pêchent ici depuis très longtemps. Veux-tu connaître nos secrets ?'],
+  outro:'Bravo ! Ma sœur Mama Kaseya va te parler de calcul et de pêche.'},
+ kaseya:{sc:'wagenia',x:5.5,z:-5.5,ry:-0.4,name:'Mama Kaseya',short:'Mama Kaseya',role:'Marchande de poisson',kind:'quiz',sujet:'poissons',nb:3,needs:'ndombi',
+  look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#c0392b',k:'pagne',co:'nattes',faceKey:'avatars/f3'},
+  intro:['Viens, je vends le poisson du matin.','Un bon commerçant sait compter. Montre-moi !'],
+  outro:'Très bien ! Direction la savane de Garamba.'},
+ kalonji:{sc:'garamba',x:-5,z:-5.5,ry:0.3,name:'Guide Kalonji',short:'le guide',role:'Guide de savane',kind:'quiz',sujet:'savane',nb:3,needs:'kaseya',
+  look:{s:'h',h:1.02,skin:'#7d5a44',c:'#8a6a2a',k:'uniforme',co:'courtes',faceKey:'avatars/h4'},
+  intro:['Bienvenue dans la savane de Garamba !','Regarde : girafes et éléphants vivent ici en liberté. Reste près de moi.'],
+  outro:'Parfait ! La biologiste Mpoyi t’expliquera qui mange quoi.'},
+ mpoyi:{sc:'garamba',x:5.5,z:-5.5,ry:-0.4,name:'Biologiste Mpoyi',short:'la biologiste',role:'Biologiste',kind:'quiz',sujet:'chaine',nb:3,needs:'kalonji',
+  look:{s:'f',h:0.98,skin:'#7a4a2e',c:'#27ae60',k:'uniforme',co:'tresses',faceKey:'avatars/f2'},
+  intro:['Chaque animal a sa place dans la nature.','Voyons si tu comprends la chaîne alimentaire !'],
+  outro:'Excellent ! En route pour le lac Tanganyika.'},
+ mulenga:{sc:'tanganyika',x:-5,z:-5.5,ry:0.3,name:'Capitaine Mulenga',short:'le capitaine',role:'Capitaine de bateau',kind:'quiz',sujet:'tanganyika',nb:3,needs:'mpoyi',
+  look:{s:'h',h:1.03,skin:'#6e4a36',c:'#1f5fa8',k:'uniforme',co:'rase',faceKey:'avatars/h3'},
+  intro:['Bienvenue sur les rives du lac Tanganyika !','C’est le plus long lac d’eau douce du monde. Je le traverse chaque semaine.'],
+  outro:'Très bien ! Mama Kabeya t’attend près des pirogues.'},
+ kabeya:{sc:'tanganyika',x:5.5,z:-5.5,ry:-0.4,name:'Mama Kabeya',short:'Mama Kabeya',role:'Pêcheuse',kind:'quiz',sujet:'lacvie',nb:3,needs:'mulenga',
+  look:{s:'f',h:0.96,skin:'#8a5a3e',c:'#e67e22',k:'pagne',co:'chignon',faceKey:'portraits/mama'},
+  intro:['Chaque matin, je pars pêcher en pirogue.','La vie dans l’eau est riche, mais elle est fragile.'],
+  outro:'Bravo ! Direction la cité des sciences.'},
+ kasereka:{sc:'sciences',x:-5,z:-5.5,ry:0.3,name:'Professeur Kasereka',short:'le professeur',role:'Professeur de sciences',kind:'quiz',sujet:'sciences2',nb:3,needs:'kabeya',
+  look:{s:'h',h:1.0,skin:'#916f64',c:'#7a8590',k:'uniforme',co:'gris',faceKey:'portraits/mavungu'},
+  intro:['Bienvenue à la cité des sciences !','Ici, on observe, on expérimente et on comprend le monde. Prêt ?'],
+  outro:'Bravo ! Madame Lwamba va te parler du temps et de l’énergie.'},
+ lwamba:{sc:'sciences',x:5.5,z:-5.5,ry:-0.4,name:'Madame Lwamba',short:'Madame Lwamba',role:'Météorologue',kind:'quiz',sujet:'meteo',nb:3,needs:'kasereka',
+  look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#8e44ad',k:'uniforme',co:'tresses',faceKey:'portraits/ilunga'},
+  intro:['Je prédis le temps qu’il fera demain.','Vent, soleil, pluie : tout est lié à l’énergie. Voyons ce que tu sais !'],
+  outro:'Excellent ! Direction la scène de la rumba.'},
+ wendo:{sc:'rumba',x:-5,z:-5.5,ry:0.3,name:'Maestro Wendo',short:'le maestro',role:'Chef d’orchestre',kind:'quiz',sujet:'rumba',nb:3,needs:'lwamba',
+  look:{s:'h',h:1.02,skin:'#6e4a36',c:'#c0392b',k:'boubou',co:'gris',faceKey:'avatars/h1'},
+  intro:['Bienvenue ! Ici bat le cœur de la rumba congolaise.','Notre musique a conquis le monde. Écoute et réponds !'],
+  outro:'Bravo ! Le guitariste Tabu t’attend.'},
+ tabu:{sc:'rumba',x:5.5,z:-5.5,ry:-0.4,name:'Guitariste Tabu',short:'le guitariste',role:'Guitariste',kind:'quiz',sujet:'musique',nb:3,needs:'wendo',
+  look:{s:'h',h:1.0,skin:'#7d5a44',c:'#f1c40f',k:'uniforme',co:'courtes',faceKey:'avatars/h3'},
+  intro:['Une guitare, un rythme, et tout le monde danse.','Montre-moi que tu connais les instruments !'],
+  outro:'Très bien ! Va voir les pompiers de la caserne.'},
+ mutamba:{sc:'pompiers',x:-5,z:-5.5,ry:0.3,name:'Capitaine Mutamba',short:'le capitaine',role:'Capitaine des pompiers',kind:'quiz',sujet:'incendie',nb:3,needs:'tabu',
+  look:{s:'h',h:1.03,skin:'#6e4a36',c:'#b22222',k:'uniforme',co:'rase',faceKey:'avatars/h2'},
+  intro:['Bienvenue à la caserne des pompiers !','Notre mission : protéger les vies. Et toi, sais-tu prévenir un incendie ?'],
+  outro:'Bien ! Le secouriste Kiala va te parler des secours.'},
+ kiala:{sc:'pompiers',x:5.5,z:-5.5,ry:-0.4,name:'Secouriste Kiala',short:'le secouriste',role:'Secouriste',kind:'quiz',sujet:'secours',nb:3,needs:'mutamba',
+  look:{s:'h',h:1.0,skin:'#916f64',c:'#f2f2f2',k:'uniforme',co:'courtes',faceKey:'avatars/h4'},
+  intro:['Savoir réagir, c’est sauver des vies.','Voyons ensemble les bons réflexes.'],
+  outro:'Bravo ! Direction la poste et la banque.'},
+ makanda:{sc:'poste',x:-5,z:-5.5,ry:0.3,name:'Facteur Makanda',short:'le facteur',role:'Facteur',kind:'quiz',sujet:'poste',nb:3,needs:'kiala',
+  look:{s:'h',h:1.0,skin:'#7d5a44',c:'#f1c40f',k:'uniforme',co:'courtes',faceKey:'avatars/h1'},
+  intro:['Bonjour ! Je livre lettres et colis dans toute la ville.','Savoir écrire une adresse, c’est aussi important que savoir lire !'],
+  outro:'Très bien ! Madame Nlandu va te parler d’argent.'},
+ nlandu:{sc:'poste',x:5.5,z:-5.5,ry:-0.4,name:'Banquière Nlandu',short:'la banquière',role:'Banquière',kind:'quiz',sujet:'epargne',nb:3,needs:'makanda',
+  look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#1f3a6b',k:'uniforme',co:'chignon',faceKey:'avatars/f4'},
+  intro:['Bienvenue à la banque.','L’argent bien gardé et bien géré fait grandir les projets.'],
+  outro:'Parfait ! Va au centre de recyclage.'},
+ tumba:{sc:'recyclage',x:-5,z:-5.5,ry:0.3,name:'Madame Tumba',short:'Madame Tumba',role:'Responsable du recyclage',kind:'quiz',sujet:'recyclage',nb:3,needs:'nlandu',
+  look:{s:'f',h:0.98,skin:'#8a5a3e',c:'#27ae60',k:'uniforme',co:'nattes',faceKey:'avatars/f2'},
+  intro:['Ici, rien ne se perd, tout se transforme !','Apprendre à trier, c’est protéger notre planète.'],
+  outro:'Bravo ! Le jardinier Kapinga t’attend à la pépinière.'},
+ kapinga:{sc:'recyclage',x:5.5,z:-5.5,ry:-0.4,name:'Jardinier Kapinga',short:'le jardinier',role:'Jardinier',kind:'quiz',sujet:'arbres',nb:3,needs:'tumba',
+  look:{s:'h',h:1.0,skin:'#6e4a36',c:'#3f7d34',k:'uniforme',co:'rase',faceKey:'avatars/h2'},
+  intro:['Chaque arbre planté est un cadeau pour demain.','Dis-moi ce que tu sais sur les arbres.'],
+  outro:'Très bien ! Direction le centre numérique.'},
+ mpiana:{sc:'numerique',x:-5,z:-5.5,ry:0.3,name:'Ingénieure Mpiana',short:'l’ingénieure',role:'Ingénieure informaticienne',kind:'quiz',sujet:'numerique',nb:3,needs:'kapinga',
+  look:{s:'f',h:0.98,skin:'#7a4a2e',c:'#2e86de',k:'uniforme',co:'tresses',faceKey:'avatars/f3'},
+  intro:['Bienvenue au centre numérique !','Les ordinateurs nous aident à apprendre, créer et communiquer.'],
+  outro:'Bravo ! Le technicien Sefu te parlera de sécurité en ligne.'},
+ sefu:{sc:'numerique',x:5.5,z:-5.5,ry:-0.4,name:'Technicien Sefu',short:'le technicien',role:'Technicien réseau',kind:'quiz',sujet:'internet',nb:3,needs:'mpiana',
+  look:{s:'h',h:1.0,skin:'#7d5a44',c:'#7a8590',k:'uniforme',co:'courtes',faceKey:'avatars/h3'},
+  intro:['Internet est utile, mais il faut rester prudent.','Voyons ensemble les bons réflexes en ligne !'],
+  outro:'Parfait ! Le dernier lieu t’attend : la place de l’Indépendance.'},
+ lubaki:{sc:'place',x:-5,z:-5.5,ry:0.3,name:'Historien Lubaki',short:'l’historien',role:'Historien',kind:'quiz',sujet:'independance',nb:3,needs:'sefu',
+  look:{s:'h',h:1.02,skin:'#916f64',c:'#8a6a2a',k:'boubou',co:'gris',faceKey:'portraits/mavungu'},
+  intro:['Bienvenue sur la place de l’Indépendance.','Ici, le Congo a retrouvé sa liberté. Connais-tu cette histoire ?'],
+  outro:'Bien ! Mama Bakala te parlera des symboles du pays.'},
+ bakala:{sc:'place',x:5.5,z:-5.5,ry:-0.4,name:'Mama Bakala',short:'Mama Bakala',role:'Cheffe du protocole',kind:'quiz',sujet:'symboles',nb:3,needs:'lubaki',
+  look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#c0392b',k:'boubou',co:'chignon',faceKey:'portraits/ilunga'},
+  intro:['Drapeau, hymne, devise : ce sont les symboles de notre nation.','Un bon citoyen les connaît et les respecte.'],
+  outro:'Félicitations ! Tu as terminé les trente épisodes. Tu es un vrai champion du Congo !'}
+});
+STAGES.push(
+ {id:'wagenia',scene:'wagenia',name:'Les pêcheurs Wagenia',icon:'🎣',npcs:['ndombi','kaseya']},
+ {id:'garamba',scene:'garamba',name:'La savane de Garamba',icon:'🦒',npcs:['kalonji','mpoyi']},
+ {id:'tanganyika',scene:'tanganyika',name:'Le lac Tanganyika',icon:'⛵',npcs:['mulenga','kabeya']},
+ {id:'sciences',scene:'sciences',name:'La cité des sciences',icon:'🔬',npcs:['kasereka','lwamba']},
+ {id:'rumba',scene:'rumba',name:'La scène de la rumba',icon:'🎸',npcs:['wendo','tabu']},
+ {id:'pompiers',scene:'pompiers',name:'La caserne des pompiers',icon:'🚒',npcs:['mutamba','kiala']},
+ {id:'poste',scene:'poste',name:'La poste et la banque',icon:'✉️',npcs:['makanda','nlandu']},
+ {id:'recyclage',scene:'recyclage',name:'Le centre de recyclage',icon:'♻️',npcs:['tumba','kapinga']},
+ {id:'numerique',scene:'numerique',name:'Le centre numérique',icon:'💻',npcs:['mpiana','sefu']},
+ {id:'place',scene:'place',name:'La place de l’Indépendance',icon:'🇨🇩',npcs:['lubaki','bakala']}
 );
