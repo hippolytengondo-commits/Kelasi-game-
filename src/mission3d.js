@@ -46,7 +46,7 @@ export function createMission3D(env){
     const e=etiquette(texte,{bord:'#'+col.getHexString(),sous:opt.sous,haut:opt.sous?250:224,taille:opt.taille});
     const lw=opt.large||Math.min(4.4,Math.max(2.2,1.6+String(texte).length*.13));
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:e.tex,transparent:true,depthWrite:false}));sp.scale.set(lw,lw*e.aspect,1);sp.position.y=2.55+lw*e.aspect*.4;g.add(sp);
-    g.userData={texte,pad,anneau,rempli,faisceau,sp,col,dwell:0,actif:true,sortir:false,x0:x,z0:z,phase:Math.random()*6,lw,sous:opt.sous};
+    g.userData={texte,pad,anneau,rempli,faisceau,sp,col,dwell:0,actif:true,sortir:!!(env.pos&&(()=>{const q=env.pos();return Math.hypot(q.x-x,q.z-z)<RAYON+.9})()),x0:x,z0:z,phase:Math.random()*6,lw,sous:opt.sous};
     Object.assign(g.userData,opt.donnees||{});
     groupe.add(g);S.jetons.push(g);return g;
   }
@@ -121,6 +121,7 @@ export function createMission3D(env){
     const e=S.etape;
     eclat(j.position.x,1.2,j.position.z,0x6bff9e,60);
     env.sfx('ok');env.etape(S.err===0,e.type);
+    if(env.recentrer)env.recentrer();
     S.attente=2.3;S.apres=suivante;S.bloque=true;
     hud({prog:(S.i+1)+' / '+S.etapes.length,q:e.q||e.consigne,sous:'',msg:message||'Bravo !'});
     if(message)voix(message);

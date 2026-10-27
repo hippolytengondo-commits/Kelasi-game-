@@ -157,3 +157,5 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 #dlg .mstars{font-size:30px;text-align:center;color:#e0a526;letter-spacing:4px;animation:mpop .7s ease-out}
 @keyframes mpop{0%{transform:scale(.6);opacity:.35}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
 #dlg .mscore{font-size:38px;font-weight:900;text-align:center;color:#1f7a4d;animation:mpop .7s ease-out}
+#dlg button.j{background:#f4c430;border-color:#d9a400;color:#2b2110;text-align:center;font-weight:700}
+#dlg button.p{font-weight:700}

@@ -433,11 +433,13 @@ function htmlQuiz(d){
     if(d.rev)h+=`<div class="mfin">🎉 RÉVISION TERMINÉE !</div><div class="mscore">${sc.p} sur ${sc.t}</div><p style="text-align:center;margin:0">${pc} % · <b>+${d.gain} 🪙</b></p>${compare}`;
     else h+=`<div class="mfin">🎉 MISSION TERMINÉE !</div><div class="mscore">${sc.p} sur ${sc.t}</div><p style="text-align:center;margin:0">${pc} %</p>${compare}<p>${esc(n.outro)}</p><p><b>+${d.gain} 🪙</b>${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
     const sv=suivanteScolaire(d);
-    if(sv)h+=`<button class="p" onclick="startMission('${sv[0]}','${sv[1]}',${sv[2]})">▶ Mission suivante : ${esc(sv[3])}</button>`;
-    h+=`<button class="${sv?'':'p'}" onclick="openSuite()">🎯 Choisir la prochaine mission</button>`;
+    h+=`<p style="font-size:14px;margin:6px 0">Bravo, tu as fini la mission ! Continue avec la suivante ou explore d’autres missions.</p>`;
+    if(sv)h+=`<button class="p" onclick="startMission('${sv[0]}','${sv[1]}',${sv[2]})">▶ Suivant : ${esc(sv[3])}</button>`;
+    else if(G.ui==='3d'&&!d.rev)h+=`<button class="p" onclick="suivantAventure()">▶ Suivant</button>`;
+    h+=`<button class="j" onclick="openSuite()">🧭 Explorer d’autres missions</button>`;
     d.menuFait=true;
     if(d.classe)h+=`<p style="font-size:13px">📘 <b>Tu retrouveras ça en classe :</b> ${esc(d.classe)}.</p>`;
-    h+=`<button class="s" onclick="closeDialog()">Continuer à explorer</button>`;
+    h+=`<button class="p" onclick="closeDialog()">Continuer l’exploration</button>`;
     if(d.backEsp==='mm')h+=`<button onclick="openEsp('mm')">Mes missions de classe</button>`;
     else if(d.backEsp==='ens')h+=`<button onclick="openEsp()">Retour à l’espace enseignant</button>`;
     else if(d.back)h+=`<button onclick="progBack()">Autres missions</button>`;
@@ -659,7 +661,7 @@ function startMini(){
   G.mode='mini';G.mini={t:20,caught:0,list:[],sp:0};hideBubble();
   mangoGroup=new THREE.Group();scene.add(mangoGroup);
   canopy(false);
-  toast('Attrape les mangues qui tombent !');
+  toast('Touche les mangues qui tombent !');
 }
 const mangoMat=new THREE.MeshStandardMaterial({color:0xf0a51c,roughness:.5});
 const mangoGeo=new THREE.SphereGeometry(.17,12,10);
@@ -669,7 +671,7 @@ function tickMini(dt){
   if(m.sp<=0){
     m.sp=.5+Math.random()*.4;
     const a=Math.random()*6.28,r=Math.random()*3.4;
-    const mesh=new THREE.Mesh(mangoGeo,mangoMat);mesh.scale.y=1.25;mesh.castShadow=true;
+    const mesh=new THREE.Mesh(mangoGeo,mangoMat);mesh.scale.set(1.5,1.9,1.5);mesh.castShadow=true;
     mesh.position.set(tr.x+Math.cos(a)*r,6.2,tr.z+Math.sin(a)*r);
     mangoGroup.add(mesh);m.list.push({mesh:mesh,v:0});
   }
@@ -680,8 +682,20 @@ function tickMini(dt){
     if(p.y<=.17){p.y=.17;o.v=0;o.gone=(o.gone||0)+dt;if(o.gone>.5){mangoGroup.remove(o.mesh);return false}}
     return true;
   });
-  $('info').textContent='Mangues attrapées : '+m.caught+' · temps : '+Math.max(0,Math.ceil(m.t))+' s';
+  $('info').textContent='Touche les mangues ! Attrapées : '+m.caught+' · temps : '+Math.max(0,Math.ceil(m.t))+' s';
   if(m.t<=0)endMini();
+}
+// toucher une mangue à l'écran : la plus proche du doigt (dans un rayon généreux) est cueillie
+function toucherMangue(px,py){
+  const m=G.mini;if(!m)return;
+  const r=cv.getBoundingClientRect();let meilleur=null,dm=64;
+  m.list.forEach(o=>{
+    const v=o.mesh.position.clone().project(camera);if(v.z>1)return;
+    const sx=r.left+(v.x+1)/2*r.width,sy=r.top+(1-v.y)/2*r.height,d=Math.hypot(sx-px,sy-py);
+    if(d<dm){dm=d;meilleur=o}
+  });
+  if(meilleur){m.caught++;SFX.coin();mangoGroup.remove(meilleur.mesh);m.list=m.list.filter(o=>o!==meilleur);
+    $('info').textContent='Mangues attrapées : '+m.caught+' · temps : '+Math.max(0,Math.ceil(m.t))+' s'}
 }
 function canopy(v){W.mangoTree.obj.children.forEach(c=>{if(c.userData.canopy)c.visible=v})}
 function endMini(){
@@ -733,7 +747,10 @@ cv.addEventListener('pointermove',e=>{
   if(ptrs.size<2)pinchD=0;
   if(e.pointerId===camPtr){
     camPtr=null;
-    if(ev==='pointerup'&&etait&&G.mode==='m3d'&&tapMove<14&&performance.now()-tapT<450)toucherReponse(e.clientX,e.clientY);
+    if(ev==='pointerup'&&etait&&tapMove<14&&performance.now()-tapT<450){
+      if(G.mode==='m3d')toucherReponse(e.clientX,e.clientY);
+      else if(G.mode==='mini')toucherMangue(e.clientX,e.clientY);
+    }
   }
 }));
 cv.addEventListener('wheel',e=>{if(G.mode==='m3d'){e.preventDefault();G.camOverride=clamp(4,16,(G.camOverride||7.4)*(1+Math.sign(e.deltaY)*.08))}},{passive:false});
@@ -1030,6 +1047,8 @@ const M3=createMission3D({
   hud:p=>{$('m3t').textContent=p.prog?'Étape '+p.prog:'';$('m3q').textContent=p.q||'';$('m3s').textContent=p.sous||'';$('m3f').textContent=p.msg||''},
   voix:(t,force)=>{const v=(G.dialog&&(G.dialog.voice||G.dialog.id))||'ilunga';if(force){const w=G.voice;G.voice=true;speak(t,v);G.voice=w}else speak(t,v)},
   sfx:n=>{if(n==='ok')SFX.ok();else SFX.ko()},
+  pos:()=>({x:G.x,z:G.z}),
+  recentrer:()=>{G.auto={x:0,z:5}},
   etape:(first,type)=>{
     const d=G.dialog;if(!d)return;
     if(type==='choix'){G.adv.total++;if(first){G.adv.good++;d.firsts++}}
@@ -1094,6 +1113,10 @@ function prochaineAventure(){
   for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st))return {txt:'Rends-toi ici : '+st.icon+' '+st.name+'.',stage:st}}
   return {txt:'Tu as accompli toute l’aventure ! Continue avec les missions scolaires.'};
 }
+function suivantAventure(){
+  const nx=prochaineAventure();
+  if(nx.stage)travel(nx.stage.id);else closeDialog();
+}
 function openSuite(){
   quitterArene();
   openBox({kind:'suite'});
@@ -1104,9 +1127,9 @@ function htmlSuite(){
   h+=`<p style="font-size:14px"><b>Aventure :</b> ${esc(nx.txt)}</p>`;
   if(nx.stage&&G.ui==='3d')h+=`<button class="p" onclick="travel('${nx.stage.id}')">🗺 Y aller : ${nx.stage.icon} ${esc(nx.stage.name)}</button>`;
   else if(G.ui==='3d')h+=`<button class="p" onclick="closeDialog()">▶ C’est parti ! (la mini-carte te guide)</button>`;
-  h+=`<button onclick="openProg()">🎓 Missions scolaires (français, maths, sciences…)</button>`;
-  if(G.ui==='3d')h+=`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`;
-  return h+`<button class="s" onclick="closeDialog()">Continuer à explorer</button>`;
+  h+=`<button class="j" onclick="openProg()">🎓 Missions scolaires (français, maths, sciences…)</button>`;
+  if(G.ui==='3d')h+=`<button class="j" onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`;
+  return h+`<button class="p" onclick="closeDialog()">Continuer l’exploration</button>`;
 }
 
 // ---------- Carnet de progression : scores exacts et évolution ----------
@@ -1434,7 +1457,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{startMini,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
