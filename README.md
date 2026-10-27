@@ -1,4 +1,4 @@
-# Kelasi Game (3D)
+# BOYEKOLI PLAY (3D)
 
 Jeu d'aventure éducatif en 3D temps réel (Three.js) : village, école LEXARIS ACADÉMIE, classe et maison à explorer avec un joystick virtuel et une caméra libre.
 

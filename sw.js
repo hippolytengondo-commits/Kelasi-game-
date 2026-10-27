@@ -1,8 +1,8 @@
-// Mode hors connexion de Kelasi Game.
+// Mode hors connexion de BOYEKOLI PLAY.
 // Principe : le jeu (page, scripts, styles) est pris sur Internet quand c'est possible, pour toujours avoir la dernière version,
 // et sinon dans la mémoire de l'appareil. Les images sont gardées après leur premier chargement.
 // Les appels au serveur des comptes (autre domaine) ne sont jamais mis en mémoire.
-const NOM='kelasi-v1';
+const NOM='boyekoli-v1';
 const COEUR=['./','index.html','style.css','dist/game.js','manifest.webmanifest','img/manifest.json','img/faces.json','icons/icon-192.png','icons/icon-512.png'];
 
 self.addEventListener('install',e=>{

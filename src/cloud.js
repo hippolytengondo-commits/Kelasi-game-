@@ -1,4 +1,4 @@
-// Client léger du serveur Kelasi (Supabase) : connexion, classes, missions de classe, sauvegarde.
+// Client léger du serveur de BOYEKOLI PLAY (Supabase) : connexion, classes, missions de classe, sauvegarde.
 // Aucune bibliothèque : simples appels réseau, pour rester léger sur les téléphones modestes.
 // Le jeu fonctionne sans connexion ; tout ce qui est envoyé hors ligne est mis en file d'attente.
 const URL='https://mgaqfuilqqwmxgpowtps.supabase.co';

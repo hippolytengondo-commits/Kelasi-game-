@@ -1,6 +1,6 @@
-# Serveur Kelasi Game (Supabase)
+# Serveur BOYEKOLI PLAY (Supabase)
 
-Projet : « Kelasi Game » (région eu-west-3, Paris). Adresse : https://mgaqfuilqqwmxgpowtps.supabase.co
+Projet Supabase (nom technique : « Kelasi Game ») (région eu-west-3, Paris). Adresse : https://mgaqfuilqqwmxgpowtps.supabase.co
 La clé « publishable » utilisée dans `src/cloud.js` est publique par conception : la sécurité repose sur les règles de la base (RLS).
 
 ## Tables

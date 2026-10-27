@@ -1378,13 +1378,13 @@ window.addEventListener('appinstalled',()=>{invite=null;majInstall();try{toast('
 function installer(){
   if(invite){const i=invite;invite=null;i.prompt();i.userChoice.finally(majInstall);return}
   let l;
-  if(estIOS())l=['Pour installer Kelasi Game sur iPhone ou iPad, ouvre ce site avec Safari.','Touche le bouton Partager (le carré avec une flèche vers le haut, en bas de l’écran).','Fais défiler et touche « Sur l’écran d’accueil », puis « Ajouter ». L’icône Kelasi apparaît avec tes autres applications.'];
+  if(estIOS())l=['Pour installer BOYEKOLI PLAY sur iPhone ou iPad, ouvre ce site avec Safari.','Touche le bouton Partager (le carré avec une flèche vers le haut, en bas de l’écran).','Fais défiler et touche « Sur l’écran d’accueil », puis « Ajouter ». L’icône BOYEKOLI apparaît avec tes autres applications.'];
   else l=['Sur Android avec Chrome : touche le menu ⋮ (en haut à droite), puis « Installer l’application » ou « Ajouter à l’écran d’accueil ».','Sur ordinateur avec Chrome ou Edge : clique sur l’icône d’installation dans la barre d’adresse.','Une fois installée, l’application s’ouvre en plein écran et fonctionne même avec une mauvaise connexion.'];
   if(G.mode==='start'){G.depart=true;$('dlg').style.zIndex='9'}
   openBoxInstall(l);
 }
 function openBoxInstall(l){
-  const d={kind:'info',title:'Installer Kelasi Game',i:0,lines:l};
+  const d={kind:'info',title:'Installer BOYEKOLI PLAY',i:0,lines:l};
   if(G.mode==='start'){G.dialog=d;renderDialog()}else openBox(d);
 }
 $('inst').onclick=installer;
