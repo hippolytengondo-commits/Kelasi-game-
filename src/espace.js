@@ -2,7 +2,7 @@ import * as C from './cloud.js';
 
 // Comptes, classes et missions de classe. Vocabulaire : côté élève « mission de classe » ;
 // le mot « devoir » n'apparaît que dans l'espace enseignant (cahier des charges, 27.4).
-const ROLES={eleve:'Élève',enseignant:'Enseignant'};
+const ROLES={eleve:'Élève',enseignant:'Enseignant',parent:'Parent'};
 export function makeEspace(x){
   const {esc,PROGRAMME,CONTENU,missionCle}=x;
   const D=()=>x.G.dialog;
@@ -29,6 +29,11 @@ export function makeEspace(x){
     if(d.vue==='nouvdevoir')return vueNouvDevoir(d);
     if(d.vue==='devoir')return vueDevoir(d);
     if(d.vue==='bilan')return vueBilan(d);
+    if(d.vue==='ecole')return vueEcole(d);
+    if(d.vue==='ecoledet')return vueEcoleDet(d);
+    if(d.vue==='codeparent')return vueCodeParent(d);
+    if(d.vue==='enfants')return vueEnfants(d);
+    if(d.vue==='enfant')return vueEnfant(d);
     return vueCompte(d,s);
   }
 
@@ -38,12 +43,13 @@ export function makeEspace(x){
       +`<button onclick="espForm('creer','eleve')">Je suis un élève : créer mon compte</button>`
       +`<button onclick="espForm('creer','enseignant')">Je suis un enseignant : créer mon compte</button>`
       +`<button onclick="espForm('connecter')">J’ai déjà un compte : me connecter</button>`
-      +`<p style="font-size:12px;opacity:.75">Établissements scolaires et comptes parents : bientôt.</p>`
+      +`<button onclick="espForm('creer','parent')">Je suis un parent : créer mon compte</button>`
+      +`<p style="font-size:12px;opacity:.75">Établissements scolaires : crée d’abord un compte enseignant.</p>`
       +`<button class="s" onclick="closeDialog()">Fermer</button>`;
   }
   function vueForm(d){
     const creer=d.mode==='creer';
-    return entete(creer?'Créer mon compte '+(d.role==='enseignant'?'enseignant':'élève'):'Me connecter')+msg(d)
+    return entete(creer?'Créer mon compte '+(d.role==='enseignant'?'enseignant':d.role==='parent'?'parent':'élève'):'Me connecter')+msg(d)
       +`<p style="font-size:13px">${creer?'Choisis un pseudonyme (3 à 20 caractères : lettres, chiffres, point, tiret) et un mot de passe d’au moins 6 caractères. Aucune autre information n’est demandée.':'Entre ton pseudonyme et ton mot de passe.'}</p>`
       +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
       +`<input id="espMdp" type="password" maxlength="72" placeholder="Mot de passe" autocomplete="${creer?'new-password':'current-password'}">`
@@ -90,10 +96,15 @@ export function makeEspace(x){
     if(s.role==='enseignant'){
       h+=`<button class="p" onclick="espGo('classes')">🏫 Espace enseignant : mes classes et missions de classe</button>`
         +`<button onclick="openProg()">🎓 Essayer les missions moi-même</button>`
+        +`<button onclick="espGo('ecole')">🏛 Mon établissement : licence, enseignants, classes</button>`
         +`<p style="font-size:12px;opacity:.75">Ton activité de jeu n’influence jamais les résultats de tes élèves.</p>`;
+    }else if(s.role==='parent'){
+      h+=`<button class="p" onclick="espGo('enfants')">👨‍👩‍👧 Mes enfants : suivre leurs progrès</button>`
+        +`<p style="font-size:12px;opacity:.75">Demande à ton enfant son « code parent » (dans son compte élève) pour le relier à ton compte.</p>`;
     }else{
       h+=`<button class="p" onclick="espGo('mm')">📘 Mes missions de classe</button>`
-        +`<button onclick="espGo('rejoindre')">Rejoindre une classe avec un code</button>`;
+        +`<button onclick="espGo('rejoindre')">Rejoindre une classe avec un code</button>`
+        +`<button onclick="espGo('codeparent')">👨‍👩‍👧 Mon code parent</button>`;
     }
     h+=`<button onclick="espSauver()">☁ Sauvegarder ma progression maintenant</button>`
       +`<button onclick="espDeco()">Me déconnecter</button>`
@@ -305,10 +316,112 @@ export function makeEspace(x){
     return h+retour('classe','← Retour à la classe');
   }
 
+  // ---------- établissements (enseignants) ----------
+  const dateFr=t=>t?new Date(t).toLocaleDateString('fr-FR'):'—';
+  function vueEcole(d){
+    let h=entete('🏛 Mon établissement')+msg(d);
+    if(!d.ecoles){chargerEcoles();return h+'<p>Chargement…</p>'+retour('')}
+    h+=d.ecoles.length?d.ecoles.map(e=>`<button onclick="espEcole('${e.school_id}')">${esc(e.schools&&e.schools.nom||'?')} · ${e.role==='admin'?'administrateur':'enseignant'}</button>`).join('')
+      :`<p style="font-size:13px">Tu n’es rattaché à aucun établissement. Crée celui de ton école (essai gratuit de 30 jours, 60 élèves) ou rejoins-le avec le code donné par son administrateur.</p>`;
+    h+=`<input id="espEcNom" maxlength="80" placeholder="Nom de l’établissement"><button class="p" onclick="espCreerEcole()">+ Créer mon établissement</button>`
+      +`<input id="espEcCode" maxlength="8" placeholder="Code de l’établissement" style="text-transform:uppercase" autocomplete="off"><button onclick="espRejoindreEcole()">Rejoindre un établissement</button>`;
+    return h+retour('');
+  }
+  async function chargerEcoles(){
+    const r=await C.lireTable('school_members?select=school_id,role,schools(nom)&user_id=eq.'+C.session().uid);
+    if(!r.ok){maj({ecoles:[],msg:r.err,erreur:true});return}
+    if(D()&&D().vue==='ecole')maj({ecoles:r.data});
+  }
+  async function creerEcole(){
+    const nom=val('espEcNom');if(nom.length<2){maj({msg:'Écris le nom de l’établissement.',erreur:true});return}
+    const r=await C.rpc('create_school',{p_nom:nom});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecoles:null,msg:'Établissement créé. Code à donner à tes collègues : '+r.data.code+'. Essai gratuit de 30 jours.',erreur:false});
+  }
+  async function rejoindreEcole(){
+    const c=val('espEcCode');if(!c){maj({msg:'Écris le code de l’établissement.',erreur:true});return}
+    const r=await C.rpc('join_school',{p_code:c});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecoles:null,msg:'Tu as rejoint l’établissement.',erreur:false});
+  }
+  function ouvrirEcole(id){maj({vue:'ecoledet',ecoleId:id,ecole:null,mesClasses:null,msg:''})}
+  async function chargerEcoleDet(id){
+    const [o,c]=await Promise.all([C.rpc('school_overview',{p_school:id}),C.lireTable('classes?select=id,nom,school_id&order=created_at.desc')]);
+    if(!o.ok){maj({ecole:{erreur:true},msg:o.err,erreur:true});return}
+    if(D()&&D().vue==='ecoledet')maj({ecole:Array.isArray(o.data)?o.data[0]:o.data,mesClasses:c.ok?c.data.filter(z=>z.school_id!==id):[]});
+  }
+  function vueEcoleDet(d){
+    let h=entete('🏛 Établissement')+msg(d);
+    if(!d.ecole){chargerEcoleDet(d.ecoleId);return h+'<p>Chargement…</p>'+retour('ecole')}
+    const e=d.ecole;if(e.erreur)return h+retour('ecole');
+    const admin=e.mon_role==='admin';
+    h+=`<h4>${esc(e.nom)}</h4>`;
+    if(admin&&e.code)h+=`<p>Code à donner aux enseignants : <b style="font-size:20px;letter-spacing:3px">${esc(e.code)}</b></p>`;
+    const actif=e.statut==='active';
+    h+=`<div class="row" style="display:block"><b>Licence : ${e.plan==='essai'?'essai gratuit':e.plan==='ecole'?'établissement':'aucune'}</b> · <span style="color:${actif?'#1f7a4d':'#c0392b'}">${actif?'active':e.statut==='suspendue'?'suspendue':'expirée'}</span><br><span style="font-size:12px">${e.places||0} places · fin le ${dateFr(e.fin)} · ${e.eleves} élève(s) inscrit(s)</span></div>`;
+    if(!actif||e.plan==='essai')h+=`<p style="font-size:12px;opacity:.8">Pour une licence d’établissement, contactez l’équipe BOYEKOLI PLAY : le paiement en ligne n’est pas encore disponible, la licence est activée par l’administrateur de la plateforme après accord.</p>`;
+    if(admin&&e.enseignants&&e.enseignants.length)h+=`<h4>Enseignants</h4><p style="font-size:13px">${e.enseignants.map(t=>esc(t.pseudo)+(t.role==='admin'?' (admin)':'')).join(', ')}</p>`;
+    h+=`<h4>Classes de l’établissement (${(e.classes||[]).length})</h4>`;
+    h+=(e.classes||[]).length?(e.classes||[]).map(c=>`<div class="row"><span>${esc(c.nom)} · ${esc(c.enseignant)}</span><b>${c.eleves} élève(s)</b></div>`).join(''):'<p style="font-size:13px">Aucune classe rattachée.</p>';
+    if(d.mesClasses&&d.mesClasses.length){h+=`<h4>Rattacher une de mes classes</h4>`+d.mesClasses.map(c=>`<button onclick="espAttacher('${c.id}','${e.school_id}')">+ ${esc(c.nom)}</button>`).join('')}
+    return h+retour('ecole');
+  }
+  async function attacher(cl,ec){
+    const r=await C.rpc('attach_class',{p_class:cl,p_school:ec});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecole:null,mesClasses:null,msg:'Classe rattachée à l’établissement.',erreur:false});
+  }
+
+  // ---------- parents ----------
+  function vueCodeParent(d){
+    let h=entete('👨‍👩‍👧 Mon code parent')+msg(d);
+    if(!d.pcode){chargerCodeParent();return h+'<p>Chargement…</p>'+retour('')}
+    return h+`<p style="font-size:13px">Donne ce code à ton parent : il pourra suivre tes progrès (missions faites et scores) depuis son compte parent. Il ne voit rien d’autre.</p><p style="text-align:center"><b style="font-size:28px;letter-spacing:4px">${esc(d.pcode)}</b></p>`+retour('');
+  }
+  async function chargerCodeParent(){
+    const r=await C.rpc('my_parent_code');
+    if(!r.ok){maj({pcode:'—',msg:r.err,erreur:true});return}
+    if(D()&&D().vue==='codeparent')maj({pcode:r.data});
+  }
+  function vueEnfants(d){
+    let h=entete('👨‍👩‍👧 Mes enfants')+msg(d);
+    if(!d.enfants){chargerEnfants();return h+'<p>Chargement…</p>'+retour('')}
+    h+=d.enfants.length?d.enfants.map(c=>`<button onclick="espEnfant('${c.child_id}','${esc(c.pseudo)}')"><b>${esc(c.pseudo)}</b> · ${c.missions} mission(s)${c.total?' · '+sc(c.pts,c.total):''}${c.derniere?' · dernière activité le '+dateFr(c.derniere):''}</button>`).join('')
+      :`<p style="font-size:13px">Aucun enfant relié. Demande à ton enfant son code parent (dans son compte élève, « Mon code parent »).</p>`;
+    h+=`<input id="espPCode" maxlength="6" placeholder="Code parent de ton enfant" style="text-transform:uppercase" autocomplete="off"><button class="p" onclick="espLier()">Relier mon enfant</button>`;
+    return h+retour('');
+  }
+  async function chargerEnfants(){
+    const r=await C.rpc('children_summary');
+    if(!r.ok){maj({enfants:[],msg:r.err,erreur:true});return}
+    if(D()&&D().vue==='enfants')maj({enfants:r.data});
+  }
+  async function lier(){
+    const c=val('espPCode');if(!c){maj({msg:'Écris le code parent.',erreur:true});return}
+    const r=await C.rpc('link_child',{p_code:c});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({enfants:null,msg:'Enfant relié : '+r.data+'.',erreur:false});
+  }
+  function ouvrirEnfant(id,pseudo){maj({vue:'enfant',enfantId:id,enfantNom:pseudo,detail:null,msg:''})}
+  async function chargerEnfant(id){
+    const r=await C.rpc('child_detail',{p_child:id});
+    if(!r.ok){maj({detail:[],msg:r.err,erreur:true});return}
+    if(D()&&D().vue==='enfant')maj({detail:r.data});
+  }
+  function vueEnfant(d){
+    let h=entete('👦 '+d.enfantNom)+msg(d);
+    if(!d.detail){chargerEnfant(d.enfantId);return h+'<p>Chargement…</p>'+retour('enfants')}
+    h+=d.detail.length?d.detail.map(r=>{const c=cleInfo(r.mission_key);return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><span>${esc(c.nom?c.nom+' · '+c.mat+' · ':'')}${esc(c.titre)}</span><b>${sc(r.pts,r.total)}</b></div><div style="font-size:11px;opacity:.7">${r.attempts} essai(s) · ${dateFr(r.updated_at)}</div></div>`}).join(''):'<p style="font-size:13px">Pas encore de mission terminée.</p>';
+    h+=`<button onclick="espDelier('${d.enfantId}')">Retirer cet enfant de mon compte</button>`;
+    return h+retour('enfants');
+  }
+  async function delier(id){await C.rpc('unlink_child',{p_child:id});maj({vue:'enfants',enfants:null,msg:'Enfant retiré.',erreur:false})}
+
   return {
     html:html,
     actions:{
-      espGo:(v)=>{const d=D();maj({vue:v,msg:'',erreur:false,liste:(v==='classes'||v==='mm')?null:d.liste})},
+      espGo:(v)=>{const d=D();maj({vue:v,msg:'',erreur:false,liste:(v==='classes'||v==='mm')?null:d.liste,ecoles:v==='ecole'?null:d.ecoles,enfants:v==='enfants'?null:d.enfants,pcode:v==='codeparent'?null:d.pcode})},
+      espEcole:ouvrirEcole,espCreerEcole:creerEcole,espRejoindreEcole:rejoindreEcole,espAttacher:attacher,espLier:lier,espEnfant:ouvrirEnfant,espDelier:delier,
       espForm:(mode,role)=>maj({vue:'form',mode:mode,role:role||'eleve',msg:'',erreur:false}),
       espValider:valider,espChoisir:choisir,espSauver:sauver,espDeco:deco,
       espRejoindre:rejoindre,espJouer:jouer,
