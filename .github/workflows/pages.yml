@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci && npm run build
-      - run: mkdir site && cp -r index.html style.css dist img site/
+      - run: mkdir site && cp -r index.html style.css manifest.webmanifest sw.js dist img icons site/
       - uses: actions/upload-pages-artifact@v3
         with: { path: site }
       - id: deployment

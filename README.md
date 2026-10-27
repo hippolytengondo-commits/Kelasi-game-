@@ -1,4 +1,4 @@
-# Kelas Game (v12 — 3D)
+# Kelasi Game (3D)
 
 Jeu d'aventure éducatif en 3D temps réel (Three.js) : village, école LEXARIS ACADÉMIE, classe et maison à explorer avec un joystick virtuel et une caméra libre.
 
@@ -24,3 +24,8 @@ Lieux réalistes en photo (`img/scenes/`), personnages photographiques détouré
 2. La publication démarre à chaque mise à jour de la branche principale ; l'adresse est `https://<compte>.github.io/Kelasi-game-/`.
 
 Aucune bannière publicitaire.
+
+## Installer comme application
+- **Android (Chrome)** : bouton « 📲 Installer l'application » dans le jeu, ou menu ⋮ › « Installer l'application ».
+- **iPhone / iPad (Safari)** : Partager › « Sur l'écran d'accueil ».
+- Le jeu garde en mémoire ses fichiers et fonctionne ensuite avec une connexion faible ou coupée (les comptes et classes demandent Internet).

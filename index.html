@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Kelas Game</title>
+<title>Kelasi Game</title>
+<meta name="theme-color" content="#1f7a4d">
+<meta name="description" content="Kelasi Game : jeu éducatif d'aventure en 3D, de la 1re primaire aux humanités.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kelasi Game">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,18 +28,19 @@
   <div id="toast"></div>
   <div id="joy" class="hide"><div id="knob"></div></div>
   <div id="actwrap" class="hide"><div id="alabel"></div><button id="ba" disabled>Action</button></div>
-  <div id="cine" class="hide"><h1>KELAS GAME</h1><p>LEXARIS ACADÉMIE · Apprendre en jouant</p></div>
+  <div id="cine" class="hide"><h1>KELASI GAME</h1><p>LEXARIS ACADÉMIE · Apprendre en jouant</p></div>
   <button id="skip" class="hide">Passer</button>
   <div id="creator" class="hide"></div>
   <div id="dlg"></div>
   <div id="start" class="hide">
     <div class="card">
-      <h2>Kelas Game</h2>
+      <h2>Kelasi Game</h2>
       <p>Explore le village en 3D, accomplis des missions, gagne des pièces et meuble ta maison. Jouer est gratuit, sans inscription.</p>
       <button id="cont" class="p hide"></button>
       <input id="nom" maxlength="14" placeholder="Ton prénom" autocomplete="off">
       <div class="row"><button id="fille" class="p">Une fille</button><button id="garcon">Un garçon</button></div>
       <button id="go" class="p">Jouer librement : commencer l’aventure en 3D</button>
+      <button id="inst" class="hide">📲 Installer l’application sur mon téléphone</button>
       <button id="cpt">👤 Élève, enseignant : compte et classe</button>
       <button id="go3d">Variante : aventure en photos</button>
     </div>

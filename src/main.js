@@ -615,6 +615,7 @@ function htmlMenu(){
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +`<button onclick="openProg()">🎓 Missions scolaires</button>`
    +`<button onclick="openEsp()">👤 Mon compte : classe et sauvegarde</button>`
+   +(autonome()?'':`<button onclick="installer()">📲 Installer l’application</button>`)
    +(G.ui==='photo'?'':`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`)
    +(G.ui==='photo'?`<button onclick="openCreatorFromPhoto()">🧍 Mon personnage (visage, tenue)</button>`:'')
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
@@ -1365,7 +1366,32 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+
+// ---------- Installation comme application (Android, iPhone, ordinateur) ----------
+let invite=null;
+const autonome=()=>(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+const estIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function majInstall(){$('inst').classList.toggle('hide',autonome())}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();invite=e;majInstall()});
+window.addEventListener('appinstalled',()=>{invite=null;majInstall();try{toast('Application installée !')}catch(x){}});
+function installer(){
+  if(invite){const i=invite;invite=null;i.prompt();i.userChoice.finally(majInstall);return}
+  let l;
+  if(estIOS())l=['Pour installer Kelasi Game sur iPhone ou iPad, ouvre ce site avec Safari.','Touche le bouton Partager (le carré avec une flèche vers le haut, en bas de l’écran).','Fais défiler et touche « Sur l’écran d’accueil », puis « Ajouter ». L’icône Kelasi apparaît avec tes autres applications.'];
+  else l=['Sur Android avec Chrome : touche le menu ⋮ (en haut à droite), puis « Installer l’application » ou « Ajouter à l’écran d’accueil ».','Sur ordinateur avec Chrome ou Edge : clique sur l’icône d’installation dans la barre d’adresse.','Une fois installée, l’application s’ouvre en plein écran et fonctionne même avec une mauvaise connexion.'];
+  if(G.mode==='start'){G.depart=true;$('dlg').style.zIndex='9'}
+  openBoxInstall(l);
+}
+function openBoxInstall(l){
+  const d={kind:'info',title:'Installer Kelasi Game',i:0,lines:l};
+  if(G.mode==='start'){G.dialog=d;renderDialog()}else openBox(d);
+}
+$('inst').onclick=installer;
+majInstall();
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}});
+}
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
