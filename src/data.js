@@ -114,7 +114,7 @@ export const NPC={
   outro:'Bravo ! Le portail est ouvert. Entre dans l’école et va voir la maîtresse.'},
  ilunga:{sc:'classe',x:-3,z:-3.6,ry:0,name:'Professeure Ilunga',short:'la maîtresse',role:'Maîtresse',kind:'quiz',sujet:'francais',nb:3,needs:'lola',
   look:{s:'f',h:.98,skin:'#5a3623',c:'#8e44ad',k:'boubou',co:'tresses'},
-  intro:['Bienvenue à LEXARIS ACADÉMIE !','Aujourd’hui, la leçon porte sur la langue. Trois questions pour commencer.'],
+  intro:['Bienvenue à LEXARIS ACADÉMIE !','Aujourd’hui, la mission porte sur la langue. Trois questions pour commencer.'],
   outro:'Très bien ! Va t’asseoir près de Junior, il t’attend pour la géographie.'},
  junior:{sc:'classe',x:2.6,z:-0.1,ry:Math.PI,name:'Junior',short:'Junior',role:'Élève',kind:'quiz',sujet:'geo',nb:2,needs:'ilunga',sit:true,
   look:{s:'h',h:.74,skin:'#7a4a2e',c:'#16a085',k:'uniforme',co:'courtes'},
@@ -122,8 +122,8 @@ export const NPC={
   outro:'Bien joué ! Va voir le directeur, il veut te poser les dernières questions.'},
  mavungu:{sc:'classe',x:5.6,z:-3.4,ry:0,name:'Directeur Mavungu',short:'le directeur',role:'Directeur',kind:'quiz',sujet:'histoire',nb:2,needs:'junior',
   look:{s:'h',h:1.04,skin:'#4f3020',c:'#2c3e50',k:'uniforme',co:'courtes',cravate:true},
-  intro:['Tu as bien travaillé.','Deux dernières questions pour finir la leçon.'],
-  outro:'Leçon terminée ! Tu gagnes 20 pièces et du tissu wax pour ta maison.'},
+  intro:['Tu as bien travaillé.','Deux dernières questions pour finir la mission.'],
+  outro:'Mission accomplie ! Tu gagnes 20 pièces et du tissu wax pour ta maison.'},
  bea:{sc:'ville',x:3,z:-6.6,ry:0,name:'Maman Béa',short:'Maman Béa',role:'Marchande',kind:'shop',
   look:{s:'f',h:.97,skin:'#744630',c:'#c0392b',k:'pagne',co:'nattes'}},
  mama:{sc:'maison',x:1.4,z:-0.8,ry:0,name:'Maman',short:'Maman',role:'À la maison',kind:'talk',
@@ -133,7 +133,7 @@ export const AUTOP={
  jer:{sc:'ville',x:11,z:3.2,ry:-1.2,name:'Jérémie',look:{s:'h',h:.9,skin:'#6b4028',c:'#27ae60',k:'uniforme',co:'courtes'}},
  kasa:{sc:'ville',x:12.6,z:4.6,ry:-1.9,name:'Petit Kasa',look:{s:'f',h:.72,skin:'#8a5634',c:'#e0a526',k:'pagne',co:'nattes'}}
 };
-export const AUTO=[['Jérémie','La leçon commence bientôt, tu viens ?'],['Petit Kasa','Mama Lola garde le portail, elle pose des questions !'],['Jérémie','Réponds bien et tu entreras dans la classe.'],['Petit Kasa','Moi, je connais déjà toutes les mangues !'],['Jérémie','Le manguier du village donne les meilleures mangues.']];
+export const AUTO=[['Jérémie','La mission commence bientôt, tu viens ?'],['Petit Kasa','Mama Lola garde le portail, elle pose des questions !'],['Jérémie','Réponds bien et tu entreras dans la classe.'],['Petit Kasa','Moi, je connais déjà toutes les mangues !'],['Jérémie','Le manguier du village donne les meilleures mangues.']];
 export const ITEMS={
  natte:{n:'Natte tressée',p:10},table:{n:'Table en bois',p:25},lampe:{n:'Lampe',p:20},
  rideau:{n:'Rideau en wax',p:10,t:1},tableau:{n:'Tableau du village',p:30},plante:{n:'Plante verte',p:15}

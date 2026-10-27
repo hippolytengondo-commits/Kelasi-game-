@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {buildMarche,buildFleuve,buildSante,buildUniv} from './stages.js';
 import {buildBiblio,buildGare,buildFerme,buildForet,buildMusee} from './stages2.js';
+import {PROGRAMME,CONTENU,missionCle} from './programme.js';
 import {buildAeroport,buildInga,buildVirunga,buildZongo,buildAtelier} from './stages4.js';
 import {buildWagenia,buildGaramba,buildTanganyika,buildSciences,buildRumba,buildPompiers,buildPoste,buildRecyclage,buildNumerique,buildPlace} from './stages5.js';
 import {buildStade,buildMine,buildObservatoire,buildPort,buildParlement} from './stages3.js';
@@ -84,7 +85,7 @@ let spokeKey='';
 function autoSpeak(d){
   let key='',text='',id=d.id;
   if(d.kind==='quiz'){
-    const n=NPC[d.id];key=`q|${d.id}|${d.stage}|${d.i}|${d.qi}`;
+    const n=d.n||NPC[d.id];id=d.voice||d.id;key=`q|${d.id}|${d.stage}|${d.i}|${d.qi}`;
     if(d.stage==='lines')text=n.intro[d.i];
     else if(d.stage==='q'){const q=d.qs[d.qi];text='Question '+(d.qi+1)+'. '+q.q+' Réponses : '+(d.opts||[]).join(', ')}
     else if(d.stage==='fb')text=(d.fbFirst?'Bravo ! ':'C’est ça. ')+d.qs[d.qi].exp;
@@ -378,14 +379,15 @@ function renderDialog(){
   else if(d.kind==='profile')h=htmlProfile(d);
   else if(d.kind==='map')h=htmlMap(d);
   else if(d.kind==='objs')h=htmlObjs(d);
+  else if(d.kind==='prog')h=htmlProg(d);
   box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
 }
 const hasPortrait=id=>!!(window.__MAN&&(window.__MAN.portraits||[]).includes(id));
 const head=(id,title)=>`<div class="hd">${id&&hasPortrait(id)?`<img class="pt" src="img/portraits/${id}.jpg" alt="">`:''}<h3>${esc(title)}</h3></div>`;
 function htmlQuiz(d){
-  const n=NPC[d.id];
-  let h=head(d.id,n.name+' · '+n.role);
+  const n=d.n||NPC[d.id];
+  let h=head(d.portrait||d.id,n.name+' · '+n.role);
   if(d.stage==='lines'){
     h+=`<p>${esc(n.intro[d.i])}</p><button class="p" onclick="nextLine()">Suite</button>`;
   }else if(d.stage==='q'){
@@ -402,12 +404,14 @@ function htmlQuiz(d){
     const r=d.res;
     if(d.rev)h+=`<p>Révision terminée : ${d.firsts} sur ${d.qs.length} du premier coup. <b>+${d.gain} 🪙</b></p>`;
     else h+=`<p>${esc(n.outro)}</p><p><b>${'★'.repeat(r.stars)+'☆'.repeat(3-r.stars)}</b> · +${d.gain} 🪙${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
+    if(d.classe)h+=`<p style="font-size:13px">📘 <b>Tu retrouveras ça en classe :</b> ${esc(d.classe)}.</p>`;
     h+=`<button class="p" onclick="closeDialog()">Continuer</button>`;
+    if(d.back)h+=`<button onclick="progBack()">Autres missions</button>`;
   }
   return h;
 }
 function nextLine(){
-  const d=G.dialog,n=NPC[d.id];
+  const d=G.dialog,n=d.n||NPC[d.id];
   d.i++;
   if(d.i>=n.intro.length){d.stage='q';d.qi=0;d.opts=null}
   renderDialog();
@@ -479,7 +483,7 @@ function buy(k){
   const it=ITEMS[k],a=G.adv,d=G.dialog;
   if(a.items[k])return;
   if(a.pieces<it.p){d.msg='Il te manque '+(it.p-a.pieces)+' pièces pour : '+it.n+'.';SFX.ko();renderDialog();return}
-  if(it.t&&a.tissu<it.t){d.msg='Il te faut du tissu wax. Le Directeur Mavungu en offre à la fin de la leçon.';SFX.ko();renderDialog();return}
+  if(it.t&&a.tissu<it.t){d.msg='Il te faut du tissu wax. Le Directeur Mavungu en offre à la fin de la mission.';SFX.ko();renderDialog();return}
   a.pieces-=it.p;if(it.t)a.tissu-=it.t;
   a.items[k]=true;save();refreshHud();SFX.coin();
   d.msg='Achat réussi : '+it.n+' ! Elle est installée dans ta maison.';renderDialog();
@@ -489,7 +493,7 @@ function checkFin(){
   if(G.adv.fin||!storyDone()||nbItems()<Object.keys(ITEMS).length)return;
   G.adv.fin=true;save();SFX.win();
   if(G.mode==='play'||G.mode==='dialog')openBox({kind:'info',title:'Félicitations !',i:0,lines:[
-    G.nom+', tu as terminé la leçon et meublé toute ta maison !',
+    G.nom+', tu as accompli la mission et meublé toute ta maison !',
     'Tu es un vrai champion de LEXARIS ACADÉMIE. Continue à réviser pour gagner trois étoiles partout.']});
 }
 
@@ -500,13 +504,14 @@ function htmlMenu(){
   const pu=photoUrl();
   return `<div class="hd">${pu?`<img class="pt" src="${pu}" alt="">`:''}<h3>${esc(G.nom)} · Niveau ${lvl()}</h3></div><p class="row"><span>Pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Tissu wax · mangues</span><b>${a.tissu} · ${a.mangues} 🥭</b></p>`
    +`<p class="row"><span>Réponses justes du premier coup</span><b>${a.good}/${a.total}</b></p>`
-   +`<h4>Leçons</h4>`+['lola','ilunga','junior','mavungu'].map(id=>{
+   +`<h4>Missions</h4>`+['lola','ilunga','junior','mavungu'].map(id=>{
       const s=a.stars[id]||0;
       return `<div class="row"><span>${esc(SUJETS[NPC[id].sujet])} · ${esc(NPC[id].name)}</span><b>${a.done[id]?'★'.repeat(s)+'☆'.repeat(3-s):'—'}</b></div>`;
     }).join('')
    +`<h4>Ma maison</h4>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${a.items[k]?'✔':'—'}</b></div>`).join('')
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
+   +`<button onclick="openProg()">🎓 Missions scolaires</button>`
    +(G.ui==='photo'?'':`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`)
    +(G.ui==='photo'?`<button onclick="openCreatorFromPhoto()">🧍 Mon personnage (visage, tenue)</button>`:'')
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
@@ -786,6 +791,42 @@ $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 const stageDone=st=>st.npcs.every(doneNpc);
 const stageUnlocked=i=>i===0||stageDone(STAGES[i-1]);
 function stageStars(st){return st.npcs.reduce((a,id)=>a+(G.adv.stars[id]||0),0)}
+// ---------- Missions scolaires (programme) ----------
+function openProg(){openBox({kind:'prog',niv:null,mat:null})}
+function progStars(k){return G.adv.done['cur:'+k]?(G.adv.stars['cur:'+k]||1):0}
+function progCount(niv,mat){
+  let f=0,t=0;
+  niv.matieres.forEach(m=>{if(mat&&m!==mat)return;m.missions.forEach((x,i)=>{t++;if(G.adv.done['cur:'+missionCle(niv.id,m.id,i)])f++})});
+  return f+'/'+t;
+}
+function htmlProg(d){
+  const niv=PROGRAMME.find(n=>n.id===d.niv),mat=niv&&niv.matieres.find(m=>m.id===d.mat);
+  let h=`<div class="hd"><h3>🎓 Missions scolaires</h3></div>`;
+  if(!niv){
+    h+='<p style="font-size:13px">Choisis ta classe. Chaque mission t’explique une notion puis te pose quelques questions.</p>';
+    h+=PROGRAMME.map(n=>`<button onclick="progGo('${n.id}')">${esc(n.nom)} · ${progCount(n)}</button>`).join('');
+  }else if(!mat){
+    h+=`<p><b>${esc(niv.nom)}</b></p>`+niv.matieres.map(m=>`<button onclick="progGo('${niv.id}','${m.id}')">${esc(m.nom)} · ${progCount(niv,m)}</button>`).join('');
+    h+=`<button class="s" onclick="progGo()">← Changer de classe</button>`;
+  }else{
+    h+=`<p><b>${esc(niv.nom)} · ${esc(mat.nom)}</b></p>`;
+    h+=mat.missions.map((t,i)=>{
+      const k=missionCle(niv.id,mat.id,i),has=!!CONTENU[k],st=progStars(k);
+      return has?`<button onclick="startMission('${niv.id}','${mat.id}',${i})">${st?'★'.repeat(st)+'☆'.repeat(3-st):'▶'} Mission ${i+1} · ${esc(t)}</button>`
+               :`<button disabled>🔒 Mission ${i+1} · ${esc(t)} (bientôt)</button>`}).join('');
+    h+=`<button class="s" onclick="progGo('${niv.id}')">← Matières</button>`;
+  }
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function progGo(n,m){const d=G.dialog;d.niv=n||null;d.mat=m||null;renderDialog()}
+function progBack(){const d=G.dialog;openBox({kind:'prog',niv:d.backNiv,mat:d.backMat})}
+function startMission(nid,mid,i){
+  const niv=PROGRAMME.find(n=>n.id===nid),mat=niv.matieres.find(m=>m.id===mid),k=missionCle(nid,mid,i),c=CONTENU[k];
+  if(!c)return;
+  const n={name:'Mission '+(i+1)+' · '+mat.missions[i],role:niv.nom+' · '+mat.nom,intro:c.intro,outro:'Mission accomplie ! Bravo, tu as bien travaillé.'};
+  openBox({kind:'quiz',id:'cur:'+k,n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+}
+
 function openMap(){openBox({kind:'map'})}
 function htmlMap(){
   let h='<h3>Carte des lieux</h3><p style="font-size:13px">Choisis un lieu. Chaque niveau se débloque quand tu as fini le précédent.</p>';
@@ -1064,7 +1105,7 @@ $('go3d').onclick=()=>{
 };
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
