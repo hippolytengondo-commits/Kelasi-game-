@@ -191,6 +191,13 @@ export function createMission3D(env){
   return {
     actif:()=>!!S,
     etat:()=>S,
+    toucher(ndc,camera){
+      if(!S||S.fini||S.bloque)return null;
+      const rc=new THREE.Raycaster();rc.setFromCamera(new THREE.Vector2(ndc.x,ndc.y),camera);
+      const hits=rc.intersectObjects(S.jetons.filter(j=>j.visible&&j.userData.actif),true);
+      for(const h of hits){let o=h.object;while(o&&!(o.userData&&o.userData.texte!==undefined&&o.parent===groupe))o=o.parent;if(o)return o}
+      return null;
+    },
     groupe:groupe,
     demarrer(etapes){
       if(S)this.arreter();

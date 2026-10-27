@@ -224,7 +224,11 @@ function buildScene(){
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
-  if(G.sc==='arene')addNpc('guide',{sc:'arene',x:-9.5,z:3.5,ry:1.0,name:'Professeure Ilunga',short:'la maîtresse',look:Object.assign({},NPC.ilunga.look,{faceKey:'portraits/ilunga'})});
+  if(G.sc==='arene'){
+    const gid=NPC[G.areneGuide]?G.areneGuide:'ilunga',gl=Object.assign({},NPC[gid].look);
+    if(window.__FACES&&window.__FACES['portraits/'+gid])gl.faceKey='portraits/'+gid;
+    addNpc('guide',{sc:'arene',x:-9.5,z:3.5,ry:1.0,name:NPC[gid].name,short:NPC[gid].short,look:gl});
+  }
   snapCamera();
 }
 function addNpc(id,n){
@@ -373,10 +377,17 @@ function closeDialog(){
   if(G.sc==='maison')buildScene();
   refreshHud();
 }
+const MAT_FR=new Set(['francais','lecture','contes']);
+const MAT_MA=new Set(['maths','marche','transport','footmaths','argent','poissons','metiers','epargne']);
+const MAT_SC=new Set(['nutrition','sante','corps','environnement','foret','animaux','agriculture','saisons','sciences','sciences2','meteo','energie','eau','espace','arbres','recyclage','savane','chaine','lacvie','virunga','volcans','incendie','secours','internet','numerique','mines','minesec']);
+const matiereDe=su=>MAT_FR.has(su)?'fr':MAT_MA.has(su)?'ma':MAT_SC.has(su)?'sc':'hg';
 function startQuiz(id,rev){
   const n=NPC[id],bank=BANK[n.sujet];
   const qs=rev?shuffle(bank).slice(0,3):bank.slice(0,n.nb);
-  openBox({kind:'quiz',id:id,rev:rev,stage:rev?'q':'lines',i:0,qi:0,qs:qs,opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+  const m3d=G.ui==='3d';
+  if(m3d)entrerArene(matiereDe(n.sujet),id);
+  openBox({kind:'quiz',id:id,rev:rev,m3d:m3d,stage:rev?'q':'lines',i:0,qi:0,qs:qs,opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+  if(m3d&&rev)lancerMission3D(G.dialog);
 }
 function renderDialog(){
   const d=G.dialog,box=$('dlg');
@@ -391,6 +402,7 @@ function renderDialog(){
   else if(d.kind==='objs')h=htmlObjs(d);
   else if(d.kind==='prog')h=htmlProg(d);
   else if(d.kind==='esp')h=Esp.html(d);
+  else if(d.kind==='suite')h=htmlSuite(d);
   box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
 }
@@ -415,10 +427,14 @@ function htmlQuiz(d){
     h+=`<p class="ok"><b>${d.fbFirst?'Bravo !':'C’est ça.'}</b> ${esc(q.exp)}</p><button class="p" onclick="nextQ()">Suite</button>`;
   }else{
     const r=d.res;
-    if(d.rev)h+=`<p>Révision terminée : ${d.firsts} sur ${d.qs.length} du premier coup. <b>+${d.gain} 🪙</b></p>`;
-    else h+=`<p>${esc(n.outro)}</p><p><b>${'★'.repeat(r.stars)+'☆'.repeat(3-r.stars)}</b> · +${d.gain} 🪙${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
+    if(d.rev)h+=`<div class="mfin">🎉 RÉVISION TERMINÉE !</div><p>${d.firsts} sur ${d.qs.length} du premier coup. <b>+${d.gain} 🪙</b></p>`;
+    else h+=`<div class="mfin">🎉 MISSION TERMINÉE !</div><div class="mstars">${'★'.repeat(r.stars)+'☆'.repeat(3-r.stars)}</div><p>${esc(n.outro)}</p><p><b>+${d.gain} 🪙</b>${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
+    const sv=suivanteScolaire(d);
+    if(sv)h+=`<button class="p" onclick="startMission('${sv[0]}','${sv[1]}',${sv[2]})">▶ Mission suivante : ${esc(sv[3])}</button>`;
+    h+=`<button class="${sv?'':'p'}" onclick="openSuite()">🎯 Choisir la prochaine mission</button>`;
+    d.menuFait=true;
     if(d.classe)h+=`<p style="font-size:13px">📘 <b>Tu retrouveras ça en classe :</b> ${esc(d.classe)}.</p>`;
-    h+=`<button class="p" onclick="closeDialog()">Continuer</button>`;
+    h+=`<button class="s" onclick="closeDialog()">Continuer à explorer</button>`;
     if(d.backEsp==='mm')h+=`<button onclick="openEsp('mm')">Mes missions de classe</button>`;
     else if(d.backEsp==='ens')h+=`<button onclick="openEsp()">Retour à l’espace enseignant</button>`;
     else if(d.back)h+=`<button onclick="progBack()">Autres missions</button>`;
@@ -668,16 +684,37 @@ function joyMove(e){
 joy.addEventListener('pointerdown',e=>{e.preventDefault();joyId=e.pointerId;joy.setPointerCapture(e.pointerId);joyMove(e)});
 joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId){e.preventDefault();joyMove(e)}});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joy.addEventListener(ev,e=>{if(e.pointerId===joyId)resetKnob()}));
-// glisser sur la scène : orienter la caméra
-let camPtr=null,lastX=0,lastY=0;
-cv.addEventListener('pointerdown',e=>{if(G.mode!=='play'&&G.mode!=='mini'&&G.mode!=='creator')return;camPtr=e.pointerId;lastX=e.clientX;lastY=e.clientY;cv.setPointerCapture(e.pointerId)});
+// glisser sur la scène : orienter la caméra ; pincer ou molette : zoom ; toucher une réponse en mission
+const ptrs=new Map();let camPtr=null,lastX=0,lastY=0,pinchD=0,tapX=0,tapY=0,tapT=0,tapMove=0;
+const camOk=()=>G.mode==='play'||G.mode==='mini'||G.mode==='creator'||G.mode==='m3d';
+cv.addEventListener('pointerdown',e=>{
+  if(!camOk())return;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});cv.setPointerCapture(e.pointerId);
+  if(ptrs.size===1){camPtr=e.pointerId;lastX=e.clientX;lastY=e.clientY;tapX=e.clientX;tapY=e.clientY;tapT=performance.now();tapMove=0}
+  else if(ptrs.size===2){const a=[...ptrs.values()];pinchD=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);tapMove=99}
+});
 cv.addEventListener('pointermove',e=>{
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2&&G.mode==='m3d'){
+    const a=[...ptrs.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(pinchD>0)G.camOverride=clamp(4,16,(G.camOverride||7.4)*pinchD/Math.max(1,d));
+    pinchD=d;return;
+  }
   if(e.pointerId!==camPtr)return;
+  tapMove+=Math.abs(e.clientX-lastX)+Math.abs(e.clientY-lastY);
   if(G.mode==='creator'){CR.ang-=(e.clientX-lastX)*.012}
-  else{G.phi+=(e.clientX-lastX)*.006;G.pitch=clamp(.12,1.1,G.pitch+(e.clientY-lastY)*.004)}
+  else{G.phi+=(e.clientX-lastX)*.006;G.pitch=clamp(.12,1.2,G.pitch+(e.clientY-lastY)*.004)}
   lastX=e.clientX;lastY=e.clientY;
 });
-['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,e=>{if(e.pointerId===camPtr)camPtr=null}));
+['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,e=>{
+  const etait=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);
+  if(ptrs.size<2)pinchD=0;
+  if(e.pointerId===camPtr){
+    camPtr=null;
+    if(ev==='pointerup'&&etait&&G.mode==='m3d'&&tapMove<14&&performance.now()-tapT<450)toucherReponse(e.clientX,e.clientY);
+  }
+}));
+cv.addEventListener('wheel',e=>{if(G.mode==='m3d'){e.preventDefault();G.camOverride=clamp(4,16,(G.camOverride||7.4)*(1+Math.sign(e.deltaY)*.08))}},{passive:false});
 const held={};
 const kmap={ArrowUp:'u',w:'u',z:'u',ArrowDown:'d',s:'d',ArrowLeft:'l',a:'l',q:'l',ArrowRight:'r',d:'r'};
 function keyVec(){G.key.y=(held.u?1:0)-(held.d?1:0);G.key.x=(held.r?1:0)-(held.l?1:0)}
@@ -769,14 +806,23 @@ function loop(now){
   if(playing){
     const ix=G.joy.x+G.key.x,iy=G.joy.y+G.key.y;
     const mag=Math.min(1,Math.hypot(ix,iy));
-    if(mag>.1){
-      const fx=Math.cos(G.phi),fz=Math.sin(G.phi),rx=-fz,rz=fx;
-      let mx=fx*iy+rx*ix,mz=fz*iy+rz*ix;const ml=Math.hypot(mx,mz);mx/=ml;mz/=ml;
-      sp=mag<.7?mag/.7*2.5:2.5+(mag-.7)/.3*2.1;
+    let auto=null;
+    if(G.auto){
+      if(mag>.1||G.mode!=='m3d')G.auto=null;
+      else{const ax=G.auto.x-G.x,az=G.auto.z-G.z,ad=Math.hypot(ax,az);if(ad<.3)G.auto=null;else auto={mx:ax/ad,mz:az/ad}}
+    }
+    if(mag>.1||auto){
+      let mx,mz;
+      if(auto){mx=auto.mx;mz=auto.mz;sp=3.6}
+      else{
+        const fx=Math.cos(G.phi),fz=Math.sin(G.phi),rx=-fz,rz=fx;
+        mx=fx*iy+rx*ix;mz=fz*iy+rz*ix;const ml=Math.hypot(mx,mz);mx/=ml;mz/=ml;
+        sp=mag<.7?mag/.7*2.5:2.5+(mag-.7)/.3*2.1;
+      }
       const [nx,nz]=collide(G.x+mx*sp*dt,G.z+mz*sp*dt);
       G.x=nx;G.z=nz;
       const tr=Math.atan2(mx,mz);G.ry+=angDiff(G.ry,tr)*Math.min(1,dt*12);
-      G.lean=ix*Math.min(1,mag);
+      G.lean=auto?0:ix*Math.min(1,mag);
       stepT+=dt*sp;if(stepT>1.2){stepT=0;SFX.step()}
     }
   }
@@ -936,9 +982,9 @@ function openEsp(vue){
 }
 
 // ---------- Missions en 3D : on joue dans l'arène ----------
-function entrerArene(mat){
+function entrerArene(mat,guide){
   if(G.sc!=='arene')G.retour={sc:G.sc,x:G.x,z:G.z,phi:G.phi,pitch:G.pitch};
-  G.areneMat=mat;G.sc='arene';G.x=0;G.z=5;G.phi=-Math.PI/2;G.pitch=.44;G.camOverride=7.4;G.near=null;hideBubble();buildScene();
+  G.areneMat=mat;G.areneGuide=guide||'ilunga';G.auto=null;G.sc='arene';G.x=0;G.z=5;G.phi=-Math.PI/2;G.pitch=.44;G.camOverride=7.4;G.near=null;hideBubble();buildScene();
 }
 function quitterArene(){
   if(G.sc!=='arene'||!G.retour)return;
@@ -960,18 +1006,31 @@ function etapesMission(d){
 const M3=createMission3D({
   scene,
   hud:p=>{$('m3t').textContent=p.prog?'Étape '+p.prog:'';$('m3q').textContent=p.q||'';$('m3s').textContent=p.sous||'';$('m3f').textContent=p.msg||''},
-  voix:(t,force)=>{if(force){const w=G.voice;G.voice=true;speak(t,'ilunga');G.voice=w}else speak(t,'ilunga')},
+  voix:(t,force)=>{const v=(G.dialog&&(G.dialog.voice||G.dialog.id))||'ilunga';if(force){const w=G.voice;G.voice=true;speak(t,v);G.voice=w}else speak(t,v)},
   sfx:n=>{if(n==='ok')SFX.ok();else SFX.ko()},
   etape:(first,type)=>{
     const d=G.dialog;if(!d)return;
     if(type==='choix'){G.adv.total++;if(first){G.adv.good++;d.firsts++}}
-    const coin=first?5:1;d.gain+=coin;gain(coin,first?10:3);
+    const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?4:10):3);
   },
   erreur:()=>{if(G.dialog)G.dialog.errs++},
   fin:()=>finMission3D()
 });
+function toucherReponse(px,py){
+  if(!M3.actif())return;
+  const r=cv.getBoundingClientRect(),v={x:((px-r.left)/r.width)*2-1,y:-((py-r.top)/r.height)*2+1};
+  const j=M3.toucher(v,camera);
+  if(j){G.auto={x:j.position.x,z:j.position.z};SFX.step()}
+}
+let vueGlobale=false,vueSauve=null;
+function basculerVue(){
+  vueGlobale=!vueGlobale;
+  if(vueGlobale){vueSauve={p:G.pitch,c:G.camOverride};G.pitch=.95;G.camOverride=12.5}
+  else if(vueSauve){G.pitch=vueSauve.p;G.camOverride=vueSauve.c}
+  $('m3w').textContent=vueGlobale?'👁 Vue normale':'🔭 Vue d’ensemble';
+}
 function lancerMission3D(d){
-  stopSpeech();
+  stopSpeech();G.auto=null;vueGlobale=false;$('m3w').textContent='🔭 Vue d’ensemble';
   $('dlg').style.display='none';
   G.mode='m3d';G.joy.x=G.joy.y=0;
   $('actwrap').classList.add('hide');$('info').classList.add('hide');
@@ -980,6 +1039,7 @@ function lancerMission3D(d){
 }
 function finMission3D(){
   const d=G.dialog;if(!d)return;
+  G.auto=null;
   M3.arreter();$('m3').classList.add('hide');$('info').classList.remove('hide');
   G.camOverride=7.2;
   completeQuiz(d);d.stage='out';
@@ -991,7 +1051,40 @@ function quitterMission3D(){
   closeDialog();
 }
 $('m3v').onclick=()=>M3.reecouter();
+$('m3w').onclick=basculerVue;
 $('m3x').onclick=quitterMission3D;
+
+// ---------- Fin de mission : menu pour choisir la suite ----------
+function suivanteScolaire(d){
+  if(!d||!String(d.id).startsWith('cur:'))return null;
+  const [n,m,i]=String(d.id).slice(4).split('|'),niv=PROGRAMME.find(x=>x.id===n),mat=niv&&niv.matieres.find(x=>x.id===m);
+  if(!mat)return null;
+  for(let k=+i+1;k<mat.missions.length;k++)if(CONTENU[missionCle(n,m,k)])return [n,m,k,mat.missions[k]];
+  return null;
+}
+function prochaineAventure(){
+  const a=G.adv.done;
+  if(!a.lola)return {txt:'Va à l’école et parle à Mama Lola, la gardienne du portail.'};
+  if(!a.ilunga)return {txt:'Entre dans l’école et va voir la Professeure Ilunga.'};
+  if(!a.junior)return {txt:'Rejoins Junior, assis dans la classe.'};
+  if(!a.mavungu)return {txt:'Le Directeur Mavungu t’attend dans la classe.'};
+  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st))return {txt:'Rends-toi ici : '+st.icon+' '+st.name+'.',stage:st}}
+  return {txt:'Tu as accompli toute l’aventure ! Continue avec les missions scolaires.'};
+}
+function openSuite(){
+  quitterArene();
+  openBox({kind:'suite'});
+}
+function htmlSuite(){
+  const nx=prochaineAventure();
+  let h=`<div class="hd"><h3>🎯 Choisis ta prochaine mission</h3></div>`;
+  h+=`<p style="font-size:14px"><b>Aventure :</b> ${esc(nx.txt)}</p>`;
+  if(nx.stage&&G.ui==='3d')h+=`<button class="p" onclick="travel('${nx.stage.id}')">🗺 Y aller : ${nx.stage.icon} ${esc(nx.stage.name)}</button>`;
+  else if(G.ui==='3d')h+=`<button class="p" onclick="closeDialog()">▶ C’est parti ! (la mini-carte te guide)</button>`;
+  h+=`<button onclick="openProg()">🎓 Missions scolaires (français, maths, sciences…)</button>`;
+  if(G.ui==='3d')h+=`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`;
+  return h+`<button class="s" onclick="closeDialog()">Continuer à explorer</button>`;
+}
 
 function openMap(){openBox({kind:'map'})}
 function htmlMap(){
@@ -1272,7 +1365,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{__M3:M3,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');

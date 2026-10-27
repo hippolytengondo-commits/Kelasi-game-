@@ -149,3 +149,10 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 #m3b button{border:0;border-radius:10px;padding:5px 10px;font:inherit;font-size:12px;background:rgba(255,255,255,.18);color:#fff;cursor:pointer}
 
 @media (max-width:620px){#m3{left:12px;right:12px;bottom:calc(max(22px,env(safe-area-inset-bottom,0px)) + 142px);max-width:none;padding:6px 10px}#m3q{font-size:15px}#m3s{font-size:12px}}
+
+#m3h{font-size:11px;opacity:.7;margin-top:2px}
+#m3b{flex-wrap:wrap}
+
+#dlg .mfin{font-size:24px;font-weight:900;text-align:center;color:#1f7a4d;margin:4px 0 2px;animation:mpop .55s ease-out}
+#dlg .mstars{font-size:30px;text-align:center;color:#e0a526;letter-spacing:4px;animation:mpop .7s ease-out}
+@keyframes mpop{0%{transform:scale(.6);opacity:.35}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
