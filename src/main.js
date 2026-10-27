@@ -91,6 +91,7 @@ function autoSpeak(d){
     const n=d.n||NPC[d.id];id=d.voice||d.id;key=`q|${d.id}|${d.stage}|${d.i}|${d.qi}`;
     if(d.stage==='lines')text=n.intro[d.i];
     else if(d.stage==='q'){const q=d.qs[d.qi];text='Question '+(d.qi+1)+'. '+q.q+' Réponses : '+(d.opts||[]).join(', ')}
+    else if(d.stage==='jeu'){const j=d.jeux[d.ji];key+='|'+(d.j&&d.j.etape||'');text=(d.j&&d.j.etape==='total'?j.total.q:j.consigne)}
     else if(d.stage==='fb')text=(d.fbFirst?'Bravo ! ':'C’est ça. ')+d.qs[d.qi].exp;
     else text=d.rev?'Révision terminée : '+d.firsts+' sur '+d.qs.length+' du premier coup.':n.outro;
   }else if(d.kind==='info'){key='i|'+d.title+'|'+d.i;text=d.lines[d.i]}
@@ -402,6 +403,8 @@ function htmlQuiz(d){
     if(d.bad.length)h+=`<p class="ko">Pas tout à fait. Réfléchis encore !</p>`;
     h+=d.opts.map((c,i)=>`<button ${d.bad.indexOf(c)>=0?'disabled':''} onclick="answerQ(${i})">${esc(c)}</button>`).join('');
     h+=`<button class="s" onclick="closeDialog()">Quitter</button>`;
+  }else if(d.stage==='jeu'){
+    h+=htmlJeu(d);
   }else if(d.stage==='fb'){
     const q=d.qs[d.qi];
     h+=`<p class="ok"><b>${d.fbFirst?'Bravo !':'C’est ça.'}</b> ${esc(q.exp)}</p><button class="p" onclick="nextQ()">Suite</button>`;
@@ -417,10 +420,79 @@ function htmlQuiz(d){
   }
   return h;
 }
+// ---------- Énigmes : activités dans le récit (ordre des mots, commande du marchand, tri) ----------
+function jeuInit(d){
+  const j=d.jeux[d.ji];
+  if(j.t==='ordre')d.j={mots:shuffle(j.mots.map((m,i)=>({m,i}))),choix:[],err:0};
+  else if(j.t==='panier')d.j={q:{},etape:'prep',err:0};
+  else if(j.t==='tri')d.j={fait:{},sel:null,err:0};
+}
+function htmlJeu(d){
+  const j=d.jeux[d.ji],e=d.j;
+  let h=`<p><b>Énigme ${d.ji+1} sur ${d.jeux.length}</b> : ${esc(j.consigne)}</p>`;
+  if(e.msg)h+=`<p class="ko">${esc(e.msg)}</p>`;
+  if(j.t==='ordre'){
+    h+=`<p style="min-height:34px;background:#f3ecdc;border-radius:10px;padding:8px 10px">${e.choix.length?e.choix.map(i=>esc(j.mots[i])).join(' '):'…'}</p>`;
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+e.mots.map(o=>e.choix.includes(o.i)?'':`<button style="width:auto;padding:9px 14px" onclick="jeuOrdre(${o.i})">${esc(o.m)}</button>`).join('')+'</div>';
+    h+=`<button class="p" onclick="jeuOrdreOk()" ${e.choix.length===j.mots.length?'':'disabled'}>Valider ma phrase</button><button class="s" onclick="jeuOrdreRaz()">Recommencer</button>`;
+  }else if(j.t==='panier'){
+    if(e.etape==='prep'){
+      h+=j.articles.map(a=>`<div class="row" style="align-items:center;padding:4px 0"><span style="font-size:15px">${a.e} ${esc(a.n)} · ${a.p} FC</span><span><button style="display:inline-block;width:44px;text-align:center;padding:6px" onclick="jeuPan('${esc(a.n)}',-1)">−</button> <b style="display:inline-block;min-width:22px;text-align:center">${e.q[a.n]||0}</b> <button style="display:inline-block;width:44px;text-align:center;padding:6px" onclick="jeuPan('${esc(a.n)}',1)">+</button></span></div>`).join('');
+      h+=`<button class="p" onclick="jeuPanOk()">Commande prête</button>`;
+    }else{
+      h+=`<p>${esc(j.total.q)}</p>`+j.total.c.map((c,i)=>`<button onclick="jeuPanTotal(${i})">${esc(c)}</button>`).join('');
+    }
+  }else if(j.t==='tri'){
+    const rest=j.objets.map((o,i)=>[o,i]).filter(x=>e.fait[x[1]]===undefined);
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+rest.map(x=>`<button style="width:auto;padding:9px 14px;${e.sel===x[1]?'background:#fff6dc;border-color:#e0a526':''}" onclick="jeuTriPick(${x[1]})">${esc(x[0][0])}</button>`).join('')+'</div>';
+    h+='<p style="font-size:13px;margin-top:8px">Touche un objet, puis son panier :</p>'+j.paniers.map((b,i)=>`<button onclick="jeuTriPose(${i})">📦 ${esc(b)}</button>`).join('');
+  }
+  return h+`<button class="s" onclick="closeDialog()">Quitter</button>`;
+}
+function jeuErreur(d,indice){d.errs++;d.j.err++;d.j.msg=indice||'Pas tout à fait. Réfléchis encore !';SFX.ko();renderDialog()}
+function jeuFini(d){
+  const first=d.j.err===0,coin=first?5:1;
+  d.gain+=coin;gain(coin,first?10:3);SFX.ok();
+  d.ji++;
+  if(d.ji>=d.jeux.length){
+    if(d.qs.length){d.stage='q';d.qi=0;d.opts=null;d.bad=[];d.qerr=false}
+    else{completeQuiz(d);d.stage='out'}
+  }else jeuInit(d);
+  renderDialog();
+}
+function jeuOrdre(i){const d=G.dialog;d.j.choix.push(i);d.j.msg='';renderDialog()}
+function jeuOrdreRaz(){const d=G.dialog;d.j.choix=[];d.j.msg='';renderDialog()}
+function jeuOrdreOk(){
+  const d=G.dialog,j=d.jeux[d.ji],mots=d.j.choix.map(i=>j.mots[i]);
+  if(mots.join(' ')===j.rep.join(' '))jeuFini(d);
+  else{d.j.choix=[];jeuErreur(d,j.indice||'Ce n’est pas encore une phrase correcte. Essaie un autre ordre.')}
+}
+function jeuPan(n,delta){const d=G.dialog;d.j.q[n]=Math.max(0,Math.min(9,(d.j.q[n]||0)+delta));d.j.msg='';renderDialog()}
+function jeuPanOk(){
+  const d=G.dialog,j=d.jeux[d.ji];
+  const ok=j.articles.every(a=>(d.j.q[a.n]||0)===(j.cible[a.n]||0));
+  if(ok){d.j.etape='total';d.j.msg='';renderDialog()}
+  else jeuErreur(d,'Relis la commande du marchand : il manque ou il y a trop d’articles.');
+}
+function jeuPanTotal(i){
+  const d=G.dialog,j=d.jeux[d.ji];
+  if(j.total.c[i]===j.total.a)jeuFini(d);else jeuErreur(d,j.total.indice||'Calcule chaque article, puis additionne.');
+}
+function jeuTriPick(i){const d=G.dialog;d.j.sel=i;d.j.msg='';renderDialog()}
+function jeuTriPose(b){
+  const d=G.dialog,j=d.jeux[d.ji];
+  if(d.j.sel===null||d.j.sel===undefined){d.j.msg='Touche d’abord un objet.';renderDialog();return}
+  const o=j.objets[d.j.sel];
+  if(j.paniers[b]===o[1]){d.j.fait[d.j.sel]=b;d.j.sel=null;d.j.msg='';
+    if(Object.keys(d.j.fait).length===j.objets.length){jeuFini(d);return}
+    renderDialog()}
+  else jeuErreur(d,j.indice||('« '+o[0]+' » ne va pas dans ce panier.'));
+}
+
 function nextLine(){
   const d=G.dialog,n=d.n||NPC[d.id];
   d.i++;
-  if(d.i>=n.intro.length){d.stage='q';d.qi=0;d.opts=null}
+  if(d.i>=n.intro.length){d.qi=0;d.opts=null;if(d.jeux&&d.jeux.length){d.ji=0;d.stage='jeu';jeuInit(d)}else d.stage='q'}
   renderDialog();
 }
 function answerQ(i){
@@ -834,7 +906,7 @@ function startMission(nid,mid,i,opt){
   const niv=PROGRAMME.find(n=>n.id===nid),mat=niv.matieres.find(m=>m.id===mid),k=missionCle(nid,mid,i),c=CONTENU[k];
   if(!c)return;
   const n={name:'Mission '+(i+1)+' · '+mat.missions[i],role:niv.nom+' · '+mat.nom,intro:c.intro,outro:'Mission accomplie ! Bravo, tu as bien travaillé.'};
-  openBox({kind:'quiz',id:'cur:'+k,assign:opt.assignment||null,preview:!!opt.apercu,backEsp:opt.retourEsp?'mm':(opt.apercu?'ens':''),n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
+  openBox({kind:'quiz',id:'cur:'+k,assign:opt.assignment||null,preview:!!opt.apercu,backEsp:opt.retourEsp?'mm':(opt.apercu?'ens':''),n:n,classe:mat.nom+' · '+niv.nom+' · mission '+(i+1)+' : '+mat.missions[i],portrait:'ilunga',voice:'ilunga',back:true,backNiv:nid,backMat:mid,jeux:c.jeux||null,ji:0,j:null,rev:false,stage:'lines',i:0,qi:0,qs:c.qs.slice(),opts:null,bad:[],qerr:false,errs:0,firsts:0,gain:0,res:null});
 }
 
 // ---------- Comptes, classes et missions de classe ----------
@@ -1132,7 +1204,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');

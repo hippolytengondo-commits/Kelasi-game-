@@ -1,4 +1,5 @@
 import {Q} from './data.js';
+import {C2,JEUX} from './programme2.js';
 
 // Programme scolaire : niveau → matières → missions (titres). Les missions qui ont un contenu jouable
 // sont listées dans CONTENU, clé « niveau|matière|numéro ». Les autres s'affichent « bientôt ».
@@ -206,5 +207,7 @@ C['p1|ev|7']=M(['Protéger l’environnement, c’est garder propre notre quarti
  Q('Pourquoi ne faut-il pas jeter de plastique dans le fleuve ?',['il fait du mal aux poissons','il nourrit les poissons','il est joli','il purifie l’eau'],'il fait du mal aux poissons','Le plastique pollue et blesse les animaux.'),
  Q('Que faut-il faire de l’eau du robinet ?',['ne pas la gaspiller','la laisser couler','la salir','la jeter'],'ne pas la gaspiller','L’eau est précieuse.')]);
 
+Object.assign(C,C2);
+Object.keys(JEUX).forEach(k=>{if(C[k])C[k].jeux=JEUX[k]});
 export const CONTENU=C;
 export const missionCle=(n,m,i)=>n+'|'+m+'|'+i;
