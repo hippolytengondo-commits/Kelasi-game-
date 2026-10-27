@@ -126,3 +126,5 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 @keyframes legl{0%,50%,100%{transform:translateY(0)}25%{transform:translateY(-7%) translateX(-1%)}}
 @keyframes legr{0%,25%,100%{transform:translateY(0)}75%{transform:translateY(-7%) translateX(1%)}}
 .hs{z-index:3000}
+
+.pn.me3d canvas.pcv{position:absolute;left:50%;bottom:-7.7%;height:123%;width:auto;aspect-ratio:340/486;transform:translateX(-50%);pointer-events:none}

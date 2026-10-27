@@ -1,5 +1,6 @@
 // Mode « aventure photographique » : lieux réalistes en photo, déplacement de lieu en lieu,
 // personnages placés dans la scène, mini-jeu de mangues, ambiance sonore.
+import * as THREE from 'three';
 import {CHAR_HEIGHT} from './sprites.js';
 
 // x, y : position en % de l'image (pour un personnage : ses pieds) ; h : hauteur en % de l'image pour 1,70 m.
@@ -74,10 +75,50 @@ export function initPhoto(A){
   const endDrag=()=>{if(drag&&drag.moved)setTimeout(()=>{S.dragged=false},80);drag=null};
   pv.addEventListener('pointerup',endDrag);pv.addEventListener('pointercancel',endDrag);
 
+  // ---------- le joueur en 3D : se tourne dans toutes les directions ----------
+  const OV={renderer:null,scene:null,cam:null,model:null,canvas:null,sig:'',ry:0,last:0,active:false};
+  function ovInit(){
+    if(OV.renderer)return;
+    const c=document.createElement('canvas');c.width=340;c.height=486;c.className='pcv';OV.canvas=c;
+    const r=new THREE.WebGLRenderer({canvas:c,alpha:true,antialias:true,premultipliedAlpha:true});
+    r.setPixelRatio(1);r.setSize(340,486,false);r.setClearColor(0x000000,0);
+    r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.0;
+    const sc=new THREE.Scene();
+    sc.add(new THREE.HemisphereLight(0xdfeaff,0x8a6a4a,1.5));
+    const dl=new THREE.DirectionalLight(0xfff0d8,2.6);dl.position.set(-1.5,3,3);sc.add(dl);
+    const cam=new THREE.OrthographicCamera(-.84,.84,2.25,-.15,-10,10);cam.position.z=5;
+    OV.renderer=r;OV.scene=sc;OV.cam=cam;
+  }
+  const use3d=()=>!(G.real&&hasChar(G.real));
+  function ovModel(){
+    ovInit();
+    const sig=JSON.stringify(G.look);
+    if(OV.model&&OV.sig===sig)return;
+    if(OV.model){OV.scene.remove(OV.model);OV.model.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
+    OV.model=A.makePlayer3D();OV.sig=sig;
+    if(OV.model)OV.scene.add(OV.model);
+  }
+  const angDiff=(a,b)=>{let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d};
+  function ovLoop(now){
+    requestAnimationFrame(ovLoop);
+    if(!OV.active||!OV.model||!OV.canvas.parentNode)return;
+    const dt=Math.min(.05,(now-OV.last)/1000);if(dt<.026)return;OV.last=now;
+    const m=S.me,tgt=m.walking?(m.hd||0):(m.face||0);
+    OV.ry+=angDiff(OV.ry,tgt)*Math.min(1,dt*(m.walking?12:7));
+    OV.model.rotation.y=OV.ry;
+    OV.model.userData.update(dt,{speed:m.walking?2.7:0});
+    OV.renderer.render(OV.scene,OV.cam);
+  }
+  requestAnimationFrame(ovLoop);
+
   // ---------- le joueur ----------
   const pc=()=>A.playerChar();
   function hFor(id,y){const g=GEO[id].scale,t=(y-g[2])/(g[0]-g[2]);return g[3]+(g[1]-g[3])*t}
   function meHtml(){
+    if(use3d()){
+      const h=hFor(S.id,S.me.y)*1.72/1.7;
+      return `<div class="pn me me3d" style="left:${S.me.x}%;top:${S.me.y}%;height:${h}%;z-index:${Math.round(S.me.y*10)}"><i class="sh"></i></div>`;
+    }
     const c=pc();if(!hasChar(c))return '';
     const sc=S.id,h=hFor(sc,S.me.y)*(CHAR_HEIGHT[c]||1.7)/1.7,url=`img/chars/${c}.webp`;
     return `<div class="pn me" style="left:${S.me.x}%;top:${S.me.y}%;height:${h}%;z-index:${Math.round(S.me.y*10)};--ar:${ASPECT[c]||.28}"><i class="sh"></i><div class="mp"><div class="ly u" style="background-image:url(${url})"></div><div class="ly l" style="background-image:url(${url})"></div><div class="ly r" style="background-image:url(${url})"></div></div></div>`;
@@ -85,7 +126,7 @@ export function initPhoto(A){
   function meEl(){return items.querySelector('.me')}
   function placeMe(){
     const el=meEl();if(!el)return;
-    const c=pc(),h=hFor(S.id,S.me.y)*(CHAR_HEIGHT[c]||1.7)/1.7;
+    const c=pc(),h=hFor(S.id,S.me.y)*(use3d()?1.72:(CHAR_HEIGHT[c]||1.7))/1.7;
     el.style.left=S.me.x+'%';el.style.top=S.me.y+'%';el.style.height=h+'%';el.style.zIndex=Math.round(S.me.y*10);
   }
   function followPan(){
@@ -97,7 +138,7 @@ export function initPhoto(A){
   let walkRaf=0;
   function walkTo(x,y,cb){
     const g=GEO[S.id],m=S.me;
-    m.tx=Math.min(95,Math.max(5,x));m.ty=Math.min(g.walk[1],Math.max(g.walk[0],y));m.cb=cb||null;
+    m.face=0;m.tx=Math.min(95,Math.max(5,x));m.ty=Math.min(g.walk[1],Math.max(g.walk[0],y));m.cb=cb||null;
     const el=meEl();if(!el){if(cb)cb();return}
     if(m.walking)return;
     m.walking=true;el.classList.add('walk');
@@ -110,6 +151,7 @@ export function initPhoto(A){
         m.x=m.tx;m.y=m.ty;m.walking=false;placeMe();meEl()&&meEl().classList.remove('walk');
         const f=m.cb;m.cb=null;if(f)f();return;
       }
+      m.hd=Math.atan2(dx*S.W/100,dy*S.H/100*1.7);
       m.x+=dx/d*sp;m.y+=dy/d*sp;
       placeMe();followPan();walkRaf=requestAnimationFrame(step);
     };
@@ -138,6 +180,8 @@ export function initPhoto(A){
       }
     });
     items.innerHTML=h+meHtml();
+    const me3=items.querySelector('.me3d');
+    if(me3){ovModel();me3.appendChild(OV.canvas);OV.active=true}else OV.active=false;
     layout(false);
     if(!keep){const f=sc.items.find(it=>it.k==='npc'),fx=f?(S.me.x+f.x)/2:sc.focus;S.panX=S.vw/2-S.W*fx/100;clampPan();apply()}
   }
@@ -208,10 +252,10 @@ export function initPhoto(A){
     }
     const it=SCENES[S.id].items[+el.dataset.i];
     if(it.k==='npc'){
-      if(!NPC[it.id]){const t=stand(it);walkTo(t.x,t.y);return}
+      if(!NPC[it.id]){const t=stand(it);walkTo(t.x,t.y,()=>{S.me.face=(it.x>=S.me.x?1:-1)*1.25});return}
       const a=actionFor({t:'npc',id:it.id});
       if(!a.enabled){toast(NPC[it.id].short+' est occupé(e). Reviens plus tard.');return}
-      const t=stand(it);hideBubble();walkTo(t.x,t.y,()=>{if(G.mode==='pview')a.run()});
+      const t=stand(it);hideBubble();walkTo(t.x,t.y,()=>{S.me.face=(it.x>=S.me.x?1:-1)*1.25;if(G.mode==='pview')a.run()});
     }else if(it.k==='go'){
       if(it.need&&!A.doneNpc(it.need)){toast('Mama Lola garde le passage : réponds d’abord à ses questions.');SFX.ko();return}
       const from=S.id;walkTo(it.x,it.y,()=>show(it.to,{back:it.ico==='⬇'||it.ico==='⬅',from:from}));
@@ -313,7 +357,8 @@ export function initPhoto(A){
 
   A.photo={
     show:id=>{pv.classList.remove('hide');S.id=null;S.busy=false;show(id)},
-    hide:()=>{pv.classList.add('hide');stopAmb();hideBubble()},
+    hide:()=>{pv.classList.add('hide');OV.active=false;stopAmb();hideBubble()},
+    resume:()=>{pv.classList.remove('hide');OV.sig='';const pan=S.panX;build(S.id,true);S.panX=pan;layout(true);ambient(SCENES[S.id].amb)},
     refresh:()=>{if(!S.id)return;const pan=S.panX;build(S.id,true);S.panX=pan;layout(true)},
     scene:()=>S.id,
     ambientOff:stopAmb,

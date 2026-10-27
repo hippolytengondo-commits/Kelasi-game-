@@ -447,6 +447,7 @@ function htmlMenu(){
    +`<h4>Ma maison</h4>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${a.items[k]?'✔':'—'}</b></div>`).join('')
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
+   +(G.ui==='photo'?`<button onclick="openCreatorFromPhoto()">🧍 Mon personnage (visage, tenue)</button>`:'')
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
    +`<button onclick="toggleVoice()">Lecture à voix haute : ${G.voice?'activée':'coupée'}</button>`
@@ -546,7 +547,7 @@ function angDiff(a,b){let d=b-a;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
-  if(!W||G.ui==='photo')return;
+  if(!W||(G.ui==='photo'&&G.mode!=='creator'))return;
   const playing=G.mode==='play'||G.mode==='mini';
   // déplacement
   let sp=0;
@@ -660,15 +661,20 @@ $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 
 // ---------- Profil et objets (mode photo) ----------
 function openProfile(){openBox({kind:'profile'})}
+function openCreatorFromPhoto(){
+  closeDialog();PM.hide();$('cv').style.display='block';
+  G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;buildScene();
+  openCreator('photo');
+}
 function htmlProfile(){
   const av=((window.__MAN&&window.__MAN.avatars)||[]).filter(a=>a[0]===(G.look.s||'f'));
   const pcs=['pf1','pf2','ph1','ph2'].map(c=>`<button class="avb${playerChar()===c?' on':''}" onclick="setChar('${c}')"><img src="img/chars/${c}.webp" alt="" style="object-fit:contain;object-position:top"></button>`).join('');
-  return `<h3>Mon personnage</h3><div class="avs" style="margin-bottom:10px">${pcs}</div><h3>Ma photo de profil</h3><div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.photo==='c'?' on':''}" onclick="crPhoto('c')" style="width:auto">Mon visage de personnage</button></div>`+`<div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.look.s==='f'?' on':''}" onclick="setGenre('f')" style="width:auto">Fille</button><button class="chip${G.look.s==='h'?' on':''}" onclick="setGenre('h')" style="width:auto">Garçon</button></div>`
+  return `<h3>Mon personnage</h3><div class="chips" style="margin-bottom:8px"><button class="chip${G.real?'':' on'}" onclick="setChar(null)">3D, tous les mouvements (360°)</button><button class="chip" onclick="openCreatorFromPhoto()">Personnaliser visage et tenue</button></div><div class="lb" style="font-size:12px;font-weight:700;margin:4px 0">Ou un personnage photo (de face uniquement)</div><div class="avs" style="margin-bottom:10px">${pcs}</div><h3>Ma photo de profil</h3><div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.photo==='c'?' on':''}" onclick="crPhoto('c')" style="width:auto">Mon visage de personnage</button></div>`+`<div class="row" style="border:0;gap:8px;margin-bottom:6px"><button class="chip${G.look.s==='f'?' on':''}" onclick="setGenre('f')" style="width:auto">Fille</button><button class="chip${G.look.s==='h'?' on':''}" onclick="setGenre('h')" style="width:auto">Garçon</button></div>`
    +`<div class="avs">`+av.map(a=>`<button class="avb${G.photo===a?' on':''}" onclick="crPhoto('${a}')"><img src="img/avatars/${a}.jpg" alt=""></button>`).join('')+(userPhoto()?`<button class="avb${G.photo==='u'?' on':''}" onclick="crPhoto('u')"><img src="${userPhoto()}" alt=""></button>`:'')+`</div>`
    +`<label class="chip" style="cursor:pointer;display:block;margin-top:8px">📷 Ajouter ma propre photo<small>Reste sur cet appareil</small><input type="file" accept="image/*" style="display:none" onchange="crUpload(this)"></label>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`;
 }
-function setChar(c){G.real=c;G.look.s=c[1]==='f'?'f':'h';G.sexe=G.look.s;save();charAvatar(c);refreshHud();PM.refresh();renderDialog()}
+function setChar(c){G.real=c;if(c){G.look.s=c[1]==='f'?'f':'h';G.sexe=G.look.s}save();if(c)charAvatar(c);refreshHud();PM.resume();renderDialog()}
 function setGenre(g){G.look.s=g;G.sexe=g;save();renderDialog()}
 function openObjs(){openBox({kind:'objs'})}
 function htmlObjs(){
@@ -766,6 +772,10 @@ function creatorDone(){
   L.acc=L.acc.filter(a=>isOwned('acc',a));
   save();rebuildPlayer();
   $('creator').classList.add('hide');camera.clearViewOffset();resize();
+  if(CR.from==='photo'){
+    $('cv').style.display='none';G.mode='pview';hudVisible(true);['joy','actwrap'].forEach(i=>$(i).classList.add('hide'));
+    PM.resume();refreshHud();return;
+  }
   if(CR.from==='start'){startCine()}
   else{G.mode='play';hudVisible(true);snapCamera();refreshHud()}
 }
@@ -876,7 +886,7 @@ $('go').onclick=()=>{
   const n=$('nom').value.trim();
   if(!n){$('nom').focus();return}
   G.nom=n;G.adv=newAdv();G.ui='photo';
-  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=G.sexe==='f'?'pf1':'ph1';G.photo='c';
+  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=null;G.photo=G.sexe==='f'?'f1':'h1';
   save();enterPhoto(true);
 };
 $('go3d').onclick=()=>{
@@ -890,11 +900,12 @@ $('go3d').onclick=()=>{
 };
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
-const PA={playerChar,G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
+const makePlayer3D=()=>makeHuman(Object.assign({},G.look,{h:1}));
+const PA={makePlayer3D,playerChar,G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
 initPhoto(PA);const PM=PA.photo;
 function init(){
   const s=readSave();
