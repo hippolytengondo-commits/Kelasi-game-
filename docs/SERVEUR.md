@@ -3,6 +3,10 @@
 Projet Supabase (nom technique : « Kelasi Game ») (région eu-west-3, Paris). Adresse : https://mgaqfuilqqwmxgpowtps.supabase.co
 La clé « publishable » utilisée dans `src/cloud.js` est publique par conception : la sécurité repose sur les règles de la base (RLS).
 
+## Scores
+Chaque mission donne un score exact « points sur total » : 1 point par étape réussie du premier coup (question, énigme).
+`mission_attempts` garde toutes les tentatives (évolution) ; `mission_results` garde le meilleur score. Les enseignants lisent les résultats de leurs élèves via `assignment_scores` (un devoir) et `class_scores` (toute la classe).
+
 ## Tables
 `profiles` (pseudo, rôle élève/enseignant/parent/admin), `classes` (code à 6 caractères), `class_members`,
 `assignments` (devoirs : missions choisies par l'enseignant), `mission_results`, `save_games` (progression facultative).

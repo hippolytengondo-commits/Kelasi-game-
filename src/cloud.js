@@ -91,10 +91,10 @@ export function planifierSauvegarde(getData){
 }
 
 // ---- résultats de missions : file d'attente locale, envoyée dès que possible ----
-export function enregistrerResultat(mission,assignment,stars,errs){
+export function enregistrerScore(mission,assignment,pts,total){
   if(!connecte())return;
   const f=lire(QK)||[];
-  f.push({m:mission,a:assignment||null,s:stars,e:errs,t:Date.now()});
+  f.push({m:mission,a:assignment||null,p:pts,t:total,h:Date.now()});
   ecrire(QK,f.slice(-200));
   vider();
 }
@@ -106,7 +106,8 @@ export async function vider(){
     let f=lire(QK)||[];
     while(f.length){
       const x=f[0];
-      const r=await rpc('record_result',{p_mission:x.m,p_assignment:x.a,p_stars:x.s,p_errs:x.e});
+      const r=x.p!==undefined?await rpc('record_score',{p_mission:x.m,p_assignment:x.a,p_pts:x.p,p_total:x.t})
+        :await rpc('record_result',{p_mission:x.m,p_assignment:x.a,p_stars:x.s,p_errs:x.e});
       if(r.ok||(r.status>=400&&r.status<500&&r.status!==401&&r.status!==408&&r.status!==429)){f.shift();ecrire(QK,f)}
       else break; // réseau coupé ou connexion expirée : on réessaiera plus tard
     }

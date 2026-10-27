@@ -8,7 +8,8 @@ export function makeEspace(x){
   const D=()=>x.G.dialog;
   const maj=p=>{Object.assign(D(),p);x.renderDialog()};
   const val=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
-  const etoiles=n=>n?'★'.repeat(n)+'☆'.repeat(3-n):'—';
+  const pct=(p,t)=>t?Math.round(100*p/t):0;
+  const sc=(p,t)=>p===null||p===undefined?'—':p+' sur '+t+' ('+pct(p,t)+' %)';
   const cleInfo=k=>{const[n,m,i]=k.split('|');const N=PROGRAMME.find(a=>a.id===n),M=N&&N.matieres.find(a=>a.id===m);return {n:N,m:M,i:+i,titre:M?M.missions[+i]:k,nom:N?N.nom:'',mat:M?M.nom:''}};
   const jouables=()=>{const o=[];PROGRAMME.forEach(n=>n.matieres.forEach(m=>m.missions.forEach((t,i)=>{const k=missionCle(n.id,m.id,i);if(CONTENU[k])o.push({n,m,i,k,t})})));return o};
   const entete=(t)=>`<div class="hd"><h3>${esc(t)}</h3></div>`;
@@ -27,6 +28,7 @@ export function makeEspace(x){
     if(d.vue==='nouvclasse')return vueNouvClasse(d);
     if(d.vue==='nouvdevoir')return vueNouvDevoir(d);
     if(d.vue==='devoir')return vueDevoir(d);
+    if(d.vue==='bilan')return vueBilan(d);
     return vueCompte(d,s);
   }
 
@@ -123,10 +125,14 @@ export function makeEspace(x){
     if(!d.liste){chargerMM();return h+'<p>Chargement…</p>'+retour('')}
     if(!d.liste.length)h+=`<p style="font-size:13px">Pas encore de mission de classe. Si ton enseignant t’a donné un code, rejoins sa classe.</p>`;
     d.liste.forEach(a=>{
+      let p=0,t=0,faites=0;
+      a.missions.forEach(k=>{const r=d.res&&d.res[a.id+'|'+k];if(r&&r.total){p+=r.pts;t+=r.total;faites++}});
       h+=`<h4>${esc(a.titre)}</h4>`+(a.consigne?`<p style="font-size:13px">${esc(a.consigne)}</p>`:'');
+      if(faites)h+=`<p style="font-size:13px;margin:0 0 4px">Ton score : <b>${p} sur ${t}</b> (${pct(p,t)} %) · ${faites}/${a.missions.length} mission(s) faite(s)</p>`;
       a.missions.forEach(k=>{
-        const c=cleInfo(k),ok=!!CONTENU[k],st=(d.res&&d.res[a.id+'|'+k])||0;
-        h+=ok?`<button onclick="espJouer('${a.id}','${k}')">${st?etoiles(st):'▶'} ${esc(c.mat)} · ${esc(c.titre)}</button>`
+        const c=cleInfo(k),ok=!!CONTENU[k],r=d.res&&d.res[a.id+'|'+k];
+        const score=r&&r.total?`<b>${r.pts} sur ${r.total}</b> · ${pct(r.pts,r.total)} %${r.n>1?' · '+r.n+' essais':''}`:'▶';
+        h+=ok?`<button onclick="espJouer('${a.id}','${k}')">${score} · ${esc(c.mat)} · ${esc(c.titre)}</button>`
              :`<button disabled>🔒 ${esc(c.titre)} (bientôt)</button>`;
       });
     });
@@ -135,8 +141,8 @@ export function makeEspace(x){
   async function chargerMM(){
     const a=await C.lireTable('assignments?select=id,titre,consigne,missions,echeance,created_at&order=created_at.desc');
     if(!a.ok){maj({liste:[],msg:a.err,erreur:true});return}
-    const r=await C.lireTable('mission_results?select=assignment_id,mission_key,stars&assignment_id=not.is.null');
-    const res={};(r.ok?r.data:[]).forEach(z=>{res[z.assignment_id+'|'+z.mission_key]=z.stars});
+    const r=await C.lireTable('mission_results?select=assignment_id,mission_key,pts,total,attempts&assignment_id=not.is.null');
+    const res={};(r.ok?r.data:[]).forEach(z=>{res[z.assignment_id+'|'+z.mission_key]={pts:z.pts,total:z.total,n:z.attempts}});
     if(D()&&D().kind==='esp')maj({liste:a.data,res:res});
   }
   function jouer(aid,k){
@@ -175,7 +181,7 @@ export function makeEspace(x){
     if(!d.eleves||!d.devoirs){chargerClasse(c.id);return h+'<p>Chargement…</p>'+retour('classes')}
     h+=`<h4>Élèves (${d.eleves.length})</h4>`+(d.eleves.length?`<p style="font-size:13px">${d.eleves.map(e=>esc(e.profiles&&e.profiles.pseudo||'?')).join(', ')}</p>`:'<p style="font-size:13px">Personne n’a encore rejoint la classe.</p>');
     h+=`<h4>Devoirs</h4>`+d.devoirs.map(v=>`<button onclick="espDevoir('${v.id}')">${esc(v.titre)} · ${v.missions.length} mission(s)</button>`).join('');
-    h+=`<button class="p" onclick="espNouvDevoir('${c.id}')">+ Nouveau devoir</button>`+retour('classes');
+    h+=`<button class="p" onclick="espNouvDevoir('${c.id}')">+ Nouveau devoir</button><button onclick="espBilan()">📊 Bilan de la classe (pourcentages)</button>`+retour('classes');
     return h;
   }
   async function ouvrirClasse(id){
@@ -226,24 +232,77 @@ export function makeEspace(x){
   async function ouvrirDevoir(id){
     maj({vue:'devoir',devoir:D().devoirs.find(v=>v.id===id),res:null,msg:''});
   }
+  function lignesDevoir(v,res){
+    // res : lignes {student_id,pseudo,mission_key,pts,total,last_pts,last_total,attempts}
+    const par={};res.forEach(r=>{const e=par[r.pseudo]=par[r.pseudo]||{};if(r.mission_key)e[r.mission_key]=r});
+    const noms=Object.keys(par).sort();
+    const eleves=noms.map(n=>{let p=0,t=0,faites=0;v.missions.forEach(k=>{const r=par[n][k];if(r&&r.total){p+=r.pts;t+=r.total;faites++}});return {nom:n,p,t,faites,rows:par[n]}});
+    const parMission=v.missions.map(k=>{let p=0,t=0,n=0;eleves.forEach(e=>{const r=e.rows[k];if(r&&r.total){p+=r.pts;t+=r.total;n++}});return {k,p,t,n}});
+    let P=0,T=0;eleves.forEach(e=>{P+=e.p;T+=e.t});
+    return {eleves,parMission,P,T};
+  }
   function vueDevoir(d){
     const v=d.devoir;
     let h=entete(v.titre)+msg(d)+(v.consigne?`<p style="font-size:13px">${esc(v.consigne)}</p>`:'');
     if(!d.res){chargerDevoir(v.id);return h+'<p>Chargement des résultats…</p>'+retour('classe')}
-    const par={};d.res.forEach(r=>{(par[r.pseudo]=par[r.pseudo]||{})[r.mission_key]=r});
-    const noms=Object.keys(par).sort();
-    if(!noms.length)h+='<p style="font-size:13px">Aucun élève dans la classe pour le moment.</p>';
-    h+=`<h4>Résultats (${v.missions.length} mission(s))</h4>`;
-    noms.forEach(n=>{
-      const faites=v.missions.filter(k=>par[n][k]).length;
-      h+=`<div class="row"><span>${esc(n)}</span><b>${faites}/${v.missions.length} terminée(s)${faites?' · '+v.missions.map(k=>par[n][k]?etoiles(par[n][k].stars):'·').join(' '):''}</b></div>`;
-    });
+    const L=lignesDevoir(v,d.res);
+    if(!L.eleves.length)h+='<p style="font-size:13px">Aucun élève dans la classe pour le moment.</p>';
+    else{
+      h+=`<h4>Résultats (${v.missions.length} mission(s))</h4>`;
+      L.eleves.forEach(e=>{
+        h+=`<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(e.nom)}</b><span>${e.faites?`<b>${e.p} sur ${e.t}</b> · ${pct(e.p,e.t)} %`:'pas commencé'}</span></div>`
+          +`<div style="font-size:11px;opacity:.75">${v.missions.map((k,i)=>{const r=e.rows[k];return 'M'+(i+1)+' : '+(r&&r.total?r.pts+'/'+r.total+(r.attempts>1?' ('+r.attempts+' essais, dernier '+r.last_pts+'/'+r.last_total+')':''):'—')}).join(' · ')}</div></div>`;
+      });
+      h+=`<h4>Bilan de la classe</h4><p style="font-size:14px;margin:2px 0">Total : <b>${L.P} sur ${L.T}</b> · moyenne <b>${pct(L.P,L.T)} %</b></p>`;
+      h+=`<div style="font-size:12px">${L.parMission.map((m,i)=>'Mission '+(i+1)+' ('+esc(cleInfo(m.k).titre)+') : '+(m.t?pct(m.p,m.t)+' % · '+m.n+' élève(s)':'—')).join('<br>')}</div>`;
+      h+=`<button onclick="espExport()">⬇ Exporter en tableau (CSV)</button>`;
+    }
     return h+retour('classe','← Retour à la classe');
   }
   async function chargerDevoir(id){
-    const r=await C.rpc('assignment_results',{p_assignment:id});
+    const r=await C.rpc('assignment_scores',{p_assignment:id});
     if(!r.ok){maj({res:[],msg:r.err,erreur:true});return}
     if(D()&&D().vue==='devoir')maj({res:r.data});
+  }
+  function exporterDevoir(){
+    const d=D(),v=d.devoir;if(!d.res)return;
+    const L=lignesDevoir(v,d.res);
+    const q=x=>'"'+String(x).replace(/"/g,'""')+'"';
+    const lignes=[['Élève',...v.missions.map((k,i)=>'M'+(i+1)+' '+cleInfo(k).titre),'Total','Sur','Pourcentage'].map(q).join(';')];
+    L.eleves.forEach(e=>lignes.push([e.nom,...v.missions.map(k=>{const r=e.rows[k];return r&&r.total?r.pts+'/'+r.total:''}),e.p,e.t,pct(e.p,e.t)+' %'].map(q).join(';')));
+    lignes.push(['Classe',...L.parMission.map(m=>m.t?pct(m.p,m.t)+' %':''),L.P,L.T,pct(L.P,L.T)+' %'].map(q).join(';'));
+    const blob=new Blob(['\ufeff'+lignes.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=('devoir-'+v.titre).replace(/[^\w.-]+/g,'_')+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  }
+
+  // ---------- bilan de la classe (tous les devoirs) : pourcentages par élève et par matière ----------
+  async function ouvrirBilan(){maj({vue:'bilan',bilan:null,msg:''})}
+  async function chargerBilan(id){
+    const r=await C.rpc('class_scores',{p_class:id});
+    if(!r.ok){maj({bilan:[],msg:r.err,erreur:true});return}
+    if(D()&&D().vue==='bilan')maj({bilan:r.data});
+  }
+  function vueBilan(d){
+    let h=entete('📊 Bilan de la classe')+msg(d);
+    if(!d.bilan){chargerBilan(d.classe.id);return h+'<p>Chargement…</p>'+retour('classe')}
+    if(!d.bilan.length)return h+'<p style="font-size:13px">Aucun résultat pour le moment : attribue un devoir et attends que les élèves jouent.</p>'+retour('classe');
+    const eleves={},matCl={};let P=0,T=0;
+    d.bilan.forEach(r=>{
+      const i=cleInfo(r.mission_key),mat=i.nom+' · '+i.mat;
+      const e=eleves[r.pseudo]=eleves[r.pseudo]||{p:0,t:0,mats:{}};
+      e.p+=r.pts;e.t+=r.total;(e.mats[mat]=e.mats[mat]||{p:0,t:0});e.mats[mat].p+=r.pts;e.mats[mat].t+=r.total;
+      (matCl[mat]=matCl[mat]||{p:0,t:0});matCl[mat].p+=r.pts;matCl[mat].t+=r.total;P+=r.pts;T+=r.total;
+    });
+    h+=`<p style="font-size:15px">Classe : <b>${P} sur ${T}</b> · moyenne <b>${pct(P,T)} %</b></p>`;
+    h+='<h4>Par matière (toute la classe)</h4>'+Object.keys(matCl).sort().map(m=>`<div class="row"><span>${esc(m)}</span><b>${matCl[m].p} sur ${matCl[m].t} · ${pct(matCl[m].p,matCl[m].t)} %</b></div>`).join('');
+    h+='<h4>Par élève</h4>';
+    Object.keys(eleves).sort().forEach(n=>{
+      const e=eleves[n],ms=Object.keys(e.mats).map(m=>({m,p:e.mats[m].p,t:e.mats[m].t})).filter(x=>x.t>0).sort((a,b)=>pct(b.p,b.t)-pct(a.p,a.t));
+      const fort=ms.length>1?ms[0]:null,faible=ms.length>1?ms[ms.length-1]:null;
+      h+=`<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(n)}</b><span><b>${e.p} sur ${e.t}</b> · ${pct(e.p,e.t)} %</span></div>`
+        +(fort?`<div style="font-size:11px;opacity:.8">👍 ${esc(fort.m)} : ${pct(fort.p,fort.t)} % · 🎯 à renforcer : ${esc(faible.m)} : ${pct(faible.p,faible.t)} %</div>`:'')+'</div>';
+    });
+    return h+retour('classe','← Retour à la classe');
   }
 
   return {
@@ -254,7 +313,7 @@ export function makeEspace(x){
       espValider:valider,espChoisir:choisir,espSauver:sauver,espDeco:deco,
       espRejoindre:rejoindre,espJouer:jouer,
       espClasse:ouvrirClasse,espCreerClasse:creerClasse,espNouvDevoir:()=>maj({vue:'nouvdevoir',form:{sel:[]},msg:''}),
-      espForme:forme,espBasc:basc,espPublier:publier,espPrevisu:previsu,espDevoir:ouvrirDevoir
+      espForme:forme,espBasc:basc,espPublier:publier,espPrevisu:previsu,espDevoir:ouvrirDevoir,espExport:exporterDevoir,espBilan:ouvrirBilan
     }
   };
 }

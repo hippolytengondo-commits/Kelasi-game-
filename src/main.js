@@ -403,6 +403,7 @@ function renderDialog(){
   else if(d.kind==='prog')h=htmlProg(d);
   else if(d.kind==='esp')h=Esp.html(d);
   else if(d.kind==='suite')h=htmlSuite(d);
+  else if(d.kind==='carnet')h=htmlCarnet(d);
   box.innerHTML='<div class="box">'+h+(d.kind==='quiz'||d.kind==='info'||d.kind==='shop'?replayBtn():'')+'</div>';
   autoSpeak(d);
 }
@@ -427,8 +428,10 @@ function htmlQuiz(d){
     h+=`<p class="ok"><b>${d.fbFirst?'Bravo !':'C’est ça.'}</b> ${esc(q.exp)}</p><button class="p" onclick="nextQ()">Suite</button>`;
   }else{
     const r=d.res;
-    if(d.rev)h+=`<div class="mfin">🎉 RÉVISION TERMINÉE !</div><p>${d.firsts} sur ${d.qs.length} du premier coup. <b>+${d.gain} 🪙</b></p>`;
-    else h+=`<div class="mfin">🎉 MISSION TERMINÉE !</div><div class="mstars">${'★'.repeat(r.stars)+'☆'.repeat(3-r.stars)}</div><p>${esc(n.outro)}</p><p><b>+${d.gain} 🪙</b>${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
+    const sc=d.score||{p:0,t:1,best:{p:0,t:1},n:1},pc=Math.round(100*sc.p/sc.t);
+    const compare=(d.avant?`<p style="font-size:13px;margin:2px 0">${sc.p/sc.t>d.avant.p/d.avant.t?'📈 Nouveau meilleur score ! ':''}Meilleur score avant : ${d.avant.p} sur ${d.avant.t}${d.derniere?' · dernier : '+d.derniere.p+' sur '+d.derniere.t:''}</p>`:'');
+    if(d.rev)h+=`<div class="mfin">🎉 RÉVISION TERMINÉE !</div><div class="mscore">${sc.p} sur ${sc.t}</div><p style="text-align:center;margin:0">${pc} % · <b>+${d.gain} 🪙</b></p>${compare}`;
+    else h+=`<div class="mfin">🎉 MISSION TERMINÉE !</div><div class="mscore">${sc.p} sur ${sc.t}</div><p style="text-align:center;margin:0">${pc} %</p>${compare}<p>${esc(n.outro)}</p><p><b>+${d.gain} 🪙</b>${r.tissu?' · +'+r.tissu+' tissu wax':''}</p>`;
     const sv=suivanteScolaire(d);
     if(sv)h+=`<button class="p" onclick="startMission('${sv[0]}','${sv[1]}',${sv[2]})">▶ Mission suivante : ${esc(sv[3])}</button>`;
     h+=`<button class="${sv?'':'p'}" onclick="openSuite()">🎯 Choisir la prochaine mission</button>`;
@@ -473,6 +476,7 @@ function htmlJeu(d){
 function jeuErreur(d,indice){d.errs++;d.j.err++;d.j.msg=indice||'Pas tout à fait. Réfléchis encore !';SFX.ko();renderDialog()}
 function jeuFini(d){
   const first=d.j.err===0,coin=first?5:1;
+  if(first)d.pts=(d.pts||0)+1;
   d.gain+=coin;gain(coin,first?10:3);SFX.ok();
   d.ji++;
   if(d.ji>=d.jeux.length){
@@ -522,7 +526,7 @@ function answerQ(i){
   if(c!==q.a){d.bad.push(c);d.qerr=true;d.errs++;SFX.ko();renderDialog();return}
   const first=!d.qerr;
   G.adv.total++;
-  if(first){G.adv.good++;d.firsts++}
+  if(first){G.adv.good++;d.firsts++;d.pts=(d.pts||0)+1}
   const coin=d.rev?(first?2:0):(first?5:1);
   d.gain+=coin;d.fbFirst=first;
   gain(coin,first?(d.rev?4:10):3);
@@ -534,7 +538,23 @@ function nextQ(){
   if(d.qi>=d.qs.length){completeQuiz(d);d.stage='out'}else d.stage='q';
   renderDialog();
 }
+// score exact : 1 point par étape réussie du premier coup ; mémorisé avec l'historique des tentatives
+function totalEtapes(d){return d.total||((d.collecte||[]).length+(d.jeux||[]).length+d.qs.length)}
+function memoriserScore(d){
+  const key=String(d.id).startsWith('cur:')?String(d.id).slice(4):String(d.id);
+  const pts=Math.min(d.pts||0,totalEtapes(d)),tot=totalEtapes(d);
+  G.adv.scores=G.adv.scores||{};
+  const sc=G.adv.scores[key]||{n:0};
+  d.avant=sc.best?{p:sc.best.p,t:sc.best.t}:null;d.derniere=sc.last?{p:sc.last.p,t:sc.last.t}:null;
+  sc.n++;sc.last={p:pts,t:tot};
+  if(!sc.best||pts/tot>sc.best.p/sc.best.t)sc.best={p:pts,t:tot};
+  G.adv.scores[key]=sc;
+  G.adv.hist=(G.adv.hist||[]).concat([{k:key,p:pts,t:tot,d:Date.now()}]).slice(-400);
+  d.score={p:pts,t:tot,best:sc.best,n:sc.n};
+  if(String(d.id).startsWith('cur:')&&!d.preview)CLOUD.enregistrerScore(key,d.assign,pts,tot);
+}
 function completeQuiz(d){
+  memoriserScore(d);
   if(d.rev){save();return}
   const id=d.id,st=d.errs===0?3:(d.errs<=2?2:1);
   G.adv.done[id]=true;
@@ -543,7 +563,6 @@ function completeQuiz(d){
   let tissu=0;
   if(id==='mavungu'){G.adv.pieces+=20;G.adv.tissu+=2;tissu=2;d.gain+=20}
   d.res={stars:st,tissu:tissu};
-  if(String(id).startsWith('cur:')&&!d.preview)CLOUD.enregistrerResultat(String(id).slice(4),d.assign,st,d.errs);
   const nw=G.ui==='photo'?[]:newUnlocks(id);if(nw.length)setTimeout(()=>toast('Débloqué : '+nw.join(', ')),900);
   SFX.win();save();refreshHud();
   setTimeout(checkFin,0);setTimeout(()=>stageCheck(id),400);
@@ -608,12 +627,14 @@ function htmlMenu(){
    +`<p class="row"><span>Réponses justes du premier coup</span><b>${a.good}/${a.total}</b></p>`
    +`<h4>Missions</h4>`+['lola','ilunga','junior','mavungu'].map(id=>{
       const s=a.stars[id]||0;
-      return `<div class="row"><span>${esc(SUJETS[NPC[id].sujet])} · ${esc(NPC[id].name)}</span><b>${a.done[id]?'★'.repeat(s)+'☆'.repeat(3-s):'—'}</b></div>`;
+      const sb=a.scores&&a.scores[id]&&a.scores[id].best;
+      return `<div class="row"><span>${esc(SUJETS[NPC[id].sujet])} · ${esc(NPC[id].name)}</span><b>${sb?sb.p+' sur '+sb.t:(a.done[id]?'fait':'—')}</b></div>`;
     }).join('')
    +`<h4>Ma maison</h4>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${a.items[k]?'✔':'—'}</b></div>`).join('')
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +`<button onclick="openProg()">🎓 Missions scolaires</button>`
+   +`<button onclick="openCarnet()">📒 Mon carnet de progression</button>`
    +`<button onclick="openEsp()">👤 Mon compte : classe et sauvegarde</button>`
    +(autonome()?'':`<button onclick="installer()">📲 Installer l’application</button>`)
    +(G.ui==='photo'?'':`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`)
@@ -928,7 +949,7 @@ const stageUnlocked=i=>i===0||stageDone(STAGES[i-1]);
 function stageStars(st){return st.npcs.reduce((a,id)=>a+(G.adv.stars[id]||0),0)}
 // ---------- Missions scolaires (programme) ----------
 function openProg(){openBox({kind:'prog',niv:null,mat:null})}
-function progStars(k){return G.adv.done['cur:'+k]?(G.adv.stars['cur:'+k]||1):0}
+function progScore(k){const s=G.adv.scores&&G.adv.scores[k];return s&&s.best?s.best:null}
 function progCount(niv,mat){
   let f=0,t=0;
   niv.matieres.forEach(m=>{if(mat&&m!==mat)return;m.missions.forEach((x,i)=>{t++;if(G.adv.done['cur:'+missionCle(niv.id,m.id,i)])f++})});
@@ -946,8 +967,8 @@ function htmlProg(d){
   }else{
     h+=`<p><b>${esc(niv.nom)} · ${esc(mat.nom)}</b></p>`;
     h+=mat.missions.map((t,i)=>{
-      const k=missionCle(niv.id,mat.id,i),has=!!CONTENU[k],st=progStars(k);
-      return has?`<button onclick="startMission('${niv.id}','${mat.id}',${i})">${st?'★'.repeat(st)+'☆'.repeat(3-st):'▶'} Mission ${i+1} · ${esc(t)}</button>`
+      const k=missionCle(niv.id,mat.id,i),has=!!CONTENU[k],st=progScore(k);
+      return has?`<button onclick="startMission('${niv.id}','${mat.id}',${i})">${st?'<b>'+st.p+' sur '+st.t+'</b>':'▶'} · Mission ${i+1} · ${esc(t)}</button>`
                :`<button disabled>🔒 Mission ${i+1} · ${esc(t)} (bientôt)</button>`}).join('');
     h+=`<button class="s" onclick="progGo('${niv.id}')">← Matières</button>`;
   }
@@ -1012,6 +1033,7 @@ const M3=createMission3D({
   etape:(first,type)=>{
     const d=G.dialog;if(!d)return;
     if(type==='choix'){G.adv.total++;if(first){G.adv.good++;d.firsts++}}
+    if(first)d.pts=(d.pts||0)+1;
     const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?4:10):3);
   },
   erreur:()=>{if(G.dialog)G.dialog.errs++},
@@ -1086,6 +1108,52 @@ function htmlSuite(){
   if(G.ui==='3d')h+=`<button onclick="closeDialog();openMap()">🗺 Carte des lieux</button>`;
   return h+`<button class="s" onclick="closeDialog()">Continuer à explorer</button>`;
 }
+
+// ---------- Carnet de progression : scores exacts et évolution ----------
+const pct=(p,t)=>t?Math.round(100*p/t):0;
+function infoCle(k){
+  if(k.indexOf('|')>0){
+    const [n,m,i]=k.split('|'),N=PROGRAMME.find(x=>x.id===n),M=N&&N.matieres.find(x=>x.id===m);
+    return {groupe:N?N.nom:n,matiere:M?M.nom:m,titre:M?M.missions[+i]:k,ordre:(PROGRAMME.indexOf(N)+1)*1000+(N?N.matieres.indexOf(M):0)*100+(+i)};
+  }
+  const nn=NPC[k];
+  return {groupe:'Aventure',matiere:nn?(SUJETS[nn.sujet]||nn.sujet):k,titre:nn?nn.name+' · '+(SUJETS[nn.sujet]||''):k,ordre:0};
+}
+function openCarnet(){quitterArene();openBox({kind:'carnet',ouvert:{}})}
+function carnetSommes(rows){let p=0,t=0;rows.forEach(r=>{p+=r.best.p;t+=r.best.t});return {p,t}}
+function htmlCarnet(d){
+  const sc=G.adv.scores||{},hist=G.adv.hist||[];
+  const rows=Object.keys(sc).filter(k=>sc[k].best).map(k=>Object.assign({k:k,best:sc[k].best,n:sc[k].n,last:sc[k].last},infoCle(k)));
+  let h=`<div class="hd"><h3>📒 Mon carnet de progression</h3></div>`;
+  if(!rows.length)return h+`<p style="font-size:14px">Tu n’as pas encore fini de mission. Tes scores exacts et ton évolution s’afficheront ici.</p><button class="s" onclick="closeDialog()">Fermer</button>`;
+  const tot=carnetSommes(rows);
+  h+=`<p style="font-size:15px">Score total : <b>${tot.p} sur ${tot.t}</b> (${pct(tot.p,tot.t)} %) · ${rows.length} mission(s)</p>`;
+  const parMat={};rows.forEach(r=>{const g=r.groupe+' · '+r.matiere;(parMat[g]=parMat[g]||[]).push(r)});
+  const bil=Object.keys(parMat).map(g=>Object.assign({g},carnetSommes(parMat[g]))).filter(x=>x.t>=4);
+  if(bil.length>=2){
+    bil.sort((a,b)=>pct(b.p,b.t)-pct(a.p,a.t));
+    const a=bil[0],z=bil[bil.length-1];
+    h+=`<p style="font-size:13px">👍 Tu es le plus à l’aise en : <b>${esc(a.g)}</b> (${a.p} sur ${a.t}, ${pct(a.p,a.t)} %)<br>🎯 À renforcer : <b>${esc(z.g)}</b> (${z.p} sur ${z.t}, ${pct(z.p,z.t)} %)</p>`;
+  }
+  const groupes={};rows.forEach(r=>{(groupes[r.groupe]=groupes[r.groupe]||[]).push(r)});
+  Object.keys(groupes).sort((a,b)=>(a==='Aventure'?-1:0)-(b==='Aventure'?-1:0)||a.localeCompare(b)).forEach(g=>{
+    const rs=groupes[g],gs=carnetSommes(rs),ouvert=d.ouvert[g];
+    h+=`<button onclick="carnetBasc('${esc(g).replace(/'/g,'’')}')">${ouvert?'▾':'▸'} ${esc(g)} : ${gs.p} sur ${gs.t} (${pct(gs.p,gs.t)} %)</button>`;
+    if(ouvert){
+      const mats={};rs.forEach(r=>{(mats[r.matiere]=mats[r.matiere]||[]).push(r)});
+      Object.keys(mats).forEach(m=>{
+        const ms=carnetSommes(mats[m]);
+        h+=`<h4>${esc(m)} · ${ms.p} sur ${ms.t} (${pct(ms.p,ms.t)} %)</h4>`;
+        mats[m].sort((a,b)=>a.ordre-b.ordre).forEach(r=>{
+          const evo=hist.filter(x=>x.k===r.k).slice(-5).map(x=>x.p+'/'+x.t).join(' → ');
+          h+=`<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><span>${esc(r.titre)}</span><b>${r.best.p} sur ${r.best.t} · ${pct(r.best.p,r.best.t)} %</b></div>${r.n>1?`<div style="font-size:11px;opacity:.7">${r.n} tentatives · évolution : ${esc(evo)}</div>`:''}</div>`;
+        });
+      });
+    }
+  });
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function carnetBasc(g){const d=G.dialog;d.ouvert=d.ouvert||{};d.ouvert[g]=!d.ouvert[g];renderDialog()}
 
 function openMap(){openBox({kind:'map'})}
 function htmlMap(){
@@ -1366,7 +1434,7 @@ $('go3d').onclick=()=>{
 $('cpt').onclick=()=>openEsp();
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
