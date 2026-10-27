@@ -92,7 +92,7 @@ export function initPhoto(A){
   const use3d=()=>!(G.real&&hasChar(G.real));
   function ovModel(){
     ovInit();
-    const sig=JSON.stringify(G.look);
+    const sig=JSON.stringify([G.look,G.photo]);
     if(OV.model&&OV.sig===sig)return;
     if(OV.model){OV.scene.remove(OV.model);OV.model.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
     OV.model=A.makePlayer3D();OV.sig=sig;

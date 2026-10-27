@@ -30,7 +30,7 @@ export const grassTexture=()=>once('grass',()=>upgradePhoto(canvasTex(512,512,(g
     g.strokeStyle=v<.33?'#4b8a33':v<.66?'#79b34b':'#3f7a2c';g.lineWidth=1;
     g.beginPath();g.moveTo(x,y);g.lineTo(x+(r()-.5)*3,y-l);g.stroke()}
   for(let i=0;i<260;i++){g.fillStyle='rgba(170,140,80,.18)';g.beginPath();g.arc(r()*w,r()*h,2+r()*9,0,7);g.fill()}
-},40,24),'grass'));
+},215,215),'grass'));
 export const dirtTexture=()=>once('dirt',()=>upgradePhoto(canvasTex(256,256,(g,w,h)=>{
   const r=rng(11);g.fillStyle='#b98b57';g.fillRect(0,0,w,h);
   for(let i=0;i<2600;i++){const v=r();g.fillStyle=v<.5?'rgba(120,80,40,.35)':'rgba(230,200,150,.3)';g.fillRect(r()*w,r()*h,1+r()*3,1+r()*3)}

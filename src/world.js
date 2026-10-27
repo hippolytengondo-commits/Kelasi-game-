@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as T from './textures.js';
+import {leafyTree,palm,grassField,bush} from './nature.js';
 
 const std=(c,r,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:r===undefined?.85:r},o||{}));
 function box(g,w,h,d,m,x,y,z,ry){
@@ -42,23 +43,10 @@ function clouds(g){
   return out;
 }
 
-function tree(g,x,z,s,mango,cols,colliders){
-  const t=new THREE.Group();t.position.set(x,0,z);t.scale.setScalar(s);
-  const bark=std('#5e4026',.95);
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.22,.38,3.4,10),bark);trunk.position.y=1.7;trunk.castShadow=true;t.add(trunk);
-  [[0,.5],[.5,-.4],[-.6,.2]].forEach(b=>{const br=new THREE.Mesh(new THREE.CylinderGeometry(.08,.16,1.8,6),bark);br.position.set(b[0]*.8,3.3,b[1]*.5);br.rotation.z=b[0]*.9;br.rotation.x=b[1]*.6;br.userData.canopy=true;t.add(br)});
-  const r=rng(Math.floor(Math.abs(x*13+z*7))+3);
-  const c0=cols||['#2f7d44','#3b9150','#27693b'];
-  for(let i=0;i<8;i++){
-    const m=new THREE.Mesh(new THREE.IcosahedronGeometry(1.7+r()*1.1,3),std(c0[i%3],.95));
-    m.position.set((r()-.5)*3.6,4.1+r()*1.8,(r()-.5)*3.6);m.castShadow=true;m.scale.y=.8;m.userData.canopy=true;t.add(m);
-  }
-  if(mango){
-    const fm=std('#f0a51c',.5);
-    for(let i=0;i<16;i++){const f=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),fm);f.scale.y=1.25;f.position.set((r()-.5)*5,3.2+r()*2,(r()-.5)*5);f.userData.canopy=true;t.add(f)}
-  }
-  g.add(t);
-  if(colliders)colliders.push({x:x,z:z,r:.6*s});
+function tree(g,x,z,s,mango,cols,colliders,pal){
+  const t=pal?palm(Math.floor(Math.abs(x*7+z*3))+2):leafyTree({kind:mango?'mango':'leafy',seed:Math.floor(Math.abs(x*13+z*7))+3,fruits:!!mango,trunk:3.0+((s*7)%1)*1.4});
+  t.position.set(x,0,z);t.scale.setScalar(pal?1:s);g.add(t);
+  if(colliders)colliders.push({x:x,z:z,r:(pal?.35:.6)*(pal?1:s)});
   return t;
 }
 
@@ -67,7 +55,7 @@ export function buildVille(opts){
   const g=new THREE.Group();const colliders=[],boxes=[],dyn={};
   // sol
   const gt=T.grassTexture();
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,160),new THREE.MeshStandardMaterial({map:gt,roughness:1}));
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(1400,1400),new THREE.MeshStandardMaterial({map:gt,roughness:1}));
   ground.rotation.x=-Math.PI/2;ground.position.set(12,0,0);ground.receiveShadow=true;g.add(ground);
   const dt=T.dirtTexture();
   const dirtM=new THREE.MeshStandardMaterial({map:dt,roughness:1,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
@@ -178,24 +166,34 @@ export function buildVille(opts){
 
   // arbres et buissons
   const spots=[[-30,-3],[-28,9],[-18,8],[-14,-12],[-6,-10],[-4,10],[6,10],[12,9],[18,-11],[22,-9],[-32,-12],[20,11],[24,5],[34,9],[48,6],[52,-2],[31,-13],[55,10],[-24,13],[0,-13]];
-  spots.forEach((p,i)=>tree(g,p[0],p[1],.9+(i%4)*.18,false,null,colliders));
-  const bushM=std('#3b8a4a',.95);
+  spots.forEach((p,i)=>tree(g,p[0],p[1],.9+(i%4)*.18,false,null,colliders,i%3===1));
   const r0=rng(31);
-  for(let i=0;i<26;i++){
+  for(let i=0;i<30;i++){
     const x=-33+r0()*90,z=-14+r0()*28;
     if(Math.abs(z)<2.3&&x<27)continue;
-    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(.5+r0()*.5,2),bushM);b.position.set(x,.35,z);b.scale.y=.7;b.castShadow=true;g.add(b);
+    const b=bush(i+3,.7+r0()*.7);b.position.set(x,0,z);b.rotation.y=r0()*6;g.add(b);
   }
+  // herbe animée par le vent
+  const grass=grassField({area:[-34,58,-15,15],count:34000,seed:5,exclude:(x,z)=>{
+    if(Math.abs(z)<2.0&&x<27)return true;
+    if(x>-27&&x<-17&&z>-11.7&&z<-6.3)return true;            // maison
+    if(x>26&&x<44&&z>-8&&z<5)return true;                     // cour de l'école
+    if(x>0&&x<7&&z>-8&&z<-3)return true;                      // marché
+    if(x>0&&x<8&&z>-5.5&&z<1.5)return true;
+    return false;
+  }});
+  g.add(grass);
   // fleurs (instances)
   const r=rng(31);const m4=new THREE.Matrix4(),col=new THREE.Color();
   const fl=new THREE.InstancedMesh(new THREE.SphereGeometry(.08,6,5),std('#ffffff',.6),160);
   for(let i=0;i<160;i++){const x=-33+r()*60,z=-14+r()*28;if(Math.abs(z)<2.2)continue;m4.compose(new THREE.Vector3(x,.28,z),new THREE.Quaternion(),new THREE.Vector3(1,1,1));fl.setMatrixAt(i,m4);col.set(['#ffd23f','#ff6b9a','#ffffff','#ff8a3d'][i%4]);fl.setColorAt(i,col)}
   g.add(fl);
 
-  const cl=clouds(g);
+  const cl=[];
   const bounds={x0:-33.5,x1:58,z0:-14.5,z1:14.5};
   function update(dt,t,state){
     cl.forEach((c,i)=>{c.position.x+=dt*(.6+i%3*.2);if(c.position.x>190)c.position.x=-190});
+    grass.userData.update(t);
     // drapeau
     const p=dyn.flag.geometry.attributes.position;
     for(let i=0;i<p.count;i++){const x=p.getX(i)+.8;p.setZ(i,Math.sin(t*4+x*3)*.07*x)}

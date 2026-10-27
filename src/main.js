@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {BANK,NPC,AUTOP,AUTO,ITEMS,SUJETS,SKIN_TONES,HAIR_COLORS,EYE_COLORS,LIP_COLORS,OUTFIT_COLORS,HAIRS,ACCS,OUTFITS,DEFAULT_LOOK,LEVEL_UNLOCKS} from './data.js';
-import {makeHuman} from './chars.js';
+import {makeHuman,setFaces} from './chars.js';
 import {makePhotoChar} from './sprites.js';
+import {createRig} from './render.js';
 import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
@@ -94,27 +95,30 @@ const replayBtn=()=>TTS?`<button class="s" onclick="replay()">🔊 Réécouter</
 // ---------- Moteur 3D ----------
 const cv=$('cv');
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,(window.matchMedia&&matchMedia('(pointer:coarse)').matches)?1.5:2));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.82;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x9fd0ee);
-scene.fog=new THREE.Fog(0xdff0f7,70,260);
-const camera=new THREE.PerspectiveCamera(58,1,.1,600);
-const hemi=new THREE.HemisphereLight(0xcfe8ff,0x7a6a4a,1.0);scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xfff1d6,3.0);
+scene.fog=new THREE.FogExp2(0xbcd0e0,.0052);
+const camera=new THREE.PerspectiveCamera(58,1,.1,900);
+const hemi=new THREE.HemisphereLight(0xcfe8ff,0x7a6a4a,.45);scene.add(hemi);
+const rig=createRig(renderer,scene,camera);
+const sun=new THREE.DirectionalLight(0xfff0d4,3.4);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
-const SC_=30;Object.assign(sun.shadow.camera,{left:-SC_,right:SC_,top:SC_,bottom:-SC_,near:1,far:140});
-sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;
+const SC_=34;Object.assign(sun.shadow.camera,{left:-SC_,right:SC_,top:SC_,bottom:-SC_,near:1,far:160});
+sun.shadow.bias=-.0003;sun.shadow.normalBias=.05;sun.shadow.radius=3;
 scene.add(sun);scene.add(sun.target);
-const skyDome=new THREE.Mesh(new THREE.SphereGeometry(420,24,16),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.BackSide,fog:false,depthWrite:false}));
-import('./textures.js').then(T=>{skyDome.material.map=T.skyTexture();skyDome.material.needsUpdate=true});
-scene.add(skyDome);
+const skyDome=rig.sky;
+const QKEY='kelas_quality';
+let QUALITY=(()=>{try{const q=localStorage.getItem(QKEY);if(q)return q}catch(e){}return (window.matchMedia&&matchMedia('(pointer:coarse)').matches||window.innerWidth<760)?'medium':'high'})();
+function applyQuality(){rig.setQuality(QUALITY,$('world').clientWidth,$('world').clientHeight)}
+function cycleQuality(){QUALITY=QUALITY==='high'?'medium':QUALITY==='medium'?'low':'high';try{localStorage.setItem(QKEY,QUALITY)}catch(e){}applyQuality();renderDialog()}
+const QNAME={high:'élevée',medium:'moyenne',low:'basse'};
 function resize(){
   const w=$('world').clientWidth,h=$('world').clientHeight;
-  renderer.setSize(w,h,false);camera.aspect=w/h;
-  camera.fov=w/h<.8?72:(w/h<1.2?64:56);camera.updateProjectionMatrix();
+  renderer.setSize(w,h,false);rig.resize(w,h);camera.aspect=w/h;
+  camera.fov=w/h<.8?66:(w/h<1.2?58:50);camera.updateProjectionMatrix();
 }
 window.addEventListener('resize',resize);
 
@@ -123,7 +127,20 @@ let W=null;            // scène courante {group,colliders,boxes,bounds,update,.
 let playerObj=null;
 let npcObjs={};
 let mangoGroup=null;
-function playerLook(){return Object.assign({},G.look,{h:.8})}
+const FABRIC_BOX={mavungu:{top:[.27,.36,.42,.52],bottom:[.30,.62,.44,.78]},ilunga:{top:[.30,.40,.42,.58],skirt:[.30,.62,.70,.82]},lola:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]},bea:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]},mama:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]}};
+function npcLook(id,l){
+  const o=Object.assign({},l);
+  if(window.__FACES&&window.__FACES['portraits/'+id])o.faceKey='portraits/'+id;
+  if(hasChar(id)){const b=FABRIC_BOX[id]||{top:[.30,.34,.70,.46],bottom:[.30,.62,.70,.76]};o.fabric={id:id,top:b.top,bottom:b.bottom||[.30,.62,.70,.76],skirt:b.skirt};}
+  return o;
+}
+function playerFace(){
+  const o={};
+  if(G.photo&&window.__FACES&&window.__FACES['avatars/'+G.photo])o.faceKey='avatars/'+G.photo;
+  else if(G.photo==='u'&&userPhoto()){o.faceUrl=userPhoto();}
+  return o;
+}
+function playerLook(){return Object.assign({},G.look,{h:.95},playerFace())}
 const hasChar=id=>!!(window.__MAN&&(window.__MAN.chars||[]).includes(id));
 function makePlayer(){
   if(G.real&&hasChar(G.real))return makePhotoChar(G.real,{walk:hasChar(G.real+'w')?G.real+'w':null});
@@ -131,7 +148,7 @@ function makePlayer(){
 }
 function makeNpc(id,n){
   if(hasChar(id))return makePhotoChar(id);
-  return makeHuman(n.look);
+  return makeHuman(npcLook(id,n.look));
 }
 const SCENES={
  ville:{build:()=>buildVille(),interior:false,doors:[
@@ -152,9 +169,10 @@ function buildScene(){
   const S=SCENES[G.sc];
   W=S.build();scene.add(W.group);
   skyDome.visible=true;
-  hemi.intensity=S.interior?2.1:1.0;
-  scene.fog.near=S.interior?200:70;
-  sun.intensity=S.interior?2.2:3.0;
+  scene.environment=S.interior?null:rig.envTex;
+  hemi.intensity=S.interior?1.9:.45;
+  scene.fog.density=S.interior?.0006:.0052;
+  sun.intensity=S.interior?2.4:3.4;
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
@@ -206,7 +224,7 @@ function camDesired(dist){
   const t=camTarget();
   return new THREE.Vector3(t.x-dx*dist,t.y+dy*dist+.4,t.z-dz*dist);
 }
-const camDist=()=>SCENES[G.sc].interior?4.4:4.9;
+const camDist=()=>G.camOverride||(SCENES[G.sc].interior?3.5:3.9);
 function snapCamera(){
   const p=camDesired(camDist());camera.position.copy(p);camera.lookAt(camTarget());
 }
@@ -449,6 +467,7 @@ function htmlMenu(){
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
    +(G.ui==='photo'?`<button onclick="openCreatorFromPhoto()">🧍 Mon personnage (visage, tenue)</button>`:'')
    +`<button onclick="openProfile()">📷 Ma photo de profil</button>`
+   +`<button onclick="cycleQuality()">Qualité graphique : ${QNAME[QUALITY]}</button>`
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
    +`<button onclick="toggleVoice()">Lecture à voix haute : ${G.voice?'activée':'coupée'}</button>`
    +`<button class="s" onclick="resetGame()">${G.dialog&&G.dialog.confirmReset?'Appuie encore pour tout effacer':'Recommencer une nouvelle partie'}</button>`;
@@ -584,7 +603,7 @@ function loop(now){
   });
   W.update(dt,tt,{open:doorOpen()});
   // soleil qui suit le joueur
-  sun.position.set(G.x+26,G.z*0+40,G.z+16);sun.target.position.set(G.x,0,G.z);
+  sun.position.set(G.x+rig.sunDir.x*70,rig.sunDir.y*70,G.z+rig.sunDir.z*70);sun.target.position.set(G.x,0,G.z);
   if(G.mode==='cine')cineStep(dt);
   else if(G.mode==='creator'){
     const P=playerObj.position,ww=$('world').clientWidth,hh=$('world').clientHeight,land=ww>hh*1.25;
@@ -595,7 +614,7 @@ function loop(now){
   }
   else if(G.mode==='start'){const a=tt*.08;camera.position.set(8+Math.cos(a)*34,9,2+Math.sin(a)*22);camera.lookAt(10,2,-2)}
   else updateCamera(dt);
-  skyDome.position.copy(camera.position);
+  rig.follow();
   // interactions
   if(G.mode==='play'){
     const tg=nearby();
@@ -624,7 +643,7 @@ function loop(now){
     $('alabel').textContent='Arrêter la cueillette';$('ba').disabled=false;
   }
   placeBubble();
-  renderer.render(scene,camera);
+  rig.render();
 }
 
 // ---------- Cinématique d'introduction ----------
@@ -710,6 +729,8 @@ function crUpload(inp){
     const c=document.createElement('canvas');c.width=160;c.height=213;
     const x=c.getContext('2d'),k=Math.max(160/img.width,213/img.height),w=img.width*k,h=img.height*k;
     x.drawImage(img,(160-w)/2,(213-h)/2,w,h);URL.revokeObjectURL(url);
+    try{const d=x.getImageData(68,95,24,30).data;let r=0,g=0,b=0,n=d.length/4;for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2]}
+      window.__FACES=Object.assign(window.__FACES||{},{_user:{x:.2,y:.1,w:.6,h:.45,skin:'#'+[r,g,b].map(v=>Math.round(v/n).toString(16).padStart(2,'0')).join('')}});setFaces(window.__FACES)}catch(e){}
     try{localStorage.setItem(PHOTO_KEY,c.toDataURL('image/jpeg',.82));G.photo='u';save();refreshHud();if(G.dialog&&G.dialog.kind==='profile')renderDialog();else renderCreator();toast('Ta photo est enregistrée sur cet appareil.')}
     catch(e){toast('Impossible d’enregistrer la photo.')}
   };
@@ -885,31 +906,31 @@ function enterGame(newGame){
 $('go').onclick=()=>{
   const n=$('nom').value.trim();
   if(!n){$('nom').focus();return}
-  G.nom=n;G.adv=newAdv();G.ui='photo';
-  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=null;G.photo=G.sexe==='f'?'f1':'h1';
-  save();enterPhoto(true);
-};
-$('go3d').onclick=()=>{
-  const n=$('nom').value.trim();
-  if(!n){$('nom').focus();return}
-  G.ui='3d';$('cv').style.display='block';
-  G.nom=n;G.adv=newAdv();G.real=((window.__MAN&&window.__MAN.chars)||[]).includes(G.sexe==='f'?'pf1':'ph1')?(G.sexe==='f'?'pf1':'ph1'):null;
+  G.ui='3d';G.photo=G.sexe==='f'?'f1':'h1';$('cv').style.display='block';
+  G.nom=n;G.adv=newAdv();G.real=null;
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe,hair:G.sexe==='f'?'tresses':'courtes'});
   save();
   enterGame(true);
 };
+$('go3d').onclick=()=>{
+  const n=$('nom').value.trim();
+  if(!n){$('nom').focus();return}
+  G.nom=n;G.adv=newAdv();G.ui='photo';
+  G.look=Object.assign({},DEFAULT_LOOK,{acc:[],s:G.sexe});G.real=null;G.photo=G.sexe==='f'?'f1':'h1';
+  save();enterPhoto(true);
+};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,{openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,{cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Démarrage ----------
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
-const makePlayer3D=()=>makeHuman(Object.assign({},G.look,{h:1}));
+const makePlayer3D=()=>makeHuman(Object.assign({},G.look,{h:1},playerFace()));
 const PA={makePlayer3D,playerChar,G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
 initPhoto(PA);const PM=PA.photo;
 function init(){
   const s=readSave();
-  resize();
+  resize();applyQuality();
   if(s&&s.nom){
     G.nom=s.nom;G.ui=s.ui||'photo';G.photo=s.photo||null;G.real=s.real===undefined?null:s.real;G.voice=s.voice!==false;G.sound=s.sound!==false;
     G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{s:s.sexe||'f',skin:s.skin||3});G.sexe=G.look.s;
@@ -928,8 +949,9 @@ function init(){
   G.mode='start';
   requestAnimationFrame(loop);
 }
-fetch('img/manifest.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(m=>{
+fetch('img/manifest.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(async m=>{
   window.__MAN=m||{};setManifest(m);
+  try{const f=await (await fetch('img/faces.json')).json();window.__FACES=f;setFaces(f)}catch(e){window.__FACES={}}
   if((m.scenes||[]).includes('kinshasa'))$('start').style.backgroundImage='linear-gradient(rgba(10,20,30,.35),rgba(10,20,30,.35)),url(img/scenes/kinshasa.jpg)';
   init();
 });

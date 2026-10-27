@@ -8,8 +8,51 @@ const caps=(r,len,m)=>{const g=new THREE.Mesh(new THREE.CapsuleGeometry(r,len,6,
 const ball=(r,m,sx,sy,sz,seg)=>{const g=new THREE.Mesh(new THREE.SphereGeometry(r,seg||20,seg?Math.round(seg*.8):16),m);g.scale.set(sx||1,sy||1,sz||1);g.castShadow=true;return g};
 const jnt=(x,y,z)=>{const g=new THREE.Group();g.position.set(x,y,z);return g};
 const lerp=(a,b,t)=>a+(b-a)*t;
+// cône effilé dont le sommet est à y = 0 et qui descend sur `len`
+const taper=(rt,rb,len,m,seg)=>{const g=new THREE.CylinderGeometry(rt,rb,len,seg||14,3);g.translate(0,-len/2,0);const o=new THREE.Mesh(g,m);o.castShadow=true;return o};
+// torse sculpté par révolution d'un profil (rayon, hauteur)
+function torsoGeo(female){
+  const pr=female?[[.14,0],[.16,.07],[.15,.15],[.118,.27],[.138,.38],[.152,.46],[.142,.54],[.09,.6],[.05,.64]]:[[.14,0],[.156,.07],[.15,.15],[.13,.27],[.15,.38],[.168,.47],[.16,.55],[.1,.61],[.055,.65]];
+  const g=new THREE.LatheGeometry(pr.map(a=>new THREE.Vector2(a[0],a[1])),28);
+  g.scale(female?1.12:1.24,1,.76);
+  if(female){const p=g.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i),z=p.getZ(i);if(z>0&&y>.32&&y<.5){const k=Math.exp(-Math.pow((y-.41)/.06,2));p.setZ(i,z*(1+.17*k));p.setY(i,y+.004*k)}}}
+  g.computeVertexNormals();return g;
+}
+// plis de tissu : normal map générée
+let foldN=null;
+function foldNormal(){
+  if(foldN)return foldN;
+  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');
+  g.fillStyle='rgb(128,128,255)';g.fillRect(0,0,128,128);
+  for(let i=0;i<60;i++){const x=Math.random()*128,y=Math.random()*128,l=20+Math.random()*50,a=(Math.random()-.5)*.8;
+    const gr=g.createLinearGradient(x,y,x+8,y);gr.addColorStop(0,'rgba(90,128,255,.7)');gr.addColorStop(.5,'rgba(160,128,255,.7)');gr.addColorStop(1,'rgba(128,128,255,0)');
+    g.save();g.translate(x,y);g.rotate(Math.PI/2+a);g.fillStyle=gr;g.fillRect(0,0,l,6);g.restore()}
+  foldN=new THREE.CanvasTexture(c);foldN.wrapS=foldN.wrapT=THREE.RepeatWrapping;foldN.repeat.set(3,3);return foldN;
+}
+// vrai tissu : un morceau de la photo du personnage devient la texture du vêtement
+function fabricInto(mat,id,box){
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');c.width=c.height=128;
+    const sx=box[0]*img.width,sy=box[1]*img.height,sw=(box[2]-box[0])*img.width,sh=(box[3]-box[1])*img.height;
+    c.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,128,128);
+    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.MirroredRepeatWrapping;t.repeat.set(2,2);t.anisotropy=4;
+    mat.map=t;mat.color.set(0xffffff);mat.needsUpdate=true;
+  };
+  img.src='img/chars/'+id+'.webp';
+}
 
 // Accepte l'ancien format (k, co, c...) et le nouveau (outfit, hair, hairC...).
+// Visages réels : rectangle du visage dans chaque portrait (img/faces.json) + couleur de peau mesurée.
+let FACES={};
+export function setFaces(f){FACES=f||{}}
+const tl=new THREE.TextureLoader(),ftex={};
+function faceTexture(key,url){
+  const k=url||key;if(ftex[k])return ftex[k];
+  const t=tl.load(url||('img/'+key+'.jpg'));t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return ftex[k]=t;
+}
+const sstep=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
+
 export function normLook(l){
   const hair=l.hair||l.co||'courtes';
   const o={
@@ -24,20 +67,29 @@ export function normLook(l){
     beard:l.beard||0,acc:l.acc||[],
     outfit:l.outfit||(l.k==='pagne'?'pagne':l.k==='boubou'?'boubou':'uniforme'),
     c:l.cHex||(typeof l.outfitC==='number'?OUTFIT_COLORS[l.outfitC]:(l.c||'#1f7a4d')),c2:l.c2,
-    cravate:!!l.cravate
+    cravate:!!l.cravate,
+    faceKey:l.faceKey||null,faceUrl:l.faceUrl||null
   };
   if(l.s!=='f'&&o.hair==='tresses'&&false)o.hair='courtes';
   return o;
 }
 
 // Tête : sphère déformée (menton, mâchoire, largeur du visage).
-function headGeo(L,thetaStart,thetaLen,grow){
+function headGeo(L,thetaStart,thetaLen,grow,face){
   const g=new THREE.SphereGeometry(1,40,32,0,Math.PI*2,thetaStart||0,thetaLen||Math.PI);
   const p=g.attributes.position;
   const W=.092+.022*L.faceW, Hh=.122, D=.108;
   const taper=lerp(.46,.14,L.jaw);
+  const uvA=g.attributes.uv,mask=face?new Float32Array(p.count):null;
   for(let i=0;i<p.count;i++){
     let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+    if(face){ // projection plane de la photo sur l'avant de la tête
+      const R=face.rect,cx=R.x+R.w/2,cy=R.y+R.h*face.cy;
+      const u=cx+x*R.w*.5*face.kx,vi=cy-(y-face.y0)*R.h*.5*face.ky;
+      uvA.setXY(i,u,1-vi);
+      const ell=Math.hypot(x/.98,(y-face.y0)/1.05);
+      mask[i]=sstep(.12,.5,z)*(1-sstep(.62,.95,ell));
+    }
     if(y<-.05){
       const t=Math.min(1,(-y-.05)/.95);
       const f=1-taper*Math.pow(t,1.35);
@@ -48,6 +100,7 @@ function headGeo(L,thetaStart,thetaLen,grow){
     if(z>0&&y>-.45&&y<.2)x*=1+.03*L.faceW;
     p.setXYZ(i,x*W*(grow||1),y*Hh*(grow||1),z*D*(grow||1));
   }
+  if(face)g.setAttribute('faceMask',new THREE.BufferAttribute(mask,1));
   g.computeVertexNormals();
   return g;
 }
@@ -56,28 +109,32 @@ export function makeHuman(look){
   const L=normLook(look);
   const out=OUTFITS[L.outfit]||OUTFITS.uniforme;
   const female=L.s==='f';
+  const fk=L.faceUrl?'u':L.faceKey,fi=(L.faceUrl&&FACES['_user'])||FACES[L.faceKey||''];
+  const face=fi?{rect:fi,cy:.5,kx:1.12,ky:1.08,y0:-.2}:null;
+  if(face&&fi.skin)L.skin=fi.skin;
   const sk=new THREE.Color(L.skin);
-  const skinM=M(sk,.55,0,{emissive:sk.clone().multiplyScalar(.10)});
+  const skinM=new THREE.MeshPhysicalMaterial({color:sk,roughness:.55,emissive:sk.clone().multiplyScalar(.09),sheen:.5,sheenRoughness:.5,sheenColor:sk.clone().multiplyScalar(1.5)});
   const skinDark=M(sk.clone().multiplyScalar(.7),.6);
   const hairM=M(L.hairHex,.5,.08);
-  const cloth=M(L.c,.85);
+  const cloth=M(L.c,.85,0,{normalMap:foldNormal(),normalScale:new THREE.Vector2(.5,.5)});
+  if(look.fabric)fabricInto(cloth,look.fabric.id,look.fabric.top);
   const shoe=M('#1c1410',.7);
   const wax=out.top==='wax'?M('#ffffff',.85,0,{map:waxTexture(L.c,L.c2||'#e0a526')}):null;
   const topM=wax||cloth;
   let bottom=out.bottom;if(bottom==='auto')bottom=female?'skirt':'trousers';
   const trouserColor=out.matchTrouser?new THREE.Color(L.c).multiplyScalar(.6):new THREE.Color(out.trouser||'#262a3a');
-  const trouserM=M(trouserColor,.9);
+  const trouserM=M(trouserColor,.9,0,{normalMap:foldNormal(),normalScale:new THREE.Vector2(.55,.55)});
+  if(look.fabric&&look.fabric.bottom)fabricInto(trouserM,look.fabric.id,look.fabric.bottom);
   const longD=bottom==='long',skirt=bottom==='skirt',trousers=bottom==='trousers';
 
   const root=new THREE.Group();
   const body=new THREE.Group();root.add(body);
 
   const hips=jnt(0,.95,0);body.add(hips);
-  const pelvis=ball(.17,trousers?trouserM:(longD?topM:(skirt?topM:trouserM)),1.15,.7,.85);pelvis.position.y=.02;hips.add(pelvis);
+  const pelvis=ball(.16,trousers?trouserM:(longD?topM:(skirt?topM:trouserM)),1.22,.62,.86);pelvis.position.y=.02;hips.add(pelvis);
   const spine=jnt(0,.06,0);hips.add(spine);
-  const torso=caps(.165,.34,topM);torso.scale.set(female?1.0:1.12,1,.72);torso.position.y=.27;spine.add(torso);
-  if(female){[-1,1].forEach(s=>{const b=ball(.072,topM,1,1,.9);b.position.set(s*.065,.4,.1);spine.add(b)})}
-  if(out.collar){const col=ball(.09,M('#f2f2f2',.8),1.4,.5,1);col.position.set(0,.56,.02);spine.add(col)}
+  const torso=new THREE.Mesh(torsoGeo(female),topM);torso.castShadow=true;spine.add(torso);
+  if(out.collar){const col=new THREE.Mesh(new THREE.TorusGeometry(.072,.016,8,20),M('#f2f2f2',.8));col.rotation.x=Math.PI/2;col.position.set(0,.605,.005);col.scale.set(1.25,1,.9);spine.add(col)}
   if(out.belt){const bl=new THREE.Mesh(new THREE.TorusGeometry(.17,.012,8,24),M('#e0a526',.4,.7));bl.rotation.x=Math.PI/2;bl.position.set(0,.06,0);bl.scale.set(1.1,.8,1);spine.add(bl)}
   if(L.cravate){const t=new THREE.Mesh(new THREE.BoxGeometry(.05,.3,.015),M('#a8301e',.7));t.position.set(0,.36,.125);spine.add(t)}
   if(out.trim){const tr=new THREE.Mesh(new THREE.TorusGeometry(.085,.012,8,20),M('#e0a526',.4,.7));tr.rotation.x=Math.PI/2;tr.position.set(0,.55,.03);tr.scale.set(1.4,1,1.1);spine.add(tr)}
@@ -86,10 +143,19 @@ export function makeHuman(look){
   const neckJ=jnt(0,.6,0);spine.add(neckJ);
   const neck=caps(.045,.06,skinM);neck.position.y=.04;neckJ.add(neck);
   const headJ=jnt(0,.1,0);headJ.scale.setScalar(1.12);neckJ.add(headJ);
-  const head=new THREE.Mesh(headGeo(L),skinM);head.position.y=.12;head.castShadow=true;headJ.add(head);
+  let headM=skinM;
+  if(face){
+    headM=new THREE.MeshStandardMaterial({color:sk,map:faceTexture(L.faceKey,L.faceUrl),roughness:.62,emissive:sk.clone().multiplyScalar(.05)});
+    headM.onBeforeCompile=sh=>{
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float faceMask;\nvarying float vFM;').replace('#include <begin_vertex>','#include <begin_vertex>\nvFM=faceMask;');
+      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vFM;').replace('#include <map_fragment>','vec4 txc=texture2D(map,vMapUv);diffuseColor.rgb=mix(diffuseColor.rgb,txc.rgb,vFM);');
+    };
+  }
+  const head=new THREE.Mesh(headGeo(L,0,Math.PI,1,face),headM);head.position.y=.12;head.castShadow=true;headJ.add(head);
   const W=.092+.022*L.faceW;
   // oreilles
   [-1,1].forEach(s=>{const e=ball(.026,skinM,.5,1,.8);e.position.set(s*(W+.004),.125,-.005);headJ.add(e)});
+  const facial0=headJ.children.length;
   // joues (fard léger)
   if(L.blush>.05){[-1,1].forEach(s=>{const c=ball(.03,M('#d4607a',.9,0,{transparent:true,opacity:.18*L.blush*2}),1,.8,.3);c.position.set(s*.05,.095,.088);headJ.add(c)})}
   // yeux
@@ -127,6 +193,7 @@ export function makeHuman(look){
   const mouth=new THREE.Group();mouth.position.set(0,.069,.099);headJ.add(mouth); // pour l'animation de parole
   const mline=new THREE.Mesh(new THREE.BoxGeometry(lw*1.7,.002,.004),M('#2a1210',.5));mouth.add(mline);
 
+  if(face){const rm=headJ.children.slice(facial0);rm.forEach(c=>headJ.remove(c))}
   // barbe
   if(L.beard>0&&!female){
     const bg=headGeo(L,Math.PI*.54,Math.PI*.46,1.035);
@@ -137,12 +204,22 @@ export function makeHuman(look){
 
   // coiffures
   const hs=L.hair;
+  const strand=(()=>{
+    const c=document.createElement('canvas');c.width=64;c.height=128;const g=c.getContext('2d');g.fillStyle='rgb(128,128,255)';g.fillRect(0,0,64,128);
+    for(let i=0;i<90;i++){const x=Math.random()*64;const gr=g.createLinearGradient(x-2,0,x+2,0);gr.addColorStop(0,'rgba(80,128,255,.8)');gr.addColorStop(.5,'rgba(180,128,255,.8)');gr.addColorStop(1,'rgba(80,128,255,.0)');g.fillStyle=gr;g.fillRect(x-2,0,4,128)}
+    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(6,1);return t})();
+  hairM.normalMap=strand;hairM.normalScale=new THREE.Vector2(.8,.8);hairM.roughness=.55;
   const scalp=(scale,tilt)=>{
     const sx=(.098+.02*L.faceW)*scale,sy=.128*scale,sz=.113*scale;
-    const top=new THREE.Mesh(new THREE.SphereGeometry(1,28,14,0,Math.PI*2,0,Math.PI*.36),hairM);
-    top.scale.set(sx,sy,sz);top.position.y=.125;top.rotation.x=tilt===undefined?-.12:tilt;top.castShadow=true;headJ.add(top);
-    const back=new THREE.Mesh(new THREE.SphereGeometry(1,28,16,Math.PI*.12,Math.PI*.76,0,Math.PI*.66),hairM);
-    back.scale.set(sx*1.005,sy*1.005,sz*1.005);back.position.y=.125;back.rotation.y=Math.PI;back.castShadow=true;headJ.add(back);
+    const tg=new THREE.SphereGeometry(1,32,16,0,Math.PI*2,0,Math.PI*.40);
+    const tp=tg.attributes.position;
+    for(let i=0;i<tp.count;i++){const x=tp.getX(i),y=tp.getY(i),z=tp.getZ(i);
+      if(z>.15&&y<.82){const k=sstep(.15,.9,z)*(.82-y)/.4;tp.setY(i,y+.2*k*(1-.5*Math.abs(x)))}}   // ligne de cheveux arrondie sur le front
+    tg.computeVertexNormals();
+    const top=new THREE.Mesh(tg,hairM);
+    top.scale.set(sx,sy,sz);top.position.y=.125;top.rotation.x=tilt===undefined?-.08:tilt;top.castShadow=true;headJ.add(top);
+    const back=new THREE.Mesh(new THREE.SphereGeometry(1,32,18,Math.PI*.1,Math.PI*.8,0,Math.PI*.66),hairM);
+    back.scale.set(sx*1.01,sy*1.01,sz*1.01);back.position.y=.125;back.rotation.y=Math.PI;back.castShadow=true;headJ.add(back);
     return top;
   };
   if(hs==='courtes'||hs==='gris'){scalp(1.06)}
@@ -201,28 +278,38 @@ export function makeHuman(look){
     [-1,1].forEach(s=>{const st=new THREE.Mesh(new THREE.BoxGeometry(.03,.3,.02),M('#1f5fa8',.7));st.position.set(s*.09,.38,.1);spine.add(st)});
   }
 
-  // bras
+  // bras : épaule ronde, bras et avant-bras effilés, main avec pouce
   const arms=[];
   [-1,1].forEach(side=>{
-    const sh=jnt(side*.235,.5,0);spine.add(sh);
-    const longSleeve=longD;
-    const up=caps(.045,.2,topM);up.position.y=-.14;sh.add(up);
-    const el=jnt(0,-.28,0);sh.add(el);
-    const fa=caps(.037,.2,longSleeve?topM:skinM);fa.position.y=-.13;el.add(fa);
-    const hand=ball(.04,skinM,1,1.15,.8);hand.position.y=-.3;el.add(hand);
-    sh.rotation.z=side*.08;
+    const sh=jnt(side*(female?.215:.24),.5,0);spine.add(sh);
+    const longSleeve=longD||out.sleeves==='long';
+    const sb=ball(.058,topM,1,1,1,14);sh.add(sb);
+    const up=taper(.052,.042,.29,skinM);sh.add(up);
+    const sl=taper(.058,longSleeve?.047:.05,longSleeve?.29:.15,topM);sh.add(sl);
+    const el=jnt(0,-.29,0);sh.add(el);
+    const eb=ball(.043,longSleeve?topM:skinM,1,1,1,12);el.add(eb);
+    const fa=taper(.042,.031,.26,longSleeve?topM:skinM);el.add(fa);
+    const hand=new THREE.Group();hand.position.y=-.27;el.add(hand);
+    const palm=ball(1,skinM,.036,.058,.02,12);palm.position.y=-.05;hand.add(palm);
+    const fing=ball(1,skinM,.034,.045,.016,10);fing.position.y=-.1;hand.add(fing);
+    const th=ball(1,skinM,.015,.035,.015,8);th.position.set(side*-.03,-.045,.012);th.rotation.z=side*.5;hand.add(th);
+    sh.rotation.z=side*.07;
     arms.push({sh,el});
   });
 
-  // jambes
+  // jambes : cuisse, genou, mollet, cheville, chaussure
   const legs=[];
   [-1,1].forEach(side=>{
-    const hj=jnt(side*.095,0,0);hips.add(hj);
-    const lm=trousers?trouserM:skinM;
-    const th=caps(.068,.3,lm);th.position.y=-.21;hj.add(th);
-    const kn=jnt(0,-.42,0);hj.add(kn);
-    const sh=caps(.052,.3,lm);sh.position.y=-.2;kn.add(sh);
-    const ft=new THREE.Mesh(new THREE.BoxGeometry(.09,.06,.2),shoe);ft.position.set(0,-.43,.04);ft.castShadow=true;kn.add(ft);
+    const hj=jnt(side*.09,0,0);hips.add(hj);
+    const lm=trousers?trouserM:skinM,add=trousers?.012:0;
+    const th=taper(.088+add,.062+add,.43,lm);hj.add(th);
+    const kn=jnt(0,-.43,0);hj.add(kn);
+    const kb=ball(.063+add,lm,1,1,1,12);kn.add(kb);
+    const sh=taper(.058+add,.036+add,.41,lm);kn.add(sh);
+    const calf=ball(1,lm,.056+add,.12,.062+add,12);calf.position.set(0,-.12,-.012);kn.add(calf);
+    const foot=new THREE.Group();foot.position.y=-.43;kn.add(foot);
+    const toe=ball(1,shoe,.05,.036,.115,12);toe.position.set(0,-.012,.05);foot.add(toe);
+    const heel=ball(1,shoe,.043,.04,.05,10);heel.position.set(0,0,-.03);foot.add(heel);
     legs.push({hj,kn});
   });
 
@@ -230,12 +317,14 @@ export function makeHuman(look){
   let fixedFeet=null;
   if(skirt){
     const tex=wax?waxTexture(L.c,L.c2||'#e0a526'):null;
-    const sm=tex?new THREE.MeshStandardMaterial({map:tex,roughness:.85,side:THREE.DoubleSide}):M(L.c,.85,0,{side:THREE.DoubleSide});
+    const sm=tex?new THREE.MeshStandardMaterial({map:tex,roughness:.85,side:THREE.DoubleSide,normalMap:foldNormal(),normalScale:new THREE.Vector2(.5,.5)}):M(L.c,.85,0,{side:THREE.DoubleSide,normalMap:foldNormal(),normalScale:new THREE.Vector2(.5,.5)});
+    if(look.fabric&&!tex)fabricInto(sm,look.fabric.id,look.fabric.skirt||look.fabric.top);
     const sk2=new THREE.Mesh(new THREE.CylinderGeometry(.19,out.belt?.34:.3,out.belt?.7:.62,24,1,true),sm);
     sk2.position.y=out.belt?-.37:-.34;sk2.castShadow=true;hips.add(sk2);
   }
   if(longD){
-    const m=new THREE.MeshStandardMaterial({map:noiseTexture(L.c,.16),roughness:.8,side:THREE.DoubleSide});
+    const m=new THREE.MeshStandardMaterial({map:noiseTexture(L.c,.16),roughness:.8,side:THREE.DoubleSide,normalMap:foldNormal(),normalScale:new THREE.Vector2(.6,.6)});
+    if(look.fabric)fabricInto(m,look.fabric.id,look.fabric.skirt||look.fabric.top);
     const robe=new THREE.Mesh(new THREE.CylinderGeometry(.2,.37,.98,28,1,true),m);robe.position.y=-.45;robe.castShadow=true;hips.add(robe);
     if(out.trim){const hem=new THREE.Mesh(new THREE.TorusGeometry(.37,.012,6,28),M('#e0a526',.4,.7));hem.rotation.x=Math.PI/2;hem.position.y=-.93;hips.add(hem)}
     legs.forEach(l=>{l.kn.visible=false});
