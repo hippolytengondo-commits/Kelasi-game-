@@ -803,14 +803,14 @@ Object.assign(NPC,{
   look:{s:'h',h:1.0,skin:'#7d5a44',c:'#7a8590',k:'uniforme',co:'courtes',faceKey:'avatars/h3'},
   intro:['Internet est utile, mais il faut rester prudent.','Voyons ensemble les bons réflexes en ligne !'],
   outro:'Parfait ! Le dernier lieu t’attend : la place de l’Indépendance.'},
- lubaki:{sc:'place',x:-5,z:-5.5,ry:0.3,name:'Historien Lubaki',short:'l’historien',role:'Historien',kind:'quiz',sujet:'independance',nb:3,needs:'sefu',
+ lubaki:{sc:'place',x:-5,z:-5.5,ry:0.3,name:'Historien Lubaki',short:'l’historien',role:'Historien',kind:'quiz',sujet:'independance',nb:3,needs:'kabuya',
   look:{s:'h',h:1.02,skin:'#916f64',c:'#8a6a2a',k:'boubou',co:'gris',faceKey:'portraits/mavungu'},
   intro:['Bienvenue sur la place de l’Indépendance.','Ici, le Congo a retrouvé sa liberté. Connais-tu cette histoire ?'],
   outro:'Bien ! Mama Bakala te parlera des symboles du pays.'},
  bakala:{sc:'place',x:5.5,z:-5.5,ry:-0.4,name:'Mama Bakala',short:'Mama Bakala',role:'Cheffe du protocole',kind:'quiz',sujet:'symboles',nb:3,needs:'lubaki',
   look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#c0392b',k:'boubou',co:'chignon',faceKey:'portraits/ilunga'},
   intro:['Drapeau, hymne, devise : ce sont les symboles de notre nation.','Un bon citoyen les connaît et les respecte.'],
-  outro:'Félicitations ! Tu as terminé les trente épisodes. Tu es un vrai champion du Congo !'}
+  outro:'Félicitations ! Tu as terminé tous les épisodes. Tu es un vrai champion du Congo !'}
 });
 STAGES.push(
  {id:'wagenia',scene:'wagenia',name:'Les pêcheurs Wagenia',icon:'🎣',npcs:['ndombi','kaseya']},
@@ -821,6 +821,165 @@ STAGES.push(
  {id:'pompiers',scene:'pompiers',name:'La caserne des pompiers',icon:'🚒',npcs:['mutamba','kiala']},
  {id:'poste',scene:'poste',name:'La poste et la banque',icon:'✉️',npcs:['makanda','nlandu']},
  {id:'recyclage',scene:'recyclage',name:'Le centre de recyclage',icon:'♻️',npcs:['tumba','kapinga']},
- {id:'numerique',scene:'numerique',name:'Le centre numérique',icon:'💻',npcs:['mpiana','sefu']},
+ {id:'numerique',scene:'numerique',name:'Le centre numérique',icon:'💻',npcs:['mpiana','sefu']}
+);
+Object.assign(BANK,{
+ contes_proverbes:[
+  Q('Complète le proverbe : « Petit à petit, … »',['l’oiseau fait son nid','la pluie tombe','le feu s’éteint','le vent souffle'],'l’oiseau fait son nid','Avec de la patience, on réussit de grandes choses.'),
+  Q('Qu’est-ce qu’un conte ?',['une histoire imaginaire que l’on raconte','un tableau de calcul','une carte géographique','une facture'],'une histoire imaginaire que l’on raconte','Les contes transmettent des leçons.'),
+  Q('Qui transmet souvent les contes au village ?',['les anciens et les conteurs','les machines','les voitures','les affiches'],'les anciens et les conteurs','Ils racontent le soir, autour du feu.'),
+  Q('« Seul on va plus vite, ensemble on va plus loin » veut dire que…',['l’union fait la force','il vaut mieux rester seul','il ne faut jamais voyager','la vitesse est le plus important'],'l’union fait la force','Travailler ensemble permet d’aller plus loin.'),
+  Q('Pourquoi raconte-t-on des contes aux enfants ?',['pour transmettre des leçons et la culture','pour les effrayer','pour passer le temps sans but','pour éviter l’école'],'pour transmettre des leçons et la culture','Les contes éduquent et font rêver.'),
+  Q('Un proverbe est…',['une courte phrase pleine de sagesse','un long roman','une opération de calcul','un nom de village'],'une courte phrase pleine de sagesse','Il donne un conseil en peu de mots.')
+ ],
+ traditions:[
+  Q('Le ngoma est…',['un tambour','une flûte','un violon','une guitare'],'un tambour','Le ngoma rythme les danses.'),
+  Q('Le likembé est…',['un instrument à lamelles joué avec les pouces','un grand tambour','un vêtement','un plat'],'un instrument à lamelles joué avec les pouces','On l’appelle aussi piano à pouces.'),
+  Q('Quel vêtement traditionnel est un tissu enroulé ?',['le pagne','le casque','le manteau','la cravate'],'le pagne','Le pagne, souvent en wax, est porté par les femmes et les hommes.'),
+  Q('Les masques sont souvent utilisés lors…',['de cérémonies','d’examens de calcul','de courses à pied','de ventes de pain'],'de cérémonies','Ils ont un rôle symbolique.'),
+  Q('Depuis quelle année la rumba congolaise est-elle au patrimoine immatériel de l’UNESCO ?',['2021','1960','1990','2010'],'2021','Elle y a été inscrite en 2021.'),
+  Q('Pourquoi garder nos traditions ?',['elles font partie de notre identité','elles ne servent à rien','elles sont interdites','elles sont dangereuses'],'elles font partie de notre identité','Elles relient les générations.')
+ ],
+ masques:[
+  Q('Le masque est souvent sculpté dans…',['le bois','le verre','le papier','le sable'],'le bois','Le bois est le matériau le plus courant.'),
+  Q('Quel peuple du Kasaï est célèbre pour ses tissus de raphia et ses masques ?',['les Kuba','les Vikings','les Mayas','les Incas'],'les Kuba','Le royaume kuba est réputé pour son art.'),
+  Q('Le tissu kuba est tissé avec des fibres de…',['raphia','laine','soie','lin'],'raphia','Le raphia est un palmier.'),
+  Q('Un sculpteur utilise surtout…',['un ciseau et un maillet','un microscope','une calculatrice','un thermomètre'],'un ciseau et un maillet','Ce sont ses outils de base.'),
+  Q('Quel grand peintre a été inspiré par l’art africain ?',['Picasso','Mozart','Newton','Pasteur'],'Picasso','L’art africain a influencé l’art moderne.'),
+  Q('Pourquoi protéger les œuvres d’art ?',['elles gardent notre histoire','elles encombrent','elles sont inutiles','elles se périment'],'elles gardent notre histoire','Elles sont un patrimoine.')
+ ],
+ couleurs:[
+  Q('Quelles sont les trois couleurs primaires ?',['rouge, jaune, bleu','vert, orange, violet','noir, blanc, gris','rose, marron, beige'],'rouge, jaune, bleu','On ne peut pas les fabriquer en mélangeant d’autres couleurs.'),
+  Q('Jaune + bleu = ?',['vert','orange','violet','rouge'],'vert','Le mélange jaune et bleu donne le vert.'),
+  Q('Rouge + jaune = ?',['orange','vert','violet','marron clair seulement'],'orange','Rouge + jaune = orange.'),
+  Q('Rouge + bleu = ?',['violet','vert','orange','jaune'],'violet','Rouge + bleu = violet.'),
+  Q('Quelles sont les couleurs du drapeau de la RDC ?',['bleu ciel, jaune et rouge','vert, blanc et orange','noir, rouge et or','bleu, blanc et rouge'],'bleu ciel, jaune et rouge','Le drapeau a un fond bleu ciel avec une étoile jaune et une bande rouge.'),
+  Q('Avec quoi peint-on un tableau ?',['un pinceau','un marteau','une scie','une pelle'],'un pinceau','Le pinceau étale la peinture.')
+ ],
+ medias:[
+  Q('Quelle institution diffuse la radio et la télévision nationales de la RDC ?',['la RTNC','la SNCC','la REGIDESO','la FIFA'],'la RTNC','Radio-Télévision nationale congolaise.'),
+  Q('Que fait un journaliste ?',['il recherche et vérifie l’information','il invente des histoires','il construit des routes','il vend des journaux seulement'],'il recherche et vérifie l’information','Informer demande de la vérification.'),
+  Q('Quel média utilise des images et du son ?',['la télévision','le journal papier','l’affiche seule','le livre seul'],'la télévision','La télé combine image et son.'),
+  Q('Que faire avant de partager une information ?',['la vérifier','la partager vite','l’inventer','la cacher'],'la vérifier','Une rumeur partagée peut faire du mal.'),
+  Q('Quelle source est la plus fiable ?',['plusieurs médias sérieux qui disent la même chose','une rumeur','un inconnu en ligne','un message anonyme'],'plusieurs médias sérieux qui disent la même chose','On croise les sources.'),
+  Q('Une fausse information s’appelle…',['une rumeur ou fake news','un reportage vérifié','un communiqué officiel','un bulletin météo'],'une rumeur ou fake news','Elle trompe le public.')
+ ],
+ ondes:[
+  Q('Le son se propage grâce à…',['des vibrations de l’air','le vide','la lumière seule','la gravité'],'des vibrations de l’air','Sans air, pas de son.'),
+  Q('Qui va le plus vite : la lumière ou le son ?',['la lumière','le son','ils vont pareil','cela dépend du vent'],'la lumière','On voit l’éclair avant d’entendre le tonnerre.'),
+  Q('Une antenne sert à…',['émettre ou capter des ondes','faire pousser des fleurs','cuire des aliments','laver le linge'],'émettre ou capter des ondes','Radio, télé et téléphones en ont besoin.'),
+  Q('Un micro transforme…',['le son en signal électrique','la lumière en chaleur','l’eau en vapeur','le vent en son'],'le son en signal électrique','Il capte la voix.'),
+  Q('Un haut-parleur transforme…',['un signal électrique en son','le son en lumière','la chaleur en eau','le froid en vent'],'un signal électrique en son','Il fait vibrer l’air.'),
+  Q('Les ondes radio voyagent…',['dans l’air à la vitesse de la lumière','plus lentement que le son','seulement sous l’eau','pas du tout'],'dans l’air à la vitesse de la lumière','Ce sont des ondes électromagnétiques.')
+ ],
+ cafe_cacao:[
+  Q('Le cacao sert à fabriquer…',['le chocolat','le sel','le ciment','le savon'],'le chocolat','Les fèves de cacao donnent le chocolat.'),
+  Q('Quelle boisson vient du caféier ?',['le café','le thé','le lait','le jus d’orange'],'le café','Les grains de café sont torréfiés.'),
+  Q('Une culture de rente est cultivée…',['pour être vendue','pour jouer','pour ne jamais être récoltée','pour être interdite'],'pour être vendue','Café et cacao rapportent de l’argent.'),
+  Q('Quelle culture est vivrière (pour se nourrir) ?',['le manioc','le café','le cacao','le caoutchouc'],'le manioc','Le manioc nourrit les familles.'),
+  Q('Après la récolte, on fait sécher les grains…',['au soleil','dans un congélateur','dans l’eau','dans le noir sans air'],'au soleil','Le séchage conserve les grains.'),
+  Q('Pourquoi planter des arbres d’ombrage près des cacaoyers ?',['pour protéger les jeunes plants du soleil fort','pour faire du bruit','pour boucher le passage','pour décorer'],'pour protéger les jeunes plants du soleil fort','Le cacaoyer aime l’ombre.')
+ ],
+ cultures:[
+  Q('Une semence est…',['une graine à planter','une feuille morte','une roche','un outil'],'une graine à planter','On sème pour récolter.'),
+  Q('Le compost est…',['un engrais naturel fait de déchets végétaux','un poison','un insecte','un plastique'],'un engrais naturel fait de déchets végétaux','Il enrichit le sol.'),
+  Q('La rotation des cultures permet de…',['garder le sol fertile','épuiser le sol','semer sans fin','éviter l’eau'],'garder le sol fertile','On change de culture à chaque saison.'),
+  Q('Que faut-il pour qu’une graine germe ?',['de l’eau, de la chaleur et de l’air','seulement du sable','seulement du froid','du plastique'],'de l’eau, de la chaleur et de l’air','Ce sont les conditions de la germination.'),
+  Q('Quand plante-t-on généralement ?',['au début de la saison des pluies','en pleine sécheresse','jamais','pendant une tempête de sable'],'au début de la saison des pluies','L’eau aide les jeunes plants.'),
+  Q('Le désherbage sert à…',['enlever les plantes qui gênent les cultures','arroser','récolter','cuire'],'enlever les plantes qui gênent les cultures','Les mauvaises herbes prennent la place et l’eau.')
+ ],
+ kivu:[
+  Q('Le lac Kivu est situé à la frontière entre la RDC et…',['le Rwanda','le Maroc','l’Égypte','le Sénégal'],'le Rwanda','Le lac sépare le Kivu congolais du Rwanda.'),
+  Q('Quelle ville congolaise est au nord du lac Kivu ?',['Goma','Kinshasa','Matadi','Lubumbashi'],'Goma','Goma est au bord du lac.'),
+  Q('Quelle ville congolaise est au sud du lac Kivu ?',['Bukavu','Boma','Kisangani','Mbandaka'],'Bukavu','Bukavu est à l’extrémité sud.'),
+  Q('Quel volcan domine la ville de Goma ?',['le Nyiragongo','le Kilimandjaro','le Mont Blanc','l’Etna'],'le Nyiragongo','Un volcan actif près de Goma.'),
+  Q('Quel gaz est dissous dans les eaux profondes du lac Kivu ?',['le méthane','le chlore','l’hélium','l’oxygène pur'],'le méthane','On cherche à l’exploiter avec prudence.'),
+  Q('Le lac Kivu est un lac…',['de montagne','de plaine côtière','salé comme la mer','asséché'],'de montagne','Il se trouve à environ 1 460 mètres d’altitude.')
+ ],
+ lacs:[
+  Q('Quel est le lac le plus profond d’Afrique ?',['le Tanganyika','le Kivu','le Tchad','le Victoria'],'le Tanganyika','Plus de 1 400 mètres de profondeur.'),
+  Q('Le lac Victoria est le plus grand lac…',['d’Afrique','d’Asie','d’Europe','d’Amérique du Sud'],'d’Afrique','Il est partagé entre trois pays.'),
+  Q('Quel lac forme une frontière entre la RDC et l’Ouganda ?',['le lac Albert','le lac Léman','le lac Titicaca','le lac Michigan'],'le lac Albert','Il est à l’est du pays.'),
+  Q('Quel grand fleuve traverse la RDC ?',['le fleuve Congo','le Nil','la Seine','le Danube'],'le fleuve Congo','Il traverse tout le pays.'),
+  Q('Les lacs apportent aux populations…',['du poisson et de l’eau','de la neige en permanence','du pétrole','du sable seulement'],'du poisson et de l’eau','Pêche, eau, transport.'),
+  Q('Pourquoi protéger les lacs ?',['pour garder l’eau propre et les poissons','pour y jeter des déchets','pour les vendre','pour les boucher'],'pour garder l’eau propre et les poissons','Un lac pollué ne nourrit plus.')
+ ],
+ bonobos:[
+  Q('Le bonobo vit à l’état sauvage uniquement…',['en RDC','en Asie','en Australie','en Amérique'],'en RDC','C’est une espèce propre à la RDC.'),
+  Q('Le bonobo est…',['un grand singe','un poisson','un oiseau','un insecte'],'un grand singe','Il est un proche cousin de l’être humain.'),
+  Q('Que mange surtout le bonobo ?',['des fruits et des feuilles','du sable','du métal','du papier'],'des fruits et des feuilles','Il est surtout végétarien.'),
+  Q('Où vivent les bonobos ?',['dans la forêt tropicale','dans le désert','sur la banquise','sur les toits'],'dans la forêt tropicale','Au sud du fleuve Congo.'),
+  Q('Le braconnage, c’est…',['chasser illégalement des animaux protégés','pêcher en famille','cultiver un champ','planter un arbre'],'chasser illégalement des animaux protégés','Il menace les bonobos.'),
+  Q('Comment protéger les bonobos ?',['en protégeant leur forêt','en coupant la forêt','en les chassant','en les vendant'],'en protégeant leur forêt','Sans forêt, pas de bonobos.')
+ ],
+ soins:[
+  Q('Que fait un vétérinaire ?',['il soigne les animaux','il construit des maisons','il enseigne le calcul','il pilote des avions'],'il soigne les animaux','Il veille à leur santé.'),
+  Q('Un vaccin protège…',['contre certaines maladies','contre la pluie','contre le soleil','contre le bruit'],'contre certaines maladies','Les animaux aussi se vaccinent.'),
+  Q('Que faire si on trouve un animal sauvage blessé ?',['prévenir des adultes responsables ou un vétérinaire','le frapper','le laisser seul sans rien dire','le vendre'],'prévenir des adultes responsables ou un vétérinaire','Il faut des spécialistes.'),
+  Q('Pourquoi ne pas nourrir les animaux sauvages ?',['ils perdent l’habitude de chercher seuls leur nourriture','ils adorent les bonbons','ils deviennent invisibles','ils grandissent trop vite'],'ils perdent l’habitude de chercher seuls leur nourriture','Ils doivent rester sauvages.'),
+  Q('Un sanctuaire est…',['un lieu protégé où l’on soigne et protège les animaux','un marché','une école de danse','une mine'],'un lieu protégé où l’on soigne et protège les animaux','Les bonobos orphelins y sont soignés.'),
+  Q('Pourquoi garde-t-on les distances avec les animaux sauvages ?',['pour éviter les blessures et les maladies','pour les cacher','pour les ignorer','pour les enfermer'],'pour éviter les blessures et les maladies','Les maladies passent entre l’homme et l’animal.')
+ ]
+});
+Object.assign(SUJETS,{contes_proverbes:'Contes et proverbes',traditions:'Traditions congolaises',masques:'Masques et sculpture',couleurs:'Couleurs et peinture',medias:'Radio, télé et journaux',ondes:'Le son et les ondes',cafe_cacao:'Café et cacao',cultures:'Cultiver la terre',kivu:'Le lac Kivu',lacs:'Les grands lacs',bonobos:'Les bonobos',soins:'Soigner les animaux'});
+Object.assign(NPC,{
+ ntumba:{sc:'village',x:-5,z:-5.5,ry:0.3,name:'Conteur Ntumba',short:'le conteur',role:'Conteur du village',kind:'quiz',sujet:'contes_proverbes',nb:3,needs:'sefu',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#7a5a3a',k:'boubou',co:'gris',faceKey:'portraits/mavungu'},
+  intro:['Viens t’asseoir, mon enfant, près du feu.','Les anciens racontent, les enfants écoutent : ainsi vivent nos histoires.'],
+  outro:'Bien écouté ! Mama Nkenge t’apprendra nos danses et nos instruments.'},
+ nkenge:{sc:'village',x:5.5,z:-5.5,ry:-0.4,name:'Mama Nkenge',short:'Mama Nkenge',role:'Gardienne des danses',kind:'quiz',sujet:'traditions',nb:3,needs:'ntumba',
+  look:{s:'f',h:0.97,skin:'#6b4028',c:'#c0392b',k:'pagne',co:'nattes',faceKey:'portraits/mama'},
+  intro:['Entends-tu le ngoma ? Il appelle tout le village.','Voyons ce que tu sais de nos traditions !'],
+  outro:'Magnifique ! Va maintenant à l’académie des arts.'},
+ kasoma:{sc:'art',x:-5,z:-5.5,ry:0.3,name:'Sculpteur Kasoma',short:'le sculpteur',role:'Maître sculpteur',kind:'quiz',sujet:'masques',nb:3,needs:'nkenge',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#5a3a22',k:'boubou',co:'courtes',faceKey:'portraits/mavungu'},
+  intro:['Du bois, un ciseau, un maillet : et naît un masque.','L’art garde la mémoire de notre peuple.'],
+  outro:'Beau travail ! Madame Lutete t’attend avec ses couleurs.'},
+ lutete:{sc:'art',x:5.5,z:-5.5,ry:-0.4,name:'Madame Lutete',short:'Madame Lutete',role:'Peintre',kind:'quiz',sujet:'couleurs',nb:3,needs:'kasoma',
+  look:{s:'f',h:0.97,skin:'#6b4028',c:'#8e44ad',k:'pagne',co:'tresses',faceKey:'portraits/ilunga'},
+  intro:['Rouge, jaune, bleu : avec trois couleurs, on peint le monde.','Prends un pinceau et réponds à mes questions !'],
+  outro:'Bravo, tu as l’œil d’un artiste ! Direction la radio et la télé.'},
+ ntambwe:{sc:'radio',x:-5,z:-5.5,ry:0.3,name:'Journaliste Ntambwe',short:'la journaliste',role:'Journaliste',kind:'quiz',sujet:'medias',nb:3,needs:'lutete',
+  look:{s:'f',h:0.97,skin:'#6b4028',c:'#b3261e',k:'uniforme',co:'chignon',faceKey:'portraits/ilunga'},
+  intro:['Nous sommes en direct ! Informer, c’est une grande responsabilité.','Un bon journaliste vérifie toujours avant de parler.'],
+  outro:'Excellent ! Le technicien Mwanza t’expliquera comment voyagent les ondes.'},
+ mwanza:{sc:'radio',x:5.5,z:-5.5,ry:-0.4,name:'Technicien Mwanza',short:'le technicien',role:'Technicien radio',kind:'quiz',sujet:'ondes',nb:3,needs:'ntambwe',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#1f5f8b',k:'uniforme',co:'courtes',faceKey:'portraits/mavungu'},
+  intro:['Ma voix voyage jusqu’à des milliers de maisons, sans fil !','Tu veux savoir comment ? Réponds d’abord à mes questions.'],
+  outro:'Parfait ! Va voir la plantation de café et de cacao.'},
+ ngandu:{sc:'plantation',x:-5,z:-5.5,ry:0.3,name:'Papa Ngandu',short:'Papa Ngandu',role:'Planteur de café',kind:'quiz',sujet:'cafe_cacao',nb:3,needs:'mwanza',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#2e7d4a',k:'boubou',co:'gris',faceKey:'portraits/mavungu'},
+  intro:['Le café et le cacao, voilà la richesse de notre terre.','Il faut de la patience pour faire pousser un caféier.'],
+  outro:'Bien ! Mama Zawadi te parlera de la terre et des semences.'},
+ zawadi:{sc:'plantation',x:5.5,z:-5.5,ry:-0.4,name:'Mama Zawadi',short:'Mama Zawadi',role:'Agronome',kind:'quiz',sujet:'cultures',nb:3,needs:'ngandu',
+  look:{s:'f',h:0.97,skin:'#6b4028',c:'#d4a017',k:'pagne',co:'nattes',faceKey:'portraits/mama'},
+  intro:['Une bonne récolte commence par une bonne terre.','Compost, semences, saisons : tu connais ?'],
+  outro:'Bravo ! Cap vers le lac Kivu.'},
+ safari:{sc:'kivu',x:-5,z:-5.5,ry:0.3,name:'Guide Safari',short:'le guide',role:'Guide du lac Kivu',kind:'quiz',sujet:'kivu',nb:3,needs:'zawadi',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#0b5fa5',k:'uniforme',co:'courtes',faceKey:'portraits/mavungu'},
+  intro:['Regarde ce lac, entouré de collines, et au loin le volcan !','Le Kivu est un trésor de notre région.'],
+  outro:'Super ! Le pêcheur Baraka te parlera des grands lacs.'},
+ baraka:{sc:'kivu',x:5.5,z:-5.5,ry:-0.4,name:'Pêcheur Baraka',short:'le pêcheur',role:'Pêcheur',kind:'quiz',sujet:'lacs',nb:3,needs:'safari',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#2a7a9a',k:'boubou',co:'courtes',faceKey:'portraits/mavungu'},
+  intro:['Chaque matin, le lac nous nourrit.','Prendre soin de l’eau, c’est prendre soin de nos familles.'],
+  outro:'Bien joué ! Va voir les bonobos, nos cousins de la forêt.'},
+ matondo:{sc:'bonobos',x:-5,z:-5.5,ry:0.3,name:'Soigneuse Matondo',short:'la soigneuse',role:'Soigneuse de bonobos',kind:'quiz',sujet:'bonobos',nb:3,needs:'baraka',
+  look:{s:'f',h:0.97,skin:'#6b4028',c:'#2e7d4a',k:'uniforme',co:'tresses',faceKey:'portraits/ilunga'},
+  intro:['Chut… les bonobos dorment. Ce sont nos plus proches cousins.','Ils n’existent à l’état sauvage qu’en RDC : c’est notre trésor.'],
+  outro:'Bravo ! Le vétérinaire Kabuya a besoin de toi.'},
+ kabuya:{sc:'bonobos',x:5.5,z:-5.5,ry:-0.4,name:'Vétérinaire Kabuya',short:'le vétérinaire',role:'Vétérinaire',kind:'quiz',sujet:'soins',nb:3,needs:'matondo',
+  look:{s:'h',h:1.0,skin:'#7a4a2e',c:'#ffffff',k:'uniforme',co:'courtes',faceKey:'portraits/mavungu'},
+  intro:['Ici, on soigne les bonobos orphelins avant de les rendre à la forêt.','Un sanctuaire sauve des vies. Veux-tu en savoir plus ?'],
+  outro:'Félicitations ! Il ne te reste plus que la place de l’Indépendance.'}
+});
+STAGES.push(
+ {id:'village',scene:'village',name:'Le village des traditions',icon:'🛖',npcs:['ntumba','nkenge']},
+ {id:'art',scene:'art',name:'L’académie des arts',icon:'🎨',npcs:['kasoma','lutete']},
+ {id:'radio',scene:'radio',name:'La radio et la télévision',icon:'📻',npcs:['ntambwe','mwanza']},
+ {id:'plantation',scene:'plantation',name:'La plantation de café et de cacao',icon:'☕',npcs:['ngandu','zawadi']},
+ {id:'kivu',scene:'kivu',name:'Le lac Kivu',icon:'🏞️',npcs:['safari','baraka']},
+ {id:'bonobos',scene:'bonobos',name:'Le sanctuaire des bonobos',icon:'🦍',npcs:['matondo','kabuya']}
+);
+STAGES.push(
  {id:'place',scene:'place',name:'La place de l’Indépendance',icon:'🇨🇩',npcs:['lubaki','bakala']}
 );

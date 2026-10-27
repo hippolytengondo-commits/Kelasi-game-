@@ -5,9 +5,8 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
 
-export const CX=-7,CZ=70;          // centre de la place
-export const R_ROUTE=26;           // rayon de la route circulaire
-export const R_LOT=31.5;           // rayon des bâtiments
+export const CX=-7;
+export let CZ=70,R_ROUTE=26,R_LOT=31.5;   // centre de la place, rayon de la route circulaire, rayon des bâtiments (calculés selon le nombre de lieux)
 const ARC0=-78,ARC=336;            // secteur occupé par les parcelles (degrés), on laisse libre l'entrée au nord
 const MURS=['#e8c48a','#d98a6a','#9ac5a4','#d9c24a','#8fb4d9','#e0a0b0','#c9a27a','#a8c98f','#e6b25c','#b5a0d0'];
 const rad=d=>d*Math.PI/180;
@@ -18,6 +17,7 @@ const pt=(th,r)=>({x:CX+r*Math.cos(th),z:CZ+r*Math.sin(th)});
 export function extendVille(w,etat){
   const g=new THREE.Group();w.group.add(g);
   const n=etat.length,r0=rng(77);
+  R_LOT=Math.max(31.5,n*6.6/(2*Math.PI*ARC/360));R_ROUTE=R_LOT-5.5;CZ=R_ROUTE+44;
   const cols=w.colliders,bxs=w.boxes;
   const dirtM=new THREE.MeshStandardMaterial({map:T.dirtTexture(),roughness:1,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
   const flat=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;g.add(m);return m};
@@ -136,9 +136,10 @@ export function extendVille(w,etat){
   for(let k=0;k<26;k++){const a=rad(ARC0+ARC*rt()),r=R_LOT+22+rt()*8,p=pt(a,r);tree(g,p.x,p.z,.9+rt()*.5,false,null,cols,k%3===0)}
 
   // limites : le monde s'agrandit, des barrières invisibles gardent le couloir d'entrée
-  bxs.push({x0:-62,x1:CX-3.4,z0:14.5,z1:24},{x0:CX+3.4,x1:58,z0:14.5,z1:24});
-  bxs.push({x0:-62,x1:-33.5,z0:-14.5,z1:14.5});
-  bxs.push({x0:CX+52,x1:60,z0:14.5,z1:CZ+55});
-  w.bounds={x0:-62,x1:58,z0:-14.5,z1:CZ+54};
+  const X0=Math.min(-62,CX-R_LOT-23);
+  bxs.push({x0:X0,x1:CX-3.4,z0:14.5,z1:24},{x0:CX+3.4,x1:58,z0:14.5,z1:24});
+  bxs.push({x0:X0,x1:-33.5,z0:-14.5,z1:14.5});
+  bxs.push({x0:CX+R_LOT+20,x1:60,z0:14.5,z1:CZ+R_LOT+24});
+  w.bounds={x0:X0,x1:58,z0:-14.5,z1:CZ+R_LOT+22};
   return {doors,lots,suivant,cible};
 }

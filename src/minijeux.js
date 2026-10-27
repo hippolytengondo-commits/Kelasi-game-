@@ -47,7 +47,13 @@ export const MJ={
   poste:L('papier','tap','Courrier de la poste','Touche les lettres égarées pour les ramasser.'),
   recyclage:L('brique','fall','Recyclage de briques','Rattrape les briques récupérées sur les décombres.'),
   numerique:L('cuivre','tap','Câbles du numérique','Touche les câbles de cuivre pour les récupérer.'),
-  place:L('brique','tap','Pavés de la place','Touche les briques de la place pour les récupérer.')
+  place:L('brique','tap','Pavés de la place','Touche les briques de la place pour les récupérer.'),
+  village:L('bois','fall','Bois du village','Rattrape les bûches qui tombent pour entretenir le feu. Évite les cailloux !'),
+  art:L('bois','tap','Atelier de sculpture','Touche les blocs de bois pour les ramasser avant qu’ils ne disparaissent.'),
+  radio:L('cuivre','tap','Câbles de la radio','Touche les câbles de cuivre pour les récupérer.'),
+  plantation:L('cafe','tap','Récolte du café','Touche les cerises de café mûres avant qu’elles ne tombent.'),
+  kivu:L('poisson','peche','Pêche sur le lac Kivu','Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'),
+  bonobos:L('plante','tap','Fruits pour les bonobos','Touche les fruits et les feuilles pour préparer le repas des bonobos.')
 };
 
 // emplacement du jeu dans chaque lieu (près du point d’arrivée)
