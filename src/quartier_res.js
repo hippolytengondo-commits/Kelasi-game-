@@ -233,3 +233,7 @@ export function construireRes(w,etat,cb){
   w.bounds.z0=Math.min(w.bounds.z0,limiteNord);
   return {spots};
 }
+
+// loyer par heure d'une résidence louée (selon le niveau) ; 0 pour les services publics
+export const LOYER=(t,n)=>(({case:[6],maison:[20,35,80],villa:[60,120]})[t]||[])[n-1]||0;
+export const LOYER_MAX_H=4;   // les loyers s'accumulent au plus 4 heures

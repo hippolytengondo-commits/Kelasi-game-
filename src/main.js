@@ -22,7 +22,7 @@ import {extendVille,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
-import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,NB_TERRAINS} from './quartier_res.js';
+import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,LOYER,LOYER_MAX_H,NB_TERRAINS} from './quartier_res.js';
 import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
@@ -173,7 +173,9 @@ const SCENES={
    {x:42,z:-5.3,r:2.6,to:'classe',label:'Entrer dans l’école',ok:()=>doorOpen(),closed:'Porte fermée',tx:0,tz:2.6,phi:-Math.PI/2}]},
  maison:{build:()=>construireMaison(),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}],
    spots:[{x:-1.6,z:-2.2,r:1.9,label:'Miroir : changer mon look',run:()=>openCreator('play')},{x:-1.0,z:-.6,r:1.9,label:'Plans : construire ma maison',run:()=>openMaison()}]},
- interieur:{build:()=>{const w=buildInterieur(G.int.t,G.int.n),r=G.int.ret;SCENES.interieur.doors=[{x:0,z:w.dim.D/2-.9,r:1.6,to:'ville',label:'Sortir',tx:r.x,tz:r.z,phi:r.phi}];G.x=0;G.z=w.dim.D/2-2.2;return w},interior:true,doors:[],spots:[]},
+ interieur:{build:()=>{const w=buildInterieur(G.int.t,G.int.n),r=G.int.ret;SCENES.interieur.doors=[{x:0,z:w.dim.D/2-.9,r:1.6,to:'ville',label:'Sortir',tx:r.x,tz:r.z,phi:r.phi}];
+   SCENES.interieur.spots=[{x:w.dim.W/2-1.4,z:w.dim.D/2-1.3,r:1.6,label:'Gérer ou améliorer cette construction',run:()=>openBox({kind:'terrain',k:G.int.k,msg:'',retInt:true})}];
+   G.x=0;G.z=w.dim.D/2-2.2;return w},interior:true,doors:[],spots:[]},
  chambre:{build:()=>buildChambre(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:3.2,tz:1.2,phi:Math.PI}]},
  cuisine:{build:()=>buildCuisine(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:-3.2,tz:1.2,phi:0}]},
  etage:{build:()=>buildEtage(G.adv.maison),interior:true,doors:[{x:3.6,z:.8,r:1.7,to:'maison',label:'Descendre l’escalier',tx:3.1,tz:.6,phi:Math.PI}]},
@@ -248,7 +250,7 @@ function construireVille(){
   // quartier résidentiel du joueur (terrains à acheter et maisons à construire)
   const qr=construireRes(w,{n:G.adv.terrains||0,bat:batsRes(),pave:pave,rond:!!G.adv.rond},{
     rond:()=>openBox({kind:'rond',msg:''}),
-    entrer:(k,b,ret)=>{G.int={t:b.t,n:b.n,ret:ret};goTo({to:'interieur',tx:0,tz:0,phi:-Math.PI/2})},
+    entrer:(k,b,ret)=>{G.int={t:b.t,n:b.n,k:k,ret:ret};goTo({to:'interieur',tx:0,tz:0,phi:-Math.PI/2})},
     acheter:k=>openBox({kind:'terrain',k:k,msg:''}),ouvrir:k=>openBox({kind:'terrain',k:k,msg:''}),
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
@@ -283,6 +285,7 @@ function buildScene(){
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
+  if(G.sc==='interieur')occupants().forEach(o=>addNpc(o.id,o));
   if(G.sc==='arene'){
     const gid=NPC[G.areneGuide]?G.areneGuide:'ilunga',gl=Object.assign({},NPC[gid].look);
     if(window.__FACES&&window.__FACES['portraits/'+gid])gl.faceKey='portraits/'+gid;
@@ -290,6 +293,22 @@ function buildScene(){
   }
   snapCamera();
   majMusique();
+}
+// habitants et personnel d'une construction : visuels seulement, pour donner de la vie
+function occupants(){
+  const I=G.int,b=batsRes()[I.k];if(!b||!W||!W.dim)return [];
+  const res=LOYER(I.t,I.n)>0;
+  const nb=res?(b.loc?Math.min(5,1+I.n*(I.t==='maison'&&I.n===3?2:1)):0):Math.min(8,2+I.n*2);
+  const {W:Wd,D}=W.dim,out=[];
+  const PEAUX=['#7a4a2e','#6b4028','#8a5634','#63391f','#916f64','#5a3319'],COL=['#c0392b','#2e86de','#27ae60','#8e44ad','#d35400','#16a085','#e0a526'];
+  const blanc=I.t==='sante',unif={sante:'#ffffff',police:'#2e4a7a',pompiers:'#c0392b',ecole:'#2e86de'}[I.t];
+  const slots=[[-1,.2],[1,.2],[-.5,-.9],[.55,-.9],[-1.6,.9],[1.6,.9],[0,-.2],[0,.9]];
+  for(let i=0;i<nb;i++){
+    const sx=i%2?'f':'h',sl=slots[i%slots.length];
+    out.push({id:'occ'+i,sc:'interieur',x:sl[0]*(Wd/2-1.6),z:(D/2-3.1)+sl[1]*1.2,ry:Math.PI*(i%2?.8:-.8),name:'',short:'',
+      look:{s:sx,h:sx==='h'?1:.96,skin:PEAUX[(i*5+I.n)%PEAUX.length],c:unif&&!res?unif:COL[(i*3+I.n)%COL.length],k:(!res&&unif)?'uniforme':(i%2?'pagne':'boubou'),co:sx==='h'?'courtes':'tresses'}});
+  }
+  return out;
 }
 function addNpc(id,n){
   const obj=makeNpc(id,n);
@@ -437,6 +456,7 @@ function closeDialog(){
   G.mode='play';
   $('actwrap').classList.remove('hide');
   if(G.sc==='maison')buildScene();
+  if(G.sc==='interieur'){const b=batsRes()[G.int.k];if(!b||b.annexe!==undefined){const r=G.int.ret;goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi})}else{G.int.n=b.n;buildScene()}}
   if(G.refaireVille){G.refaireVille=false;if(G.sc==='ville')buildScene()}
   refreshHud();
 }
@@ -745,6 +765,11 @@ function htmlTerrain(d){
       h+=`<p>Actuellement : ${c.ico} <b>${esc(nomBatiment(b))}</b></p>`;
       if(b.n>=c.niv.length)h+=`<p>✔ Cette construction est au niveau maximal.</p>`;
       else h+=boutonConstruction(k,b.t,b.n);
+      const lo=LOYER(b.t,b.n);
+      if(lo){
+        if(b.loc){const du=loyerDu(b);h+=`<p>🏘 <b>Des locataires occupent ce logement</b> (${lo} 🪙 par heure). Loyers à encaisser : <b>${du} 🪙</b></p><button class="${du?'p':''}" onclick="encaisserLoyer(${k})">💰 Encaisser les loyers</button><button class="s" onclick="louerTerrain(${k},false)">Reprendre le logement (fin de la location)</button>`}
+        else h+=`<button onclick="louerTerrain(${k},true)">🏘 Mettre en location<br><small>Des familles s’installent et paient ${lo} 🪙 par heure (jusqu’à ${LOYER_MAX_H} h cumulées).</small></button>`;
+      }else h+=`<p style="font-size:13px">🏥 Ce service accueille du personnel et des visiteurs : entre pour voir l’activité.</p>`;
       h+=d.conf?`<p style="font-size:13px">Démolir « ${esc(nomBatiment(b))} » ? Tu récupères la moitié des pièces et des points de savoir investis, pas les matériaux.</p><button onclick="demolirTerrain(${k})">Oui, démolir</button><button class="s" onclick="demolirAnnuler()">Non, garder</button>`:`<button class="s" onclick="demolirAnnuler(true)">🔨 Démolir ou changer de construction</button>`;
     }else{
       h+=`<p style="font-size:13px">Choisis ce que tu construis sur ce terrain. Chaque construction coûte des pièces, des matériaux et des points de savoir, et peut être améliorée ensuite.</p>`;
@@ -779,12 +804,26 @@ function construireTerrain(k,t){
   G.refaireVille=true;save();refreshHud();SFX.win();
   d.msg='Chantier terminé : '+lv.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
 }
+const loyerDu=b=>Math.floor(LOYER(b.t,b.n)*Math.min(LOYER_MAX_H,Math.max(0,(Date.now()-(b.t0||Date.now()))/3.6e6)));
+function louerTerrain(k,oui){
+  const b=batsRes()[k],d=G.dialog;if(!b||!LOYER(b.t,b.n))return;
+  if(oui){b.loc=true;b.t0=Date.now();d.msg='Des familles s’installent. Reviens encaisser les loyers.'}
+  else{const du=loyerDu(b);if(du){G.adv.pieces+=du}b.loc=false;b.t0=0;d.msg='Logement repris'+(du?' : +'+du+' 🪙 de loyers encaissés.':'.')}
+  save();refreshHud();SFX.coin();renderDialog();
+}
+function encaisserLoyer(k){
+  const b=batsRes()[k],d=G.dialog;if(!b||!b.loc)return;
+  const du=loyerDu(b);
+  if(!du){d.msg='Pas encore de loyer à encaisser : reviens un peu plus tard.';renderDialog();return}
+  G.adv.pieces+=du;b.t0=Date.now();save();refreshHud();SFX.coin();d.msg='+'+du+' 🪙 de loyers encaissés.';renderDialog();
+}
 function demolirAnnuler(oui){const d=G.dialog;d.conf=!!oui;renderDialog()}
 function demolirTerrain(k){
   const a=G.adv,d=G.dialog,B=batsRes(),b=B[k];if(!b||b.annexe!==undefined)return;
   let p=0,sv=0;
   for(let i=0;i<b.n;i++){const c=CATALOGUE[b.t].niv[i].cout;p+=c.pieces||0;sv+=c.savoir||0}
   p=Math.floor(p/2);sv=Math.floor(sv/2);
+  if(b.loc)p+=loyerDu(b);
   B.forEach((x,j)=>{if(x&&x.annexe===k)B[j]=null});
   B[k]=null;if((a.maisRes||[])[k])a.maisRes[k]=0;
   a.pieces+=p;a.savoir=(a.savoir||0)+sv;d.conf=false;
@@ -1498,12 +1537,13 @@ function htmlMap(){
     const ok=stageUnlocked(i),n=st.npcs.filter(doneNpc).length,done=stageDone(st);
     h+=`<button ${ok?'':'disabled'} onclick="travel('${st.id}')"><b>${st.icon} ${esc(st.name)}</b><br><small>${ok?(done?'✔ Terminé · ':'')+n+'/'+st.npcs.length+' personnes rencontrées · ★ '+stageStars(st):'🔒 Termine « '+esc(STAGES[i-1].name)+' » pour débloquer'}</small></button>`;
   });
-  // exploration libre : les territoires de la RDC, classés par province (toujours ouverts)
+  h+=htmlLibre(d);
+  // par province (accès direct aux lieux)
   const libres=STAGES.filter(st=>st.libre);
   if(libres.length){
     const prov={};libres.forEach(st=>{const p=PROV_DE[st.id]||'Autres';(prov[p]=prov[p]||[]).push(st)});
     const tot=libres.reduce((a,st)=>a+st.npcs.length,0),fait=libres.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0);
-    h+=`<h3 style="margin-top:14px">🗺️ Territoires de la RDC · exploration libre</h3><p style="font-size:13px">${libres.length} lieux (provinces et territoires), ouverts dès maintenant : tu choisis librement où aller. ${fait}/${tot} missions réussies.</p>`;
+    h+=`<h4 style="margin-top:14px">🗺️ Par province : accès direct aux lieux</h4><p style="font-size:13px">${libres.length} lieux (provinces et territoires). ${fait}/${tot} missions réussies.</p>`;
     Object.keys(prov).forEach(p=>{
       const L=prov[p],f=L.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0),t=L.reduce((a,st)=>a+st.npcs.length,0),ouvert=d.prov===p;
       h+=`<button class="j" onclick="mapProv('${p.replace(/'/g,'’')}')"><b>${ouvert?'▾':'▸'} ${esc(p)}</b> · ${L.length} territoires · ${f}/${t}</button>`;
@@ -1547,6 +1587,42 @@ function htmlCongo(d){
   return h+`<button class="s" onclick="congoProv(null)">← Toutes les provinces</button>`;
 }
 function congoProv(i){const d=G.dialog;d.pi=i;renderDialog()}
+// ---------- Exploration libre : missions des territoires et missions scolaires mélangées en séries ----------
+const SERIE=10;
+let _libre=null;
+function missionsLibres(){
+  if(_libre)return _libre;
+  const libres=STAGES.filter(st=>st.libre);
+  // missions des territoires : les 3 missions d'un même lieu sont séparées (une passe par rang de mission)
+  const tr=[];for(let k=0;k<3;k++)libres.forEach(st=>{if(st.npcs[k])tr.push({kind:'tr',st:st,id:st.npcs[k]})});
+  // missions scolaires : on tourne entre les classes et les matières pour ne pas enchaîner les mêmes
+  const files=[];PROGRAMME.forEach(n=>n.matieres.forEach(m=>files.push(m.missions.map((t,i)=>({kind:'sc',n:n,m:m,i:i,t:t})).filter(e=>CONTENU[missionCle(e.n.id,e.m.id,e.i)]))));
+  const sc=[];for(let r=0;sc.length<files.reduce((a,f)=>a+f.length,0);r++)files.forEach(f=>{if(f[r])sc.push(f[r])});
+  // fusion : territoire, scolaire, territoire, scolaire… (jamais plus de deux du même genre de suite)
+  const out=[];let a=0,b=0;
+  while(a<tr.length||b<sc.length){
+    if(a<tr.length)out.push(tr[a++]);
+    if(b<sc.length)out.push(sc[b++]);
+  }
+  _libre=out;return out;
+}
+const fait=e=>e.kind==='tr'?doneNpc(e.id):!!G.adv.done['cur:'+missionCle(e.n.id,e.m.id,e.i)];
+function visiterMission(stId,npcId){
+  travel(stId);const n=NPC[npcId];if(n){G.x=n.x+1.2;G.z=n.z+1.6;snapCamera()}
+}
+function libreSerie(i){const d=G.dialog;d.serie=d.serie===i?null:i;renderDialog()}
+function htmlLibre(d){
+  const L=missionsLibres(),nb=Math.ceil(L.length/SERIE),f=L.filter(fait).length;
+  let h=`<h3 style="margin-top:14px">🌍 Exploration libre</h3><p style="font-size:13px">${L.length} missions mélangées : territoires et provinces du Congo, et missions scolaires de toutes les classes. Tu choisis librement ; chaque série varie les sujets. ${f}/${L.length} réussies.</p>`;
+  for(let i=0;i<nb;i++){
+    const part=L.slice(i*SERIE,(i+1)*SERIE),ff=part.filter(fait).length,ouvert=d.serie===i;
+    h+=`<button class="j" onclick="libreSerie(${i})"><b>${ouvert?'▾':'▸'} Série ${i+1}</b> · ${ff}/${part.length}</button>`;
+    if(ouvert)h+=part.map(e=>e.kind==='tr'
+      ?`<button onclick="visiterMission('${e.st.id}','${e.id}')">${fait(e)?'✔ ':''}🗺 <b>${esc(e.st.name)}</b><br><small>${esc(NPC[e.id].role)}</small></button>`
+      :`<button onclick="startMission('${e.n.id}','${e.m.id}',${e.i})">${fait(e)?'✔ ':''}🎓 <b>${esc(e.m.nom)} · ${esc(e.n.nom)}</b><br><small>Mission ${e.i+1} · ${esc(e.t)}</small></button>`).join('');
+  }
+  return h;
+}
 function mapProv(p){const d=G.dialog;d.prov=d.prov===p?null:p;renderDialog()}
 function travel(id){
   const st=STAGES.find(s=>s.id===id);if(!st)return;
@@ -1854,7 +1930,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
