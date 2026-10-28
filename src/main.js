@@ -20,6 +20,8 @@ import {buildVille,buildClasse,buildMaison} from './world.js';
 import {RESS,MJ,mjPos,marqueur,lancer} from './minijeux.js';
 import {extendVille,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
+import {buildLieu} from './stages7.js';
+import {LIEUX} from './lieux70.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
 const KEY='kelas_game_v12';
@@ -208,6 +210,13 @@ marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},
  arene:{build:()=>buildArene(G.areneMat),interior:false,spawn:{x:0,z:5,phi:-Math.PI/2},doors:[]},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
+// lieux d'exploration générés (voir lieux70.js) : une scène et un mini-jeu pour chacun
+const DESC_MJ={tap:'Touche les objets avant qu’ils ne disparaissent.',fall:'Rattrape les objets qui tombent. Évite les cailloux !',peche:'Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'};
+LIEUX.forEach(l=>{
+  SCENES[l.id]={build:()=>buildLieu({titre:l.nom,sous:l.npc[0].lib,arch:l.arch,wall:l.wall,accent:l.accent,seed:l.seed}),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},
+    doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]};
+  MJ[l.id]={r:l.mj[0],s:l.mj[1],t:'Mini-jeu : '+l.nom,d:DESC_MJ[l.mj[1]]};
+});
 const DOORS_VILLE=SCENES.ville.doors.slice();
 const DOORS_MAISON=SCENES.maison.doors.slice();
 function construireMaison(){

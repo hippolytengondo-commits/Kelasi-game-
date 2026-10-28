@@ -1,3 +1,4 @@
+import {LIEUX} from './lieux70.js';
 // Données du jeu : banques de questions, personnages, objets.
 export const Q=(q,c,a,exp)=>({q,c,a,exp});
 export const BANK={
@@ -983,3 +984,31 @@ STAGES.push(
 STAGES.push(
  {id:'place',scene:'place',name:'La place de l’Indépendance',icon:'🇨🇩',npcs:['lubaki','bakala']}
 );
+
+// ---------- 70 lieux d'exploration supplémentaires (voir lieux70.js), insérés avant la place de l'Indépendance ----------
+(function(){
+  const place=STAGES.pop();
+  let prev='kabuya';
+  const PEAUX=['#7a4a2e','#6b4028','#8a5634','#63391f','#916f64','#5a3319'];
+  const TENUES=['boubou','pagne','uniforme'];
+  const CHEV={h:['courtes','gris','courtes'],f:['tresses','nattes','chignon']};
+  const VISAGES={h:['portraits/mavungu'],f:['portraits/mama','portraits/ilunga']};
+  const TEINTES=['#c0392b','#2e86de','#27ae60','#8e44ad','#d35400','#16a085','#e0a526','#2c3e50'];
+  let n0=0;
+  LIEUX.forEach(l=>{
+    STAGES.push({id:l.id,scene:l.id,name:l.nom,icon:l.ico,npcs:l.npc.map(n=>n.id)});
+    l.npc.forEach((n,k)=>{
+      BANK[n.suj]=n.qs.map(q=>Q(q[0],[q[1],q[2],q[3],q[4]],q[1],q[5]));
+      SUJETS[n.suj]=n.lib;
+      const sx=n.s,i=n0++;
+      const suivant=l.npc[k+1];
+      NPC[n.id]={sc:l.id,x:k?5.5:-5,z:-5.5,ry:k?-0.4:0.3,name:n.nom,short:n.court,role:n.role,kind:'quiz',sujet:n.suj,nb:3,needs:prev,
+        look:{s:sx,h:sx==='h'?1.0:0.97,skin:PEAUX[i%PEAUX.length],c:TEINTES[i%TEINTES.length],k:TENUES[i%TENUES.length],co:CHEV[sx][i%3],faceKey:VISAGES[sx][i%VISAGES[sx].length]},
+        intro:[n.salut,'Voyons ce que tu sais !'],
+        outro:suivant?'Bien joué ! '+suivant.nom+' te parlera de '+suivant.lib.toLowerCase()+'.':'Bravo ! Un nouveau lieu t’attend en ville : suis la route jaune.'};
+      prev=n.id;
+    });
+  });
+  NPC.lubaki.needs=prev;
+  STAGES.push(place);
+})();
