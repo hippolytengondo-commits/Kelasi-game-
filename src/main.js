@@ -18,13 +18,14 @@ import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
 import {RESS,MJ,mjPos,marqueur,lancer,varier} from './minijeux.js';
-import {extendVille,CZ as CZ_Q} from './quartiers.js';
+import {extendVille,CX,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
-import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,LOYER,LOYER_MAX_H,NB_TERRAINS} from './quartier_res.js';
+import {construireRes,posTerrain,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,LOYER,LOYER_MAX_H,NB_TERRAINS} from './quartier_res.js';
 import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
+import {creerTrafic} from './trafic.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -262,12 +263,21 @@ function construireVille(){
   // quartier résidentiel du joueur (terrains à acheter et maisons à construire)
   const qr=construireRes(w,{n:G.adv.terrains||0,bat:batsRes(),pave:pave,rond:!!G.adv.rond},{
     rond:()=>openBox({kind:'rond',msg:''}),
+    libelle:(k,b)=>{if(b.loc&&LOYER(b.t,b.n)){const du=loyerDu(b);if(du)return '💰 '+du+' 🪙 de loyers à encaisser · '+nomBatiment(b)+' (n°'+(k+1)+')'}return '⚙ Gérer, améliorer ou louer : '+nomBatiment(b)+' (n°'+(k+1)+')'},
     entrer:(k,b,ret)=>{G.int={t:b.t,n:b.n,k:k,ret:ret};goTo({to:'interieur',tx:0,tz:0,phi:-Math.PI/2})},
     acheter:k=>openBox({kind:'terrain',k:k,msg:''}),ouvrir:k=>openBox({kind:'terrain',k:k,msg:''}),
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
   ext.routes.forEach(r=>qr.spots.push({x:r.x,z:r.z,r:2.6,label:r.label,run:()=>bitumerRoute(r.id,r.type,r.i)}));
   SCENES.ville.spots=qr.spots;
+  // circulation : piétons et véhicules, d'autant plus nombreux que le quartier se construit
+  {
+    const B=batsRes(),bat=B.map((b,k)=>b&&b.annexe===undefined?k:-1).filter(k=>k>=0);
+    const zN=bat.length?Math.min(...bat.map(k=>posTerrain(k).z))-9:-16;
+    const tr=creerTrafic(w.group,{cx:CX,rond:!!G.adv.rond,zN:zN,zS:34,nbBat:bat.length,nbLoc:bat.filter(k=>B[k].loc).length,
+      routeOk:pave.has('liaison')||pave.has('res0')||pave.has('entree'),services:bat.map(k=>B[k].t),makeHuman:makeHuman});
+    const u0=w.update;w.update=function(dt,t,o){if(u0)u0.call(w,dt,t,o);tr.update(dt,camera.position)};
+  }
   return w;
 }
 // libère la mémoire graphique des scènes quittées (important sur téléphone)
