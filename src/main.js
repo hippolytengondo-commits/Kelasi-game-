@@ -391,10 +391,24 @@ function objective(){
   if(n<t)return 'Objectif : cueille des mangues, révise et meuble ta maison ('+n+'/'+t+').';
   return 'Tu as tout accompli ! Continue à réviser pour gagner des étoiles.';
 }
+// bandeau d'objectif : lisible quelques secondes quand il change, puis réduit à une pastille pour dégager la vue (touche pour le rouvrir)
+let objTxt='',objT=null;
+function majObjectif(t){
+  const e=$('info');
+  if(t!==objTxt){
+    objTxt=t;e.textContent=t;e.classList.remove('mini');
+    clearTimeout(objT);objT=setTimeout(()=>{e.classList.add('mini');e.textContent='🎯'},7000);
+  }
+}
+$('info').addEventListener('click',()=>{
+  const e=$('info');
+  if(e.classList.contains('mini')){e.classList.remove('mini');e.textContent=objTxt;clearTimeout(objT);objT=setTimeout(()=>{e.classList.add('mini');e.textContent='🎯'},7000)}
+  else{clearTimeout(objT);e.classList.add('mini');e.textContent='🎯'}
+});
 function refreshHud(){
   const pu=photoUrl();
   $('stats').innerHTML=(pu?`<img class="av" src="${pu}" alt="">`:'')+'🪙 '+G.adv.pieces+' · 🎓 '+(G.adv.savoir||0)+' · ⭐ '+starsTotal()+' · Niv '+lvl();
-  if(G.mode!=='mini')$('info').textContent=objective();
+  if(G.mode!=='mini')majObjectif(objective());
 }
 function gain(p,xp,sv){
   const l0=lvl();
