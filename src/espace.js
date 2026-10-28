@@ -51,6 +51,7 @@ export function makeEspace(x){
       +`<button class="p" onclick="espForm('connecter','eleve')">🔑 J’ai déjà un compte : me connecter</button>`
       +`<button class="s" onclick="closeDialog()">Fermer</button>`;
   }
+  const PSEUDO_OK=/^[A-Za-z0-9_.-]{3,20}$/;
   const adulte=r=>r==='enseignant'||r==='parent'||r==='etablissement'||r==='admin';
   function vueForm(d){
     const creer=d.mode==='creer',ad=adulte(d.role);
@@ -97,6 +98,7 @@ export function makeEspace(x){
     if(creer&&!ad){
       const dn=dateNaissance(val('espNaiss'));
       if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true});return}
+      if(!PSEUDO_OK.test(pseudo)){maj({msg:'Le pseudonyme doit avoir 3 à 20 caractères : lettres, chiffres, point, tiret ou _ (pas d’espace ni d’accent).',erreur:true,pseudo:pseudo,naiss:val('espNaiss')});return}
       if(!dn){maj({msg:'Écris ta date de naissance sous la forme JJ/MM/AAAA (par exemple 14/03/2012).',erreur:true,pseudo:pseudo,naiss:val('espNaiss')});return}
       maj({occupe:true,msg:'',pseudo:pseudo,naiss:val('espNaiss')});
       const r=await C.inscrire(pseudo,dn,'eleve',null);
@@ -106,6 +108,7 @@ export function makeEspace(x){
     if(creer){
       const email=val('espEmail'),m1=document.getElementById('espMdp').value,m2=document.getElementById('espMdp2').value;
       if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true,email:email});return}
+      if(!PSEUDO_OK.test(pseudo)){maj({msg:'Le pseudonyme doit avoir 3 à 20 caractères : lettres, chiffres, point, tiret ou _ (pas d’espace ni d’accent).',erreur:true,email:email,pseudo:pseudo});return}
       if(!C.estGmail(email)){maj({msg:'Écris une adresse Gmail valide (par exemple nom@gmail.com).',erreur:true,pseudo:pseudo,email:email});return}
       if(m1.length<8){maj({msg:'Le mot de passe doit avoir au moins 8 caractères.',erreur:true,pseudo:pseudo,email:email});return}
       if(m1!==m2){maj({msg:'Les deux mots de passe ne sont pas identiques.',erreur:true,pseudo:pseudo,email:email});return}

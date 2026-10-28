@@ -19,8 +19,15 @@ export function sign(text,sub,w,h,bg,fg){
 }
 
 export function exitSign(g,x,z){
-  cyl(g,.06,.08,2.2,std('#5a3a22',.9),x,1.1,z,8);
-  const b=sign('↩ Retour au quartier','',2.4,.6,'#6b4a2a','#ffffff');b.position.set(x,2.2,z+.1);g.add(b);
+  // portail de sortie : deux piliers, un linteau, une enseigne et un seuil lumineux
+  const pierre=std('#c9bfa8',.9),cadre=std('#1f7a4d',.6);
+  [-1.7,1.7].forEach(dx=>{box(g,.5,3.6,.5,pierre,x+dx,1.8,z);box(g,.7,.25,.7,cadre,x+dx,.12,z)});
+  box(g,4.2,.45,.6,pierre,x,3.75,z);box(g,4.2,.12,.64,cadre,x,3.5,z);
+  const b=sign('SORTIE','Retour au quartier',3.4,.9,'#1f7a4d','#ffffff');b.position.set(x,4.35,z+.05);g.add(b);
+  const lueur=new THREE.Mesh(new THREE.PlaneGeometry(2.9,3.3),new THREE.MeshBasicMaterial({color:0x7dffb0,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));
+  lueur.position.set(x,1.7,z);g.add(lueur);
+  const seuil=new THREE.Mesh(new THREE.RingGeometry(.9,1.25,32),new THREE.MeshBasicMaterial({color:0x7dffb0,transparent:true,opacity:.6,side:THREE.DoubleSide}));
+  seuil.rotation.x=-Math.PI/2;seuil.position.set(x,.06,z+.9);g.add(seuil);
 }
 // ---------------------------------------------------------------- GRAND MARCHÉ
 export function buildMarche(){

@@ -30,13 +30,12 @@ const KEY='kelas_game_v12';
 const $=id=>document.getElementById(id);
 const clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let mjJoue=null; // scène où le mini-jeu a déjà été joué (une seule partie par mission)
 const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
 const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
 // ---------- État ----------
 const newAdv=()=>({done:{},stars:{},good:0,total:0,pieces:0,tissu:0,mangues:0,stock:{},maison:{},rev:{},xp:0,items:{},bought:{},fin:false});
-const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,music:true,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
+const G={ui:'photo',nom:'',photo:null,real:'pf1',voice:true,sexe:'f',look:Object.assign({},DEFAULT_LOOK,{acc:[]}),sound:true,music:true,mjBonus:null,sc:'ville',x:-13,z:0.5,ry:0,phi:0,pitch:.3,mode:'start',dialog:null,
   joy:{x:0,y:0},key:{x:0,y:0},speed:0,near:null,greeted:{},adv:newAdv(),mini:null,cine:null};
 function readSave(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
 const getSave=()=>({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,look:G.look,sound:G.sound,music:G.music,adv:G.adv});
@@ -272,8 +271,7 @@ function buildScene(){
   scene.fog.color.set(el<=0?0x0b1330:el<14?0xe0b894:0xbcd0e0);
   sun.color.set(el<=0?0x9db4ff:el<14?0xffb070:0xfff0d4);
   sun.intensity=S.interior?2.4:(el<=0?.35:el<14?2.2:3.4);
-  mjJoue=null;
-  W.mjMark=MJ[G.sc]?marqueur(G.sc):null;if(W.mjMark)W.group.add(W.mjMark);
+  W.mjMark=(MJ[G.sc]&&G.mjBonus===G.sc)?marqueur(G.sc):null;if(W.mjMark)W.group.add(W.mjMark);
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
   Object.keys(AUTOP).filter(k=>AUTOP[k].sc===G.sc).forEach(id=>addNpc(id,AUTOP[id]));
@@ -391,7 +389,7 @@ function nearby(){
   Object.keys(NPC).forEach(id=>{const n=NPC[id];if(n.sc===G.sc){const d=dist(G.x,G.z,n.x,n.z);if(d<(n.kind==='shop'?3.9:2.7))out.push({t:'npc',id:id,d:d})}});
   SCENES[G.sc].doors.forEach((d,i)=>{const dd=dist(G.x,G.z,d.x,d.z);if(dd<d.r)out.push({t:'door',i:i,d:dd})});
   (SCENES[G.sc].spots||[]).forEach((sp,i)=>{const dd=dist(G.x,G.z,sp.x,sp.z);if(dd<sp.r)out.push({t:'spot',i:i,d:dd})});
-  if(MJ[G.sc]){const q=mjPos(G.sc),dd=dist(G.x,G.z,q.x,q.z);if(dd<q.r)out.push({t:'mj',d:dd})}
+  if(MJ[G.sc]&&G.mjBonus===G.sc){const q=mjPos(G.sc),dd=dist(G.x,G.z,q.x,q.z);if(dd<q.r)out.push({t:'mj',d:dd})}
   if(G.sc==='ville'&&W.mangoTree){const dd=dist(G.x,G.z,W.mangoTree.x,W.mangoTree.z);if(dd<4)out.push({t:'tree',d:dd})}
   return out.sort((a,b)=>(a.t==='npc'?0:1)-(b.t==='npc'?0:1)||a.d-b.d);
 }
@@ -406,7 +404,7 @@ function actionFor(t){
     return {label:parler(n),enabled:true,run:()=>startQuiz(t.id,false)};
   }
   if(t.t==='tree')return {label:'Cueillir des mangues',enabled:true,run:startMini};
-  if(t.t==='mj')return mjJoue===G.sc?{label:'Mini-jeu déjà joué : reprends la mission pour rejouer',enabled:false,run:null}:{label:'Mini-jeu : '+MJ[G.sc].t,enabled:true,run:startMJ};
+  if(t.t==='mj')return {label:'🎁 Bonus : '+MJ[G.sc].t,enabled:true,run:startMJ};
   if(t.t==='spot'){const sp=SCENES[G.sc].spots[t.i];return {label:sp.label,enabled:true,run:sp.run}}
   const d=SCENES[G.sc].doors[t.i];
   if(d.ok&&!d.ok())return {label:d.closed,enabled:false,run:null};
@@ -439,8 +437,7 @@ const MAT_MA=new Set(['maths','marche','transport','footmaths','argent','poisson
 const MAT_SC=new Set(['nutrition','sante','corps','environnement','foret','animaux','agriculture','saisons','sciences','sciences2','meteo','energie','eau','espace','arbres','recyclage','savane','chaine','lacvie','virunga','volcans','incendie','secours','internet','numerique','mines','minesec']);
 const matiereDe=su=>MAT_FR.has(su)?'fr':MAT_MA.has(su)?'ma':MAT_SC.has(su)?'sc':'hg';
 function startQuiz(id,rev){
-  mjJoue=null;
-  const n=NPC[id],bank=BANK[n.sujet];
+    const n=NPC[id],bank=BANK[n.sujet];
   const qs=rev?shuffle(bank).slice(0,3):bank.slice(0,n.nb);
   const m3d=G.ui==='3d';
   if(m3d)entrerArene(matiereDe(n.sujet),id);
@@ -497,6 +494,7 @@ function htmlQuiz(d){
     h+=`<p style="font-size:14px;margin:6px 0">Bravo, tu as fini la mission ! Continue avec la suivante ou explore d’autres missions.</p>`;
     if(sv)h+=`<button class="p" onclick="startMission('${sv[0]}','${sv[1]}',${sv[2]})">▶ Suivant : ${esc(sv[3])}</button>`;
     else if(G.ui==='3d'&&!d.rev)h+=`<button class="p" onclick="suivantAventure()">▶ Suivant</button>`;
+    if(!d.rev&&G.mjBonus&&MJ[G.mjBonus])h+=`<button class="p" style="background:#e0a526;border-color:#e0a526;color:#2b2110" onclick="bonusMJ()">🎁 Bonus : ${esc(MJ[G.mjBonus].t.replace('Mini-jeu : ',''))} (1 min)</button>`;
     h+=`<button class="j" onclick="openSuite()">🧭 Explorer d’autres missions</button>`;
     d.menuFait=true;
     if(d.classe)h+=`<p style="font-size:13px">📘 <b>Tu retrouveras ça en classe :</b> ${esc(d.classe)}.</p>`;
@@ -592,7 +590,7 @@ function answerQ(i){
   if(first){G.adv.good++;d.firsts++;d.pts=(d.pts||0)+1}
   const coin=d.rev?(first?2:0):(first?5:1);
   d.gain+=coin;d.fbFirst=first;
-  gain(coin,first?(d.rev?4:10):3,first?(d.rev?4:10):3);
+  gain(coin,first?(d.rev?3:10):3,first?(d.rev?3:10):3);
   SFX.bravo();d.stage='fb';renderDialog();
 }
 function nextQ(){
@@ -623,6 +621,7 @@ function completeQuiz(d){
   const id=d.id,st=d.errs===0?3:(d.errs<=2?2:1);
   G.adv.done[id]=true;
   G.adv.stars[id]=Math.max(G.adv.stars[id]||0,st);
+  {const lieu=NPC[id]&&NPC[id].sc;if(lieu&&MJ[lieu])G.mjBonus=lieu}   // le mini-jeu du lieu devient un bonus à jouer une fois
   d.gain+=10;gain(10,10);
   let tissu=0;
   if(id==='mavungu'){G.adv.pieces+=20;G.adv.tissu+=2;tissu=2;d.gain+=20}
@@ -744,14 +743,15 @@ function construireTerrain(k){
   a.maisRes[k]=niv+1;G.refaireVille=true;save();refreshHud();SFX.win();
   d.msg='Chantier terminé : '+c.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
 }
+function bonusMJ(){closeDialog();setTimeout(startMJ,350)}
 let mjJeu=null;
 function startMJ(){
-  if(mjJoue===G.sc)return;
+  if(G.mjBonus!==G.sc)return;
   if(G.mode!=='play'||!MJ[G.sc])return;
   G.mode='mj';G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;resetKnob();hideBubble();
   mjJeu=lancer(G.sc,{host:$('world'),sfx:SFX,duree:window.__MJD||60,sexe:G.sexe,fin:(r)=>{
     if(r&&r!=='fermer'){
-      mjJoue=G.sc;
+      G.mjBonus=null;if(W&&W.mjMark){W.group.remove(W.mjMark);W.mjMark=null}
       if(r.res&&r.n){stock()[r.res]=(stock()[r.res]||0)+r.n}
       if(r.pieces||r.n)gain(r.pieces,r.n);else save();
       refreshHud();
@@ -1226,7 +1226,7 @@ const M3=createMission3D({
     const d=G.dialog;if(!d)return;
     if(type==='choix'){G.adv.total++;if(first){G.adv.good++;d.firsts++}}
     if(first)d.pts=(d.pts||0)+1;
-    const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?4:10):3,first?(d.rev?4:10):3);
+    const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?3:10):3,first?(d.rev?3:10):3);
   },
   erreur:()=>{if(G.dialog)G.dialog.errs++},
   fin:()=>finMission3D()
@@ -1733,7 +1733,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{acheterTerrain,construireTerrain,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,acheterTerrain,construireTerrain,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
