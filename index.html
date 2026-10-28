@@ -34,49 +34,58 @@
   <div id="creator" class="hide"></div>
   <div id="dlg"></div>
   <div id="welcome" class="hide">
-    <div class="wc">
-      <img class="wlogo" src="icons/logo.svg" alt="Logo BOYEKOLI PLAY" width="132" height="132">
-      <h1>BOYEKOLI PLAY</h1>
-      <div class="wrub"><i></i><i></i><i></i></div>
-      <p class="wslogan">Apprendre en jouant, de la 1re primaire aux humanités</p>
-      <p class="wbienv"><b>Bienvenue !</b> Ici, tu deviens <b>Kito</b>, un jeune explorateur de la République démocratique du Congo. Chaque bonne réponse fait grandir ton village, ta maison et ta ville. Prêt pour l’aventure ?</p>
-      <div class="wlist">
-        <div><b>🌍 Une aventure en 3D</b><span>Plus de 100 lieux à explorer : les provinces de la RDC, les métiers, les sciences, l’histoire, le sport et la culture. Ta ville s’agrandit à chaque mission d’exploration réussie.</span></div>
-        <div><b>📚 Plus de 800 missions</b><span>De la 1re primaire à la 4e des humanités : français, mathématiques, sciences, histoire-géographie, civisme, lingala et swahili, sections technique, commerciale, pédagogique et littéraire, plus un tour des 145 territoires de la RDC (3 missions chacun).</span></div>
-        <div><b>🎮 Des mini-jeux</b><span>Cueille des mangues, pêche sur le fleuve, tire des penalties au stade, récolte briques, bois ou café à vendre au marché.</span></div>
-        <div><b>🏠 Ta maison évolue</b><span>Avec les matériaux gagnés : murs en briques, toit en tôle, chambre, cuisine, jardin, panneaux solaires, étage…</span></div>
-        <div><b>⭐ Un vrai suivi</b><span>Scores exacts, carnet de progression, carte des compétences et rappels de révision pour ne rien oublier.</span></div>
-        <div><b>🔊 Voix, musique et sons</b><span>Les consignes sont lues à voix haute, avec une musique d’ambiance et des sons pour féliciter ou encourager. Maman te donne des conseils à la maison.</span></div>
-        <div><b>🏫 Pour les écoles et les parents</b><span>Comptes élèves, enseignants (classes, devoirs, bilans en pourcentages), établissements et parents qui suivent les progrès.</span></div>
-        <div><b>🆓 Gratuit et léger</b><span>Jouer librement est gratuit, sans publicité, et l’application s’installe sur Android et iPhone.</span></div>
+    <div class="w2">
+      <div class="w2mid">
+        <img class="w2logo" src="icons/logo.svg" alt="Logo BOYEKOLI PLAY" width="116" height="116">
+        <h1>BOYEKOLI PLAY</h1>
+        <p class="w2slogan">APPRENDRE EN JOUANT</p>
+        <svg class="w2illu" viewBox="0 0 320 96" aria-hidden="true" focusable="false"><path d="M0 78 C60 54 110 70 160 56 C215 41 265 62 320 44 L320 96 L0 96Z" fill="#e3edfb"/><path d="M0 88 C70 70 120 84 170 74 C225 63 275 80 320 66 L320 96 L0 96Z" fill="#d3e9dc"/><path d="M28 80 C80 66 118 74 160 58 C196 44 232 54 262 30" fill="none" stroke="#0f2f6b" stroke-width="2.2" stroke-dasharray="2 7" stroke-linecap="round"/><path d="M262 12 l4.2 8.6 9.4 1.4 -6.8 6.6 1.6 9.4 -8.4 -4.4 -8.4 4.4 1.6 -9.4 -6.8 -6.6 9.4 -1.4z" fill="#f7c92b"/><path d="M118 58 q18 -9 36 0 v22 q-18 -9 -36 0z" fill="#fff" stroke="#0f2f6b" stroke-width="2.2" stroke-linejoin="round"/><path d="M136 58 v22" stroke="#0f2f6b" stroke-width="2.2"/></svg>
+        <p class="w2phrase">Découvre un monde où chaque jeu t’apprend quelque chose.</p>
       </div>
-      <button id="wcont" class="wbtn">Continuer ▶</button>
-      <p class="wpied">LEXARIS ACADÉMIE · fait avec cœur pour les enfants du Congo</p>
+      <div class="w2bas">
+        <button id="wcont" class="w2btn">CONTINUER</button>
+        <p class="wpied">LEXARIS ACADÉMIE · fait avec cœur pour les enfants du Congo</p>
+      </div>
     </div>
   </div>
   <div id="start" class="hide">
-    <div class="card">
-      <div class="hhead"><img src="icons/logo.svg" alt="" width="54" height="54"><div><h2>BOYEKOLI PLAY</h2><p id="hstat">Bienvenue ! Choisis comment jouer.</p></div></div>
-      <div id="hcompte" class="hide">
-        <button id="cont" class="p hide"></button>
-        <div class="hgrille">
-          <button id="hmis">📚 Menu des missions</button>
-          <button id="hcla">🏫 Mes classes</button>
-          <button id="hhis">📒 Mon historique</button>
-          <button id="hcom">🗺 Mes compétences</button>
-          <button id="cpt2">👤 Mon compte</button>
-        </div>
+    <div class="h2">
+      <header class="h2head">
+        <img src="icons/logo.svg" alt="" width="34" height="34"><b>BOYEKOLI PLAY</b>
+        <span id="hstat" class="h2stat"></span>
+        <button id="hacc" class="h2acc" aria-label="Mon compte ou connexion">👤</button>
+      </header>
+      <div class="h2hello"><h2>Prêt à apprendre en jouant ?</h2><p>Choisis ton aventure et progresse à ton rythme.</p></div>
+      <section class="h2card exp">
+        <div class="h2ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.6 8.4 13.4 13.4 8.4 15.6 10.6 10.6z"/></svg></div>
+        <div class="h2txt"><h3>EXPLORATION</h3><p>Explore les missions, relève des défis et apprends en jouant, librement et à ton rythme.</p><small>Gratuit · sans compte, sans abonnement</small></div>
+        <button id="hexp" class="h2cta jaune">JOUER LIBREMENT</button>
+      </section>
+      <section class="h2card sco">
+        <div class="h2ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11.2v4.6c0 1.2 2.4 2.7 5.5 2.7s5.5-1.5 5.5-2.7v-4.6"/><path d="M21.5 9v5.5"/></svg></div>
+        <div class="h2txt"><h3>MISSIONS SCOLAIRES</h3><p>Apprends selon ton niveau scolaire et progresse à travers des missions adaptées à ton programme.</p><small>Avec un compte</small></div>
+        <button id="hmis" class="h2cta bleu">ACCÉDER AUX MISSIONS</button>
+      </section>
+      <section id="hreprise" class="h2rep hide">
+        <h4>REPRENDRE MA PARTIE</h4>
+        <button id="cont" class="h2cont hide"></button>
+        <div class="h2liens"><button id="hhis">📒 Historique</button><button id="hcom">🗺 Compétences</button><button id="hnouv">↺ Nouvelle partie</button></div>
+      </section>
+      <div id="hcompte" class="h2liens hide"><button id="cpt2">👤 Mon compte</button><button id="hcla">🏫 Mes classes</button></div>
+      <div id="hvisiteur" class="h2log"><button id="hins">Créer un compte</button><span>·</span><button id="hlog">Se connecter</button></div>
+      <button id="inst" class="h2inst hide">📲 Installer l’application sur mon téléphone</button>
+      <button id="cpt" class="hide" aria-hidden="true"></button>
+      <p class="wpied">LEXARIS ACADÉMIE · fait avec cœur pour les enfants du Congo</p>
+    </div>
+    <div id="hnew" class="hide">
+      <div class="h2sheet">
+        <h3>Ton aventure commence</h3>
+        <p id="hnewmsg"></p>
+        <input id="nom" maxlength="14" placeholder="Ton prénom (Kito par défaut)" autocomplete="off">
+        <div class="row"><button id="fille" class="p">Une fille</button><button id="garcon">Un garçon</button></div>
+        <button id="go" class="p">▶ Commencer l’aventure</button>
+        <button id="hnewx">Retour</button>
       </div>
-      <div id="hvisiteur">
-        <div class="row"><button id="hlog" class="p">🔑 Connexion</button><button id="hins">📝 Inscription</button></div>
-      </div>
-      <h3 class="hsec">🌍 Exploration libre</h3>
-      <p>Sans compte, gratuit : explore, joue et progresse. Ta partie reste sur cet appareil.</p>
-      <input id="nom" maxlength="14" placeholder="Ton prénom (Kito par défaut)" autocomplete="off">
-      <div class="row"><button id="fille" class="p">Une fille</button><button id="garcon">Un garçon</button></div>
-      <button id="go" class="p">▶ Exploration libre : commencer l’aventure en 3D</button>
-      <button id="inst" class="hide">📲 Installer l’application sur mon téléphone</button>
-      <button id="cpt" class="hide">👤 Élève, enseignant, parent : compte et classe</button>
     </div>
   </div>
   <div id="load">Chargement du village…<i><b id="lb"></b></i></div>

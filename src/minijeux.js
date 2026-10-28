@@ -24,7 +24,7 @@ export const MJ={
   fleuve:L('poisson','peche','Pêche sur le fleuve','Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'),
   sante:L('plante','tap','Plantes médicinales','Touche les plantes qui poussent pour les cueillir avant qu’elles disparaissent.'),
   univ:L('papier','fall','Feuilles du campus','Rattrape les feuilles de cours qui s’envolent.'),
-  biblio:L('papier','memoire','Rangement de la bibliothèque','Retrouve les paires de livres et de feuilles.'),
+  biblio:L('papier','memoire','Rangement de la LEXOTHÈQUE RDC','Retrouve les paires de livres et de feuilles.'),
   gare:L('fer','tap','Rails de la gare','Ramasse les pièces de fer tombées le long de la voie.'),
   ferme:L('legume','tap','Récolte à la ferme','Touche les légumes mûrs avant qu’ils ne se cachent.'),
   foret:L('bois','fall','Bois de la forêt','Rattrape les branches qui tombent. Attention aux pierres !'),

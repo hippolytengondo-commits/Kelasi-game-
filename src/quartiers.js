@@ -3,6 +3,7 @@
 // ouvre le bâtiment suivant ; des maisons s'ajoutent autour des bâtiments finis, la route s'éclaire
 // vers la prochaine mission.
 import * as THREE from 'three';
+import {panneauLex} from './pub.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
 
@@ -64,6 +65,11 @@ export function extendVille(w,etat){
   const mm=new THREE.Matrix4();
   lamps.forEach((p,i)=>{mm.makeTranslation(p.x,1.5,p.z);poteaux.setMatrixAt(i,mm);mm.makeTranslation(p.x,3.1,p.z);ampoules.setMatrixAt(i,mm);cols.push({x:p.x,z:p.z,r:.25})});
   g.add(poteaux);g.add(ampoules);
+  // panneaux publicitaires LEXOTHÈQUE RDC : trois par anneau, entre les lampadaires, et deux sur la route d'entrée
+  AN.forEach(a=>{if(a.n<3)return;for(let j=0;j<3;j++){
+    const k=Math.floor(a.n*(j+.5)/3),th=rad(ARC0+ARC*(k+.8)/a.n),p=pt(th,a.route-5.4);
+    const pb=panneauLex(4.6);pb.position.set(p.x,0,p.z);pb.rotation.y=Math.PI/2-th;g.add(pb);cols.push({x:p.x,z:p.z,r:1.6})}});
+  [[CX-4.8,36,Math.PI/2],[CX+4.8,52,-Math.PI/2]].forEach(([x,z,ry])=>{if(z>=CZ-int0.route-8)return;const pb=panneauLex(4.2);pb.position.set(x,0,z);pb.rotation.y=ry;g.add(pb);cols.push({x:x,z:z,r:1.6})});
 
   const lots=[],doors=[];
   const tin=new THREE.MeshStandardMaterial({map:T.tinTexture(),roughness:.55,metalness:.35});

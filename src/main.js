@@ -214,7 +214,7 @@ marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},
 // lieux d'exploration générés (voir lieux70.js) : une scène et un mini-jeu pour chacun
 const DESC_MJ={memoire:'Retrouve les paires de cartes identiques.',empile:'Empile les blocs bien droit pour monter la tour.',tap:'Touche les objets avant qu’ils ne disparaissent. Évite les pièges !',fall:'Déplace-toi pour rattraper les objets qui tombent. Un piège met fin au jeu !',peche:'Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'};
 LIEUX.forEach((l,li)=>{
-  SCENES[l.id]={build:()=>buildLieu({titre:l.nom,sous:l.npc[0].lib,arch:l.arch,wall:l.wall,accent:l.accent,seed:l.seed}),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},
+  SCENES[l.id]={build:()=>buildLieu({titre:l.nom,sous:l.npc[0].lib,arch:l.arch,wall:l.wall,accent:l.accent,seed:l.seed,pub:li%5===2}),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},
     doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]};
   {const st=varier(l.mj[0],l.mj[1],li);MJ[l.id]={r:l.mj[0],s:st,t:'Mini-jeu : '+l.nom,d:DESC_MJ[st]}}
 });
@@ -1134,7 +1134,7 @@ function appliquerSave(s){
   G.look=Object.assign({},DEFAULT_LOOK,{acc:[]},s.look||{});G.sexe=G.look.s;G.adv=Object.assign(newAdv(),s.adv||{});
   try{localStorage.setItem(KEY,JSON.stringify(getSave()))}catch(e){}
   $('nom').value=G.nom;$('cont').textContent='Continuer · '+G.nom+' (niveau '+lvl()+')';$('cont').classList.remove('hide');
-  $('go').textContent='Nouvelle partie';$('go').className='';
+  $('go').textContent='Nouvelle partie';$('go').className='p';
   if(G.mode!=='start'){buildScene();refreshHud()}
 }
 const Esp=makeEspace({G,esc,renderDialog,PROGRAMME,CONTENU,missionCle,startMission:(a,b,c,o)=>startMission(a,b,c,o),getSave,applySave:appliquerSave,aProgression});
@@ -1628,13 +1628,14 @@ $('cpt').onclick=()=>openEsp();
 // ---------- page d'accueil : présentation puis vraie page d'accueil ----------
 function majAccueil(){
   const s=CLOUD.session(),sv=readSave(),a=!!(sv&&sv.nom);
-  $('hcompte').classList.toggle('hide',!(s||a));
-  $('hvisiteur').classList.toggle('hide',!!s);
+  $('hreprise').classList.toggle('hide',!a);
   $('cont').classList.toggle('hide',!a);
-  ['hmis','hhis','hcom'].forEach(i=>$(i).classList.toggle('hide',!a));
-  ['hcla','cpt2'].forEach(i=>$(i).classList.toggle('hide',!s));
-  $('hstat').textContent=s?('👤 '+s.pseudo+' · '+({eleve:'élève',enseignant:'enseignant',parent:'parent'}[s.role]||s.role)+(a?' · partie de '+sv.nom:'')):(a?'Partie en cours : '+sv.nom+' (niveau '+lvl()+')':'Bienvenue ! Choisis comment jouer.');
+  $('hcompte').classList.toggle('hide',!s);
+  $('hvisiteur').classList.toggle('hide',!!s);
+  $('hstat').textContent=s?(s.pseudo+' · '+({eleve:'élève',enseignant:'enseignant',parent:'parent',etablissement:'établissement'}[s.role]||s.role)):'';
 }
+// feuille « Ton aventure commence » : prénom et choix du personnage (parcours existant de l'Exploration)
+function ouvrirNouvelle(msg){$('hnewmsg').textContent=msg||'';$('hnew').classList.remove('hide')}
 function entrerPuis(f){
   $('cv').style.display='block';
   if(G.ui==='photo')enterPhoto(false);else enterGame(false);
@@ -1651,7 +1652,16 @@ $('wcont').onclick=()=>{
 $('hlog').onclick=()=>openEspForm('connecter');
 $('hins').onclick=()=>openEsp('');
 $('cpt2').onclick=()=>openEsp();
-$('hmis').onclick=()=>entrerPuis(openProg);
+$('hexp').onclick=()=>{const sv=readSave();if(sv&&sv.nom)$('cont').click();else ouvrirNouvelle('')};
+$('hnouv').onclick=()=>ouvrirNouvelle('Une nouvelle partie remplacera la partie enregistrée sur cet appareil.');
+$('hnewx').onclick=()=>$('hnew').classList.add('hide');
+$('hacc').onclick=()=>{if(CLOUD.session())openEsp();else openEspForm('connecter')};
+// Missions scolaires : un compte est nécessaire (connexion si on n'est pas connecté)
+$('hmis').onclick=()=>{
+  if(!CLOUD.session()){openEspForm('connecter');return}
+  const sv=readSave();
+  if(sv&&sv.nom)entrerPuis(openProg);else ouvrirNouvelle('Crée d’abord ton personnage : tes missions scolaires s’ouvriront ensuite.');
+};
 $('hhis').onclick=()=>entrerPuis(openCarnet);
 $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
@@ -1700,7 +1710,7 @@ function init(){
     $('nom').value=s.nom;
     $('cont').textContent='Continuer · '+s.nom+' (niveau '+lvl()+')';
     $('cont').classList.remove('hide');
-    $('go').textContent='Nouvelle partie';$('go').className='';
+    $('go').textContent='Nouvelle partie';$('go').className='p';
   }
   setSexe(G.sexe);refreshHud();
   G.sc='ville';G.x=-13;G.z=0.5;G.phi=0;
@@ -1715,7 +1725,6 @@ function init(){
 fetch('img/manifest.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(async m=>{
   window.__MAN=m||{};setManifest(m);
   try{const f=await (await fetch('img/faces.json')).json();window.__FACES=f;setFaces(f)}catch(e){window.__FACES={}}
-  if((m.scenes||[]).includes('kinshasa'))$('start').style.backgroundImage='linear-gradient(rgba(10,20,30,.35),rgba(10,20,30,.35)),url(img/scenes/kinshasa.jpg)';
   init();
 });
 

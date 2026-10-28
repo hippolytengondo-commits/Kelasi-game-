@@ -3,6 +3,7 @@ import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
 import {leafyTree,palm,grassField} from './nature.js';
 import {ground,patch,sign,exitSign,waterNormal} from './stages.js';
+import {panneauLex} from './pub.js';
 
 // Générateur de lieux d'exploration : une même fabrique pour des dizaines de lieux, variés par leur type
 // (bâtiment, plein air, eau, montagne, atelier, village, forêt, ville), leurs couleurs et leurs accessoires.
@@ -119,5 +120,6 @@ export function buildLieu(cfg){
   [[-24,6],[24,6]].forEach((p,i)=>tree(g,p[0],p[1],1+i*.1,false,null,colliders,i%2===0));
   const gr=grassy(g,(cfg.seed||7)*3,[-36,36,-26,14],(x,z)=>libre(x,z)||arch==='eau'&&z<-4||arch==='batiment'&&Math.abs(x)<25&&z<-3&&z>-22);
   exitSign(g,-3.8,10.4);colliders.push({x:-3.8,z:10.4,r:.3});
+  if(cfg.pub){const sx=(cfg.seed||0)%2?16:-16,pb=panneauLex(4.4);pb.position.set(sx,0,1.5);pb.rotation.y=sx>0?-Math.PI/2:Math.PI/2;g.add(pb);colliders.push({x:sx,z:1.5,r:1.7})}
   return {group:g,colliders,boxes,dyn:{},exit:{x:0,z:9.4},bounds:BOUNDS,sky:sky,fog:fog,update(dt,t){gr.userData.update(t);update(dt,t)}};
 }

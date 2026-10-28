@@ -370,7 +370,7 @@ Object.assign(SUJETS,{lecture:'Lecture',contes:'Contes et proverbes',route:'Séc
 Object.assign(NPC,{
  nzuzi:{sc:'biblio',x:-5,z:-3.8,ry:0.3,name:'Madame Nzuzi',short:'Madame Nzuzi',role:'Bibliothécaire',kind:'quiz',sujet:'lecture',nb:3,needs:'lukusa',
   look:{s:'f',h:0.97,skin:'#7a4a2e',c:'#8e44ad',k:'boubou',co:'tresses',faceKey:'portraits/ilunga'},
-  intro:['Bienvenue à la bibliothèque !','Ici, chaque livre est une porte ouverte sur le monde. Quelques questions de français pour commencer.'],
+  intro:['Bienvenue à la LEXOTHÈQUE RDC !','Ici, chaque livre est une porte ouverte sur le monde. Quelques questions de français pour commencer.'],
   outro:'Bravo ! Tu lis déjà comme un vrai champion. Va écouter les histoires de Papa Kabasele.'},
  kabasele:{sc:'biblio',x:8.5,z:-6.2,ry:-0.4,name:'Papa Kabasele',short:'Papa Kabasele',role:'Conteur',kind:'quiz',sujet:'contes',nb:3,needs:'nzuzi',
   look:{s:'h',h:1.02,skin:'#916f64',c:'#c0392b',k:'uniforme',co:'rase',faceKey:'portraits/mavungu'},
@@ -450,7 +450,7 @@ Object.assign(NPC,{
   outro:'Bravo ! Le voyage continue : prends l’avion à l’aéroport de N’Djili.'},
 });
 STAGES.push(
- {id:'biblio',scene:'biblio',name:'La bibliothèque',icon:'📚',npcs:['nzuzi','kabasele']},
+ {id:'biblio',scene:'biblio',name:'LEXOTHÈQUE RDC',icon:'📚',npcs:['nzuzi','kabasele']},
  {id:'gare',scene:'gare',name:'La gare routière',icon:'🚌',npcs:['mayala','bokasa']},
  {id:'ferme',scene:'ferme',name:'La ferme',icon:'🌽',npcs:['mwamba','lutumba']},
  {id:'foret',scene:'foret',name:'La forêt équatoriale',icon:'🌳',npcs:['mutombo','bisimwa']},

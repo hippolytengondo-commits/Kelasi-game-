@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {panneauLex,enseigneLex} from './pub.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree,flagTexture} from './world.js';
 import {leafyTree,palm,grassField,bush,leafTexture} from './nature.js';
@@ -31,7 +32,8 @@ export function buildBiblio(){
   box(g,24,6.4,8,stone(),0,3.2,-15);box(g,24.6,.5,8.6,std('#cfc6b2'),0,6.6,-15);
   for(let i=0;i<6;i++){box(g,1.6,2.4,.1,glass(),-9.5+i*3.8,3.4,-10.95);box(g,1.9,.12,.2,std('#e7dcc5'),-9.5+i*3.8,2.1,-10.9)}
   box(g,3,3.4,.15,glass(),0,1.7,-10.95);box(g,.12,3.4,.2,std('#5a3a22'),0,1.7,-10.9);
-  const sg=sign('BIBLIOTHÈQUE','Lire, c’est grandir',10,1.5,'#6a2c91','#fff');sg.position.set(0,5.6,-10.9);g.add(sg);
+  box(g,6.7,2.3,.12,std('#1b3a6b'),0,5.35,-10.93);const sg=enseigneLex(6.4);sg.position.set(0,5.35,-10.85);g.add(sg);
+  const pbl=panneauLex(4.4);pbl.position.set(-17,0,1.5);pbl.rotation.y=Math.PI/2;g.add(pbl);colliders.push({x:-17,z:1.5,r:1.7});
   boxes.push({x0:-12.5,x1:12.5,z0:-19.5,z1:-10.7});
   // sculpture : grand livre ouvert
   const pg=new THREE.MeshStandardMaterial({color:0xf5efe0,roughness:.85}),cv=std('#7a2a2a',.7);
