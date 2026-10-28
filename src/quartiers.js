@@ -4,6 +4,7 @@
 // vers la prochaine mission.
 import * as THREE from 'three';
 import {panneauPub} from './pub.js';
+import {sponsorN} from './sponsors.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
 
@@ -68,8 +69,8 @@ export function extendVille(w,etat){
   // panneaux publicitaires LEXOTHÈQUE RDC : trois par anneau, entre les lampadaires, et deux sur la route d'entrée
   AN.forEach((a,ri)=>{if(a.n<3)return;for(let j=0;j<3;j++){
     const k=Math.floor(a.n*(j+.5)/3),th=rad(ARC0+ARC*(k+.8)/a.n),p=pt(th,a.route-5.4);
-    const pb=panneauPub((ri+j)%3===1?'rulems':'lex');pb.position.set(p.x,0,p.z);pb.rotation.y=Math.PI/2-th;g.add(pb);cols.push({x:p.x,z:p.z,r:1.6})}});
-  [[CX-4.8,36,Math.PI/2,'lex'],[CX+4.8,52,-Math.PI/2,'rulems']].forEach(([x,z,ry,k])=>{if(z>=CZ-int0.route-8)return;const pb=panneauPub(k);pb.position.set(x,0,z);pb.rotation.y=ry;g.add(pb);cols.push({x:x,z:z,r:1.6})});
+    const pb=panneauPub(sponsorN(ri*3+j));pb.position.set(p.x,0,p.z);pb.rotation.y=Math.PI/2-th;g.add(pb);cols.push({x:p.x,z:p.z,r:1.6})}});
+  [[CX-4.8,36,Math.PI/2],[CX+4.8,52,-Math.PI/2],[CX-4.8,68,Math.PI/2],[CX+4.8,84,-Math.PI/2]].forEach(([x,z,ry],qi)=>{if(z>=CZ-int0.route-8)return;const pb=panneauPub(sponsorN(qi));pb.position.set(x,0,z);pb.rotation.y=ry;g.add(pb);cols.push({x:x,z:z,r:1.6})});
 
   const lots=[],doors=[];
   const tin=new THREE.MeshStandardMaterial({map:T.tinTexture(),roughness:.55,metalness:.35});
