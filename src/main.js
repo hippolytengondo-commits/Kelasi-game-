@@ -1661,10 +1661,12 @@ function entrerPuis(f){
 function openEspForm(mode,role){
   G.depart=true;G.dialog={kind:'esp',vue:'form',mode:mode,role:role||'eleve',msg:''};$('dlg').style.zIndex='9';renderDialog();
 }
+const confirmee=CLOUD.confirmationRecue();   // lien de confirmation d'adresse reçu par e-mail
 const jetonRec=CLOUD.jetonRecuperation();   // lien « mot de passe oublié » reçu par e-mail
 $('wcont').onclick=()=>{
   AUD.unlock();$('welcome').classList.add('hide');$('start').classList.remove('hide');majAccueil();majMusique();
   if(jetonRec){openEsp('');setTimeout(()=>Esp.actions.espRecuperation(jetonRec),30)}
+  else if(confirmee){openEspForm('connecter','enseignant');setTimeout(()=>{if(G.dialog)G.dialog.msg='Ton adresse est confirmée ! Connecte-toi avec ton adresse Gmail et ton mot de passe.';renderDialog()},30)}
 };
 $('hlog').onclick=()=>openEspForm('connecter');
 $('hins').onclick=()=>openEsp('');

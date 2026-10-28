@@ -67,7 +67,8 @@ export const estGmail=e=>/^[^\s@]+@(gmail|googlemail)\.com$/i.test(String(e).tri
 // compte adulte (enseignant, parent, établissement) : adresse Gmail + mot de passe ; Supabase envoie un e-mail de confirmation
 export async function inscrireAdulte(pseudo,email,mdp,role,ecole){
   const donnees={pseudo:pseudo.trim(),role:role};if(role==='etablissement')donnees.ecole=String(ecole||'').trim();
-  const r=await appel('/auth/v1/signup',{method:'POST',body:{email:email.trim().toLowerCase(),password:mdp,data:donnees}});
+  const retour=typeof location!=='undefined'?location.origin+location.pathname:'';
+  const r=await appel('/auth/v1/signup?redirect_to='+encodeURIComponent(retour),{method:'POST',body:{email:email.trim().toLowerCase(),password:mdp,data:donnees}});
   if(!r.ok)return r;
   if(r.data&&r.data.access_token)return connecter(email,mdp); // confirmation non exigée par le serveur : connexion immédiate
   return {ok:true,attente:true};
@@ -83,6 +84,12 @@ export function jetonRecuperation(){
   const h=new URLSearchParams(location.hash.slice(1));
   try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
   return h.get('access_token')||null;
+}
+// le lien de confirmation d'inscription ramène sur le jeu (#access_token=…&type=signup) : on le reconnaît pour inviter à se connecter
+export function confirmationRecue(){
+  if(typeof location==='undefined'||!/type=signup/.test(location.hash||''))return false;
+  try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+  return true;
 }
 export async function nouveauMotDePasse(jeton,mdp){
   const r=await appel('/auth/v1/user',{method:'PUT',token:jeton,body:{password:mdp}});
