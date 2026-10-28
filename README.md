@@ -21,7 +21,7 @@ Lieux réalistes en photo (`img/scenes/`), personnages photographiques détouré
 ## Publication gratuite, sans publicité (GitHub Pages)
 
 1. Dépôt › Settings › Pages › **Source : GitHub Actions**.
-2. La publication démarre à chaque mise à jour de la branche principale ; l'adresse est `https://<compte>.github.io/Kelasi-game-/`.
+2. La publication démarre à chaque mise à jour de la branche principale ; l'adresse est `https://<compte>.github.io/boyekoli-play/`.
 
 Aucune bannière publicitaire.
 

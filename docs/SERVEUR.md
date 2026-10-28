@@ -44,4 +44,4 @@ Paiement en ligne (mobile money, carte), limitation du nombre d’inscriptions p
 
 Évaluations (minuteur, QCM, anti-triche), communiqués avec accusé de lecture, notifications push (FCM/APNs) et options Android natives (FLAG_SECURE, épinglage d'écran) : à concevoir ; les notifications push et FLAG_SECURE exigent une application Android native (hors application web).
 
-Confirmation d'adresse : le lien de l'e-mail ramène vers l'adresse du jeu seulement si elle figure dans Supabase > Authentication > URL Configuration (Site URL et Redirect URLs = https://hippolytengondo-commits.github.io/Kelasi-game-/). Sinon, Supabase renvoie vers localhost:3000 (valeur par défaut).
+Confirmation d'adresse : le lien de l'e-mail ramène vers l'adresse du jeu seulement si elle figure dans Supabase > Authentication > URL Configuration (Site URL et Redirect URLs = https://hippolytengondo-commits.github.io/boyekoli-play/). Sinon, Supabase renvoie vers localhost:3000 (valeur par défaut).
