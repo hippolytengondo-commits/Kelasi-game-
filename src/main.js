@@ -22,6 +22,7 @@ import {extendVille,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
+import {construireRes,prixTerrain,NIVEAUX,NB_TERRAINS} from './quartier_res.js';
 import {TERRITOIRES_LISTE,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -241,6 +242,11 @@ function construireVille(){
   ext.doors.forEach(d=>{const sp=SCENES[d.to].spawn;d.tx=sp.x;d.tz=sp.z;d.phi=sp.phi});
   SCENES.ville.doors=DOORS_VILLE.concat(ext.doors);
   ext.lots.forEach(l=>{const dd=SCENES[l.scene].doors[0];dd.tx=l.retour.x;dd.tz=l.retour.z;dd.phi=l.retour.phi});
+  // quartier résidentiel du joueur (terrains à acheter et maisons à construire)
+  const qr=construireRes(w,{n:G.adv.terrains||0,niv:G.adv.maisRes||[],savoir:G.adv.savoir||0},{
+    acheter:k=>openBox({kind:'terrain',k:k,msg:''}),ouvrir:k=>openBox({kind:'terrain',k:k,msg:''}),
+    verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
+  SCENES.ville.spots=qr.spots;
   return w;
 }
 // libère la mémoire graphique des scènes quittées (important sur téléphone)
@@ -350,12 +356,12 @@ function objective(){
 }
 function refreshHud(){
   const pu=photoUrl();
-  $('stats').innerHTML=(pu?`<img class="av" src="${pu}" alt="">`:'')+'🪙 '+G.adv.pieces+' · ⭐ '+starsTotal()+' · Niv '+lvl();
+  $('stats').innerHTML=(pu?`<img class="av" src="${pu}" alt="">`:'')+'🪙 '+G.adv.pieces+' · 🎓 '+(G.adv.savoir||0)+' · ⭐ '+starsTotal()+' · Niv '+lvl();
   if(G.mode!=='mini')$('info').textContent=objective();
 }
-function gain(p,xp){
+function gain(p,xp,sv){
   const l0=lvl();
-  G.adv.pieces+=p;G.adv.xp+=xp;
+  G.adv.pieces+=p;G.adv.xp+=xp;if(sv)G.adv.savoir=(G.adv.savoir||0)+sv;
   if(lvl()>l0){toast('Niveau '+lvl()+' atteint !'+(LEVEL_UNLOCKS[lvl()]?' Nouvelle tenue débloquée !':''));SFX.win()}
   refreshHud();save();
 }
@@ -425,6 +431,7 @@ function closeDialog(){
   G.mode='play';
   $('actwrap').classList.remove('hide');
   if(G.sc==='maison')buildScene();
+  if(G.refaireVille){G.refaireVille=false;if(G.sc==='ville')buildScene()}
   refreshHud();
 }
 const MAT_FR=new Set(['francais','lecture','contes']);
@@ -448,6 +455,7 @@ function renderDialog(){
   else if(d.kind==='info')h=htmlInfo(d);
   else if(d.kind==='shop')h=htmlShop(d);
   else if(d.kind==='maison')h=htmlMaison(d);
+  else if(d.kind==='terrain')h=htmlTerrain(d);
   else if(d.kind==='menu')h=htmlMenu(d);
   else if(d.kind==='profile')h=htmlProfile(d);
   else if(d.kind==='map')h=htmlMap(d);
@@ -532,7 +540,7 @@ function jeuErreur(d,indice){d.errs++;d.j.err++;d.j.msg=indice||'Pas tout à fai
 function jeuFini(d){
   const first=d.j.err===0,coin=first?5:1;
   if(first)d.pts=(d.pts||0)+1;
-  d.gain+=coin;gain(coin,first?10:3);SFX.bravo();
+  d.gain+=coin;gain(coin,first?10:3,first?10:3);SFX.bravo();
   d.ji++;
   if(d.ji>=d.jeux.length){
     if(d.qs.length){d.stage='q';d.qi=0;d.opts=null;d.bad=[];d.qerr=false}
@@ -584,7 +592,7 @@ function answerQ(i){
   if(first){G.adv.good++;d.firsts++;d.pts=(d.pts||0)+1}
   const coin=d.rev?(first?2:0):(first?5:1);
   d.gain+=coin;d.fbFirst=first;
-  gain(coin,first?(d.rev?4:10):3);
+  gain(coin,first?(d.rev?4:10):3,first?(d.rev?4:10):3);
   SFX.bravo();d.stage='fb';renderDialog();
 }
 function nextQ(){
@@ -695,6 +703,45 @@ function construire(k){
   if(m.length){d.msg='Il te manque : '+m.join(' · ');SFX.ko();renderDialog();return}
   Object.keys(c.cout).forEach(x=>{if(x==='pieces')a.pieces-=c.cout[x];else stock()[x]-=c.cout[x]});
   mf[k]=true;save();refreshHud();SFX.win();
+  d.msg='Chantier terminé : '+c.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
+}
+// ---------- Quartier résidentiel : terrains et maisons ----------
+const coutTexte=c=>Object.keys(c).map(k=>c[k]+' '+(k==='pieces'?'🪙':RESS[k].e)).join(' · ');
+function htmlTerrain(d){
+  const a=G.adv,k=d.k,n=a.terrains||0,niv=(a.maisRes||[])[k]||0;
+  let h=`<h3>🏘 Terrain n°${k+1}</h3><p class="row"><span>Mes points de savoir</span><b>${a.savoir||0} 🎓</b></p><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Mon sac</span><b>${esc(texteSac())}</b></p>`;
+  if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
+  if(k===n){
+    const prix=prixTerrain(k),ok=(a.savoir||0)>=prix;
+    h+=`<p style="font-size:13px">Un terrain dans ton quartier résidentiel. Les points de savoir se gagnent en réussissant des missions : plus tu apprends, plus ta ville grandit. Chaque terrain coûte plus cher que le précédent.</p>`
+      +`<button class="${ok?'p':''}" onclick="acheterTerrain(${k})">Acheter ce terrain : ${prix} 🎓${ok?'':' — il te manque '+(prix-(a.savoir||0))+' 🎓'}</button>`;
+  }else if(k<n){
+    if(niv>=NIVEAUX.length)h+=`<p>✔ ${NIVEAUX[niv-1].ico} ${esc(NIVEAUX[niv-1].n)} : ton terrain est entièrement construit.</p>`;
+    else{
+      const c=NIVEAUX[niv],m=manque({cout:c.cout});
+      if(niv>0)h+=`<p>Actuellement : ${NIVEAUX[niv-1].ico} ${esc(NIVEAUX[niv-1].n)}</p>`;
+      h+=`<button class="${m.length?'':'p'}" onclick="construireTerrain(${k})">${c.ico} ${esc(niv?'Améliorer : ':'Construire : ')}${esc(c.n)}<br><small>${esc(c.d)}</small><br><small>Coût : ${coutTexte(c.cout)}${m.length?' — il te manque : '+m.join(' · '):''}</small></button>`;
+    }
+    h+=`<p style="font-size:12px">Récolte des matériaux dans les mini-jeux, ou achète-les chez Maman Béa.</p>`;
+  }
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function acheterTerrain(k){
+  const a=G.adv,d=G.dialog,prix=prixTerrain(k);
+  if(k!==(a.terrains||0))return;
+  if((a.savoir||0)<prix){d.msg='Il te manque '+(prix-(a.savoir||0))+' points de savoir : réussis encore des missions !';SFX.ko();renderDialog();return}
+  a.savoir-=prix;a.terrains=k+1;if(!a.maisRes)a.maisRes=[];
+  G.refaireVille=true;save();refreshHud();SFX.win();
+  d.msg='Félicitations ! Le terrain n°'+(k+1)+' est à toi. Ferme ce menu pour le voir, puis construis ta maison.';renderDialog();
+}
+function construireTerrain(k){
+  const a=G.adv,d=G.dialog;if(k>=(a.terrains||0))return;
+  if(!a.maisRes)a.maisRes=[];
+  const niv=a.maisRes[k]||0;if(niv>=NIVEAUX.length)return;
+  const c=NIVEAUX[niv],m=manque({cout:c.cout});
+  if(m.length){d.msg='Il te manque : '+m.join(' · ');SFX.ko();renderDialog();return}
+  Object.keys(c.cout).forEach(x=>{if(x==='pieces')a.pieces-=c.cout[x];else stock()[x]-=c.cout[x]});
+  a.maisRes[k]=niv+1;G.refaireVille=true;save();refreshHud();SFX.win();
   d.msg='Chantier terminé : '+c.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
 }
 let mjJeu=null;
@@ -1179,7 +1226,7 @@ const M3=createMission3D({
     const d=G.dialog;if(!d)return;
     if(type==='choix'){G.adv.total++;if(first){G.adv.good++;d.firsts++}}
     if(first)d.pts=(d.pts||0)+1;
-    const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?4:10):3);
+    const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?4:10):3,first?(d.rev?4:10):3);
   },
   erreur:()=>{if(G.dialog)G.dialog.errs++},
   fin:()=>finMission3D()
@@ -1686,7 +1733,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{acheterTerrain,construireTerrain,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
