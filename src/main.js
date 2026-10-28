@@ -24,6 +24,7 @@ import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
 import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,NB_TERRAINS} from './quartier_res.js';
 import {coutRoute,COUT_ROND} from './routes.js';
+import {buildInterieur} from './interieurs.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -172,6 +173,7 @@ const SCENES={
    {x:42,z:-5.3,r:2.6,to:'classe',label:'Entrer dans l’école',ok:()=>doorOpen(),closed:'Porte fermée',tx:0,tz:2.6,phi:-Math.PI/2}]},
  maison:{build:()=>construireMaison(),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}],
    spots:[{x:-1.6,z:-2.2,r:1.9,label:'Miroir : changer mon look',run:()=>openCreator('play')},{x:-1.0,z:-.6,r:1.9,label:'Plans : construire ma maison',run:()=>openMaison()}]},
+ interieur:{build:()=>{const w=buildInterieur(G.int.t,G.int.n),r=G.int.ret;SCENES.interieur.doors=[{x:0,z:w.dim.D/2-.9,r:1.6,to:'ville',label:'Sortir',tx:r.x,tz:r.z,phi:r.phi}];G.x=0;G.z=w.dim.D/2-2.2;return w},interior:true,doors:[],spots:[]},
  chambre:{build:()=>buildChambre(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:3.2,tz:1.2,phi:Math.PI}]},
  cuisine:{build:()=>buildCuisine(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:-3.2,tz:1.2,phi:0}]},
  etage:{build:()=>buildEtage(G.adv.maison),interior:true,doors:[{x:3.6,z:.8,r:1.7,to:'maison',label:'Descendre l’escalier',tx:3.1,tz:.6,phi:Math.PI}]},
@@ -246,6 +248,7 @@ function construireVille(){
   // quartier résidentiel du joueur (terrains à acheter et maisons à construire)
   const qr=construireRes(w,{n:G.adv.terrains||0,bat:batsRes(),pave:pave,rond:!!G.adv.rond},{
     rond:()=>openBox({kind:'rond',msg:''}),
+    entrer:(k,b,ret)=>{G.int={t:b.t,n:b.n,ret:ret};goTo({to:'interieur',tx:0,tz:0,phi:-Math.PI/2})},
     acheter:k=>openBox({kind:'terrain',k:k,msg:''}),ouvrir:k=>openBox({kind:'terrain',k:k,msg:''}),
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});

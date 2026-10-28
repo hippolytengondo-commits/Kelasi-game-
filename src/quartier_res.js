@@ -228,6 +228,7 @@ export function construireRes(w,etat,cb){
     const fx=p.x+(p.side?-DEMI-1.2:DEMI+1.2);
     const lab=annexe?'Annexe du terrain n°'+(bat.annexe+1):possede?(bat?nomBatiment(bat)+' (terrain n°'+(k+1)+')':'Construire sur mon terrain n°'+(k+1)):vente?'Acheter le terrain n°'+(k+1)+' · '+prixTerrain(k)+' points de savoir':'Terrain n°'+(k+1)+' : achète d’abord le précédent';
     spots.push({x:fx,z:p.z,r:3.6,label:lab,run:()=>possede?cb.ouvrir(k):vente?cb.acheter(k):cb.verrou(k)});
+    if(bat&&!annexe&&bat.t!=='sport')spots.push({x:p.x+(p.side?-3.9:3.9),z:p.z,r:1.5,label:'Entrer : '+nomBatiment(bat),run:()=>cb.entrer(k,bat,{x:fx,z:p.z,phi:p.side?Math.PI/2:-Math.PI/2})});
   }
   w.bounds.z0=Math.min(w.bounds.z0,limiteNord);
   return {spots};
