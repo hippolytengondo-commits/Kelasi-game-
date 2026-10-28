@@ -998,8 +998,8 @@ STAGES.push(
   const libres=[];
   const PX=[-5,5.5,0.2],PZ=[-5.5,-5.5,-7.8],PRY=[0.3,-0.4,0];
   LIEUX.forEach(l0=>{
-    // provinces et territoires de la RDC : toujours libres, le joueur choisit lesquels explorer
-    const l=/^(tr|pv)_/.test(l0.id)?Object.assign({},l0,{libre:true}):l0;
+    // provinces et territoires de la RDC : dans le cursus, mais toujours accessibles (missions sans prérequis)
+    const l=l0,acces=/^(tr|pv)_/.test(l0.id);
     const st={id:l.id,scene:l.id,name:l.nom,icon:l.ico,npcs:l.npc.map(n=>n.id)};
     if(l.libre){st.libre=true;libres.push(st)}else STAGES.push(st);
     l.npc.forEach((n,k)=>{
@@ -1007,12 +1007,12 @@ STAGES.push(
       SUJETS[n.suj]=n.lib;
       const sx=n.s,i=n0++;
       const suivant=l.npc[k+1];
-      NPC[n.id]={sc:l.id,x:PX[k],z:PZ[k],ry:PRY[k],name:n.nom,short:n.court,role:n.role,kind:'quiz',sujet:n.suj,nb:3,needs:l.libre?null:prev,
+      NPC[n.id]={sc:l.id,x:PX[k],z:PZ[k],ry:PRY[k],name:n.nom,short:n.court,role:n.role,kind:'quiz',sujet:n.suj,nb:3,needs:(l.libre||acces)?null:prev,
         look:{s:sx,h:sx==='h'?1.0:0.97,skin:PEAUX[i%PEAUX.length],c:TEINTES[i%TEINTES.length],k:TENUES[i%TENUES.length],co:CHEV[sx][i%3],faceKey:VISAGES[sx][i%VISAGES[sx].length]},
         intro:n.intro||[n.salut,'Voyons ce que tu sais !'],
         outro:l.libre?(suivant?'Bien joué ! '+suivant.nom+' te parlera de '+suivant.lib.toLowerCase()+'.':'Bravo ! Tu connais bien ce territoire. Reviens à la carte des lieux pour en explorer un autre.'):
           (suivant?'Bien joué ! '+suivant.nom+' te parlera de '+suivant.lib.toLowerCase()+'.':'Bravo ! Un nouveau lieu t’attend en ville : suis la route jaune.')};
-      if(!l.libre)prev=n.id;
+      if(!l.libre&&!acces)prev=n.id;
     });
   });
   NPC.lubaki.needs=prev;

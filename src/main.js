@@ -44,6 +44,18 @@ const getSave=()=>({ui:G.ui,nom:G.nom,photo:G.photo,real:G.real,voice:G.voice,lo
 function save(){try{localStorage.setItem(KEY,JSON.stringify(getSave()))}catch(e){}CLOUD.planifierSauvegarde(getSave)}
 const doneNpc=id=>!!G.adv.done[id];
 const locked=id=>{const n=NPC[id];return !!(n.needs&&!doneNpc(n.needs))};
+// provinces et territoires : dans le cursus mais toujours accessibles ; missions scolaires du cursus : une ou deux à réussir avant certaines missions
+const accesLibre=st=>/^(tr|pv)_/.test(st.id);
+const SCH={};   // id de mission d'exploration -> [{n,m,i,k}] missions scolaires à réussir d'abord
+function assignerScolaire(){
+  const file=[];
+  PROGRAMME.forEach(n=>{const q=n.matieres.map(m=>m.missions.map((t,i)=>({n:n,m:m,i:i,t:t,k:missionCle(n.id,m.id,i)})).filter(e=>CONTENU[e.k]));
+    for(let r=0;q.some(a=>a[r]);r++)q.forEach(a=>{if(a[r])file.push(a[r])})});
+  const ids=[];STAGES.forEach((st,i)=>{if(i<1||st.libre||st.id==='place')return;st.npcs.forEach(id=>{if(NPC[id]&&NPC[id].needs)ids.push(id)})});
+  const N=ids.length;let a=0;
+  ids.forEach((id,j)=>{const b=Math.floor((j+1)*file.length/N);if(b>a)SCH[id]=file.slice(a,b);a=b});
+}
+const schoolReq=id=>(SCH[id]||[]).find(e=>!G.adv.done['cur:'+e.k]);
 const doorOpen=()=>doneNpc('lola');
 const lvl=()=>1+Math.floor(G.adv.xp/50);
 const starsTotal=()=>Object.values(G.adv.stars).reduce((a,b)=>a+b,0);
@@ -427,6 +439,7 @@ function actionFor(t){
     if(n.kind==='shop')return {label:'Aller au marché',enabled:true,run:openShop};
     if(n.kind==='talk')return {label:parler(n),enabled:true,run:()=>openTalk(t.id)};
     if(locked(t.id))return {label:n.short+' est occupé(e), reviens plus tard',enabled:false,run:null};
+    {const r=schoolReq(t.id);if(r&&!doneNpc(t.id))return {label:'🎓 D’abord : '+r.m.nom+' · '+r.n.nom+' (mission '+(r.i+1)+')',enabled:true,run:()=>startMission(r.n.id,r.m.id,r.i)}}
     if(doneNpc(t.id))return {label:'Réviser avec '+n.short,enabled:true,run:()=>startQuiz(t.id,true)};
     return {label:parler(n),enabled:true,run:()=>startQuiz(t.id,false)};
   }
@@ -1259,7 +1272,7 @@ $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 
 // ---------- Niveaux et carte ----------
 const stageDone=st=>st.npcs.every(doneNpc);
-const stageUnlocked=i=>i===0||!!STAGES[i].libre||stageDone(STAGES[i-1]);
+const stageUnlocked=i=>i===0||!!STAGES[i].libre||accesLibre(STAGES[i])||stageDone(STAGES[i-1]);
 function stageStars(st){return st.npcs.reduce((a,id)=>a+(G.adv.stars[id]||0),0)}
 // ---------- Missions scolaires (programme) ----------
 function openProg(){openBox({kind:'prog',niv:null,mat:null})}
@@ -1533,13 +1546,13 @@ function htmlMap(){
   let h='<h3>Carte des lieux</h3><p style="font-size:13px">Choisis un lieu. Chaque niveau se débloque quand tu as fini le précédent.</p>'
     +`<button class="j" onclick="openCongo()">🇨🇩 Explorer le Congo : provinces et territoires</button><button class="j" onclick="closeDialog();openProg()">🎓 Missions scolaires : toutes les classes</button>`;
   STAGES.forEach((st,i)=>{
-    if(st.libre)return;
+    if(st.libre||accesLibre(st))return;
     const ok=stageUnlocked(i),n=st.npcs.filter(doneNpc).length,done=stageDone(st);
     h+=`<button ${ok?'':'disabled'} onclick="travel('${st.id}')"><b>${st.icon} ${esc(st.name)}</b><br><small>${ok?(done?'✔ Terminé · ':'')+n+'/'+st.npcs.length+' personnes rencontrées · ★ '+stageStars(st):'🔒 Termine « '+esc(STAGES[i-1].name)+' » pour débloquer'}</small></button>`;
   });
   h+=htmlLibre(d);
   // par province (accès direct aux lieux)
-  const libres=STAGES.filter(st=>st.libre);
+  const libres=STAGES.filter(st=>st.libre||accesLibre(st));
   if(libres.length){
     const prov={};libres.forEach(st=>{const p=PROV_DE[st.id]||'Autres';(prov[p]=prov[p]||[]).push(st)});
     const tot=libres.reduce((a,st)=>a+st.npcs.length,0),fait=libres.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0);
@@ -1592,7 +1605,7 @@ const SERIE=10;
 let _libre=null;
 function missionsLibres(){
   if(_libre)return _libre;
-  const libres=STAGES.filter(st=>st.libre);
+  const libres=STAGES.filter(st=>st.libre||accesLibre(st));
   // missions des territoires : les 3 missions d'un même lieu sont séparées (une passe par rang de mission)
   const tr=[];for(let k=0;k<3;k++)libres.forEach(st=>{if(st.npcs[k])tr.push({kind:'tr',st:st,id:st.npcs[k]})});
   // missions scolaires : on tourne entre les classes et les matières pour ne pas enchaîner les mêmes
@@ -1961,6 +1974,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
 const playerChar=()=>['pf1','pf2','ph1','ph2'].includes(G.real)?G.real:(G.look.s==='f'?'pf1':'ph1');
 const makePlayer3D=()=>makeHuman(Object.assign({},G.look,{h:1},playerFace()));
 const PA={makePlayer3D,playerChar,G,NPC,AUTOP,AUTO,actionFor,locked,doneNpc,doorOpen,toast,speak,SFX,gain,save,refreshHud,openBox,esc,hasChar,openObjs};
+assignerScolaire();
 initPhoto(PA);const PM=PA.photo;
 function init(){
   const s=readSave();
