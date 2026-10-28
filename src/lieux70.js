@@ -81,5 +81,8 @@ export const LIEUX=[];
   for(let k=0;k<2&&t<THEMATIQUES.length;k++)LIEUX.push(THEMATIQUES[t++]);
   if(p<PROVINCES.length)LIEUX.push(PROVINCES[p++]);
 }})();
-// lieux d'exploration libre (un par territoire) : ajoutés à la fin
-LIEUX_TR.forEach(l=>LIEUX.push(l));
+// les 145 lieux « territoires » sont fusionnés avec les autres : après chaque lieu existant, deux territoires (par province)
+(function(){const base=LIEUX.splice(0,LIEUX.length);let k=0;
+  base.forEach(l=>{LIEUX.push(l);for(let j=0;j<2&&k<LIEUX_TR.length;j++)LIEUX.push(LIEUX_TR[k++])});
+  while(k<LIEUX_TR.length)LIEUX.push(LIEUX_TR[k++]);
+})();

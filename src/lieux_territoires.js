@@ -1,7 +1,7 @@
 import {TERRITOIRES_LISTE as T,BUILD,TITRES,dn,slug} from './territoires_gen.js';
 
 // 145 lieux d'exploration libre : un par territoire de la RDC, avec 3 missions (3 personnes à rencontrer).
-// Ces lieux ne font pas partie de l'aventure obligatoire : ils s'ouvrent depuis la « Carte des lieux ».
+// Ils sont fusionnés avec les autres lieux d'exploration (voir lieux70.js) et suivent la même progression.
 const NOMS_H=['Kanku','Lumbala','Mukendi','Mbangu','Kitoko','Bosenge','Lokuli','Ekofo','Ilumbe','Elonga','Mpia','Nkoy','Bolamba','Dumbi','Mayele','Kasongo','Tshibola'];
 const NOMS_F=['Mputu','Tshala','Ngalula','Kapya','Bokele','Likasi','Bosolo','Lisanga','Ekila','Bolenge','Itela','Zuzi','Lola','Nsona','Mapendo','Safi','Neema'];
 // style du lieu selon la province : [ressource du mini-jeu, décor, murs, accent]
@@ -21,6 +21,7 @@ const ROLES=[
   ['Statisticien','le statisticien','la statisticienne','Chiffres du territoire'],
   ['Administrateur','l’administrateur','l’administratrice','Administration du territoire']];
 
+const ORDRE=[];T.forEach(t=>{if(!ORDRE.includes(t.prov))ORDRE.push(t.prov)});
 export const LIEUX_TR=T.map((t,i)=>{
   const st=STY[t.prov]||['legume','plein_air','#d9c27a','#2e7d4a'];
   const style=st[0]==='poisson'?'peche':(i%3===1?'tap':'fall');
@@ -32,5 +33,5 @@ export const LIEUX_TR=T.map((t,i)=>{
       salut:m.intro[0],intro:[...m.intro,'Voyons ce que tu sais !'],suj:'tr_'+sl+'_'+'abc'[j],lib:TITRES[j](t.nom),
       qs:m.qs.map(q=>[q.q,q.a,...q.c.filter(x=>x!==q.a),q.exp])};
   });
-  return {id:'tr_'+sl,nom:'Territoire '+dn(t.nom),ico:'🗺️',arch:st[1],wall:st[2],accent:st[3],seed:700+i,mj:[st[0],style],npc:npc,libre:true};
-});
+  return {id:'tr_'+sl,nom:'Territoire '+dn(t.nom),ico:'🗺️',arch:st[1],wall:st[2],accent:st[3],seed:700+i,mj:[st[0],style],npc:npc};
+}).map((l,i)=>[l,i]).sort((a,b)=>ORDRE.indexOf(T[a[1]].prov)-ORDRE.indexOf(T[b[1]].prov)||a[1]-b[1]).map(x=>x[0]);
