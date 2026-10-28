@@ -997,7 +997,9 @@ STAGES.push(
   let n0=0;
   const libres=[];
   const PX=[-5,5.5,0.2],PZ=[-5.5,-5.5,-7.8],PRY=[0.3,-0.4,0];
-  LIEUX.forEach(l=>{
+  LIEUX.forEach(l0=>{
+    // provinces et territoires de la RDC : toujours libres, le joueur choisit lesquels explorer
+    const l=/^(tr|pv)_/.test(l0.id)?Object.assign({},l0,{libre:true}):l0;
     const st={id:l.id,scene:l.id,name:l.nom,icon:l.ico,npcs:l.npc.map(n=>n.id)};
     if(l.libre){st.libre=true;libres.push(st)}else STAGES.push(st);
     l.npc.forEach((n,k)=>{

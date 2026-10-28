@@ -222,7 +222,7 @@ LIEUX.forEach((l,li)=>{
     doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]};
   {const st=varier(l.mj[0],l.mj[1],li);MJ[l.id]={r:l.mj[0],s:st,t:'Mini-jeu : '+l.nom,d:DESC_MJ[st]}}
 });
-const PROV_DE={};TERRITOIRES_LISTE.forEach(t=>{PROV_DE['tr_'+slugTr(t.nom)]=t.prov});
+const PROV_DE={};TERRITOIRES_LISTE.forEach(t=>{PROV_DE['tr_'+slugTr(t.nom)]=t.prov;PROV_DE['pv_'+slugTr(t.prov)]=t.prov});
 const DOORS_VILLE=SCENES.ville.doors.slice();
 const DOORS_MAISON=SCENES.maison.doors.slice();
 function construireMaison(){
@@ -1503,7 +1503,7 @@ function htmlMap(){
   if(libres.length){
     const prov={};libres.forEach(st=>{const p=PROV_DE[st.id]||'Autres';(prov[p]=prov[p]||[]).push(st)});
     const tot=libres.reduce((a,st)=>a+st.npcs.length,0),fait=libres.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0);
-    h+=`<h3 style="margin-top:14px">🗺️ Territoires de la RDC · exploration libre</h3><p style="font-size:13px">${libres.length} territoires, 3 missions chacun, ouverts dès maintenant. ${fait}/${tot} missions réussies.</p>`;
+    h+=`<h3 style="margin-top:14px">🗺️ Territoires de la RDC · exploration libre</h3><p style="font-size:13px">${libres.length} lieux (provinces et territoires), ouverts dès maintenant : tu choisis librement où aller. ${fait}/${tot} missions réussies.</p>`;
     Object.keys(prov).forEach(p=>{
       const L=prov[p],f=L.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0),t=L.reduce((a,st)=>a+st.npcs.length,0),ouvert=d.prov===p;
       h+=`<button class="j" onclick="mapProv('${p.replace(/'/g,'’')}')"><b>${ouvert?'▾':'▸'} ${esc(p)}</b> · ${L.length} territoires · ${f}/${t}</button>`;
