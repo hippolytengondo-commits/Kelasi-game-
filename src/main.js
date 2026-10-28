@@ -1151,7 +1151,7 @@ function loop(now){
   if(G.mode==='m3d'&&M3.actif())M3.mettreAJour(dt,tt,{x:G.x,z:G.z});
   // porte de sortie de l'arène : proposer de rentrer au quartier
   if(G.sc==='arene'&&G.mode==='m3d'){
-    const dp=Math.hypot(G.x,G.z-10.3);
+    const dp=Math.hypot(G.x,G.z-14.3);
     if(dp<1.9&&!G.sortieDemandee){G.sortieDemandee=true;G.auto=null;G.joy.x=G.joy.y=0;$('sortie').classList.remove('hide')}
     else if(dp>3.4)G.sortieDemandee=false;
   }

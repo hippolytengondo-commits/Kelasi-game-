@@ -132,6 +132,8 @@ export function createMission3D(env){
     eclat(j.position.x,1.0,j.position.z,0xff6b6b,24);
     u.pad.material.color.set('#c0392b');u.pad.material.emissive.set('#c0392b');
     S.secoue=j;S.secT=.5;
+    // comme après une bonne réponse, le héros revient au point de départ
+    setTimeout(()=>{if(S&&!S.fini&&env.recentrer)env.recentrer()},650);
     if(!rester){u.actif=false;u.sp.material.opacity=.35}
     else setTimeout(()=>{if(S&&u.pad){u.pad.material.color.copy(u.col);u.pad.material.emissive.copy(u.col)}},800);
     hud({prog:(S.i+1)+' / '+S.etapes.length,q:S.etape.q||S.etape.consigne,sous:S.sousAff||'',msg:message||'Pas tout à fait. Réfléchis encore !'});

@@ -41,17 +41,17 @@ export function buildArene(matiere){
   // panneau de la zone, derrière les réponses
   const s=sign(th.titre,th.sous,8,1.3,'#1a3a5f','#fff');s.position.set(0,5.6,-13.5);g.add(s);cyl(g,.12,.14,5.6,std('#5a3a22'),-3.6,2.8,-13.45,8);cyl(g,.12,.14,5.6,std('#5a3a22'),3.6,2.8,-13.45,8);
   // porte de sortie : retour au quartier (derrière le point de départ)
-  const gz=11.4,bois=std('#8a5a32',.8);
+  const gz=15.4,bois=std('#8a5a32',.8);
   [-1.9,1.9].forEach(x=>{box(g,.5,3.7,.5,bois,x,1.85,gz);box(g,.7,.25,.7,std('#cfc6b2'),x,.12,gz);colliders.push({x:x,z:gz,r:.5})});
   box(g,4.7,.5,.6,bois,0,3.8,gz);
   const ps=sign('SORTIE','Retour au quartier',3.6,1.0,'#1f7a4d','#fff');ps.position.set(0,4.75,gz);ps.rotation.y=Math.PI;g.add(ps);
   const ps2=sign('SORTIE','Retour au quartier',3.6,1.0,'#1f7a4d','#fff');ps2.position.set(0,4.75,gz+.02);g.add(ps2);
   const vide=new THREE.Mesh(new THREE.PlaneGeometry(3.3,3.5),new THREE.MeshBasicMaterial({color:0x8dffb8,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}));vide.position.set(0,1.75,gz);g.add(vide);
-  const anneau2=new THREE.Mesh(new THREE.RingGeometry(.9,1.4,40),new THREE.MeshBasicMaterial({color:0x2ecc71,transparent:true,opacity:.75,side:THREE.DoubleSide}));anneau2.rotation.x=-Math.PI/2;anneau2.position.set(0,.05,10.3);g.add(anneau2);
+  const anneau2=new THREE.Mesh(new THREE.RingGeometry(.9,1.4,40),new THREE.MeshBasicMaterial({color:0x2ecc71,transparent:true,opacity:.75,side:THREE.DoubleSide}));anneau2.rotation.x=-Math.PI/2;anneau2.position.set(0,.05,14.3);g.add(anneau2);
   // bulles de lumière flottantes
   const orbs=[];for(let i=0;i<16;i++){const o=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),new THREE.MeshBasicMaterial({color:th.accent,transparent:true,opacity:.7}));
     o.position.set((r()-.5)*28,2+r()*5,(r()-.5)*24);o.userData.p=r()*6;g.add(o);orbs.push(o)}
   const grass=grassField({area:[-30,30,-26,26],count:5000,seed:61,exclude:(x,z)=>Math.hypot(x,z)<15.5});g.add(grass);
-  return {group:g,colliders,boxes,dyn:{},exit:{x:0,z:9},bounds:{x0:-15,x1:15,z0:-12.5,z1:12.5},sky:th.sky,
+  return {group:g,colliders,boxes,dyn:{},exit:{x:0,z:9},bounds:{x0:-15,x1:15,z0:-12.5,z1:16.2},sky:th.sky,
     update(dt,t){grass.userData.update(t);vide.material.opacity=.16+.1*Math.sin(t*2.2);orbs.forEach(o=>{o.position.y+=Math.sin(t*1.2+o.userData.p)*.004;o.material.opacity=.45+.3*Math.sin(t*2+o.userData.p)})}};
 }
