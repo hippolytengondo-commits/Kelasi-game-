@@ -15,7 +15,7 @@ import {C11,J11,K11} from './programme11.js';
 const L=(...a)=>a;
 export const PROGRAMME=[
  {id:'p1',nom:'1re primaire',matieres:[
-  {id:'fr',nom:'Français',missions:L('Les voyelles : a, e, i, o, u','Les consonnes simples','Les syllabes','Lire des mots simples','Écrire son prénom','Les mots de la famille','Les mots de l’école','Les phrases courtes','Le point et la majuscule','Lire une petite histoire','Décrire un objet','Parler de soi')},
+  {id:'fr',nom:'Français',missions:L('Les voyelles : a, e, i, o, u, y','Les consonnes simples','Les syllabes','Lire des mots simples','Écrire son prénom','Les mots de la famille','Les mots de l’école','Les phrases courtes','Le point et la majuscule','Lire une petite histoire','Décrire un objet','Parler de soi')},
   {id:'ma',nom:'Mathématiques',missions:L('Les nombres de 1 à 5','Les nombres de 6 à 10','Comparer : plus, moins, autant','Les nombres de 11 à 20','Compter jusqu’à 50','Additionner de petits nombres','Les formes : cercle, carré, triangle','Les grandeurs : long, court, grand, petit','Les positions : devant, derrière, dessus, dessous','Trier et classer les objets','Résoudre un premier problème simple','Révision et jeu de fin d’année')},
   {id:'ev',nom:'Éveil et civisme',missions:L('Mon corps et les cinq sens','L’hygiène quotidienne','Les animaux de mon milieu','Les plantes autour de moi','L’eau et sa propreté','La politesse et le respect','Ma famille et mon école','Protéger mon environnement')}]},
  {id:'p2',nom:'2e primaire',matieres:[
@@ -94,10 +94,11 @@ export const PROGRAMME=[
 // Contenu jouable : [explication (2 phrases), questions]
 const M=(intro,qs)=>({intro:intro,qs:qs});
 const C={};
-C['p1|fr|0']=M(['Les voyelles sont a, e, i, o, u. Il y en a cinq.','On les entend dans beaucoup de mots : a comme « avion », o comme « orange ».'],[
+C['p1|fr|0']=M(['L’alphabet français compte 6 voyelles : a, e, i, o, u et y.','Exemples : a comme « arbre », e comme « école », i comme « île », o comme « orange », u comme « usine », y comme « yeux ».'],[
  Q('Quelle lettre est une voyelle ?',['a','b','m','t'],'a','a est une voyelle.'),
- Q('Combien y a-t-il de voyelles ?',['3','5','7','10'],'5','Il y a cinq voyelles : a, e, i, o, u.'),
+ Q('Combien y a-t-il de voyelles dans l’alphabet français ?',['6','5','7','10'],'6','Il y a six voyelles : a, e, i, o, u et y.'),
  Q('Par quelle voyelle commence le mot « orange » ?',['o','a','i','u'],'o','« orange » commence par la voyelle o.'),
+ Q('Dans le mot « yeux », la première lettre est la voyelle…',['y','u','e','x'],'y','Le y est la sixième voyelle.'),
  Q('Quelle lettre n’est pas une voyelle ?',['m','e','i','o'],'m','m est une consonne.')]);
 C['p1|fr|1']=M(['Les consonnes sont toutes les lettres qui ne sont pas des voyelles : b, c, d, f, l, m, n, p, r, s, t…','Avec une voyelle, une consonne forme une syllabe : ma, bi, lo.'],[
  Q('Quelle lettre est une consonne ?',['m','a','e','o'],'m','m est une consonne.'),

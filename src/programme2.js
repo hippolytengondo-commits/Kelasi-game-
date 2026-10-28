@@ -189,7 +189,7 @@ export const JEUX={
 // ---------------- Missions « attrape dans l'air » : éléments flottants à collecter ----------------
 const COL=(consigne,items,indice,exp)=>({consigne:consigne,items:items.map(i=>[String(i[0]),i[1]]),indice:indice,exp:exp});
 export const COLLECTES={
- 'p1|fr|0':[COL('Attrape toutes les voyelles !',[['a',1],['b',0],['e',1],['m',0],['i',1],['t',0],['o',1],['u',1],['r',0]],'Les voyelles sont a, e, i, o, u.','Bravo ! Les voyelles sont a, e, i, o, u.')],
+ 'p1|fr|0':[COL('Attrape toutes les voyelles !',[['a',1],['b',0],['e',1],['m',0],['i',1],['t',0],['o',1],['u',1],['y',1],['r',0]],'Les voyelles sont a, e, i, o, u et y.','Bravo ! Les voyelles sont a, e, i, o, u et y.')],
  'p1|fr|1':[COL('Attrape toutes les consonnes !',[['b',1],['a',0],['m',1],['e',0],['t',1],['o',0],['l',1],['i',0],['s',1]],'Les consonnes sont les lettres qui ne sont pas des voyelles.','Bravo ! Ce sont toutes des consonnes.')],
  'p1|ma|1':[COL('Attrape les nombres de 6 à 10 !',[[3,0],[6,1],[9,1],[2,0],[8,1],[10,1],[7,1],[1,0]],'On cherche les nombres de 6 jusqu’à 10.','Bravo ! 6, 7, 8, 9 et 10.')],
  'p1|ma|3':[COL('Attrape les nombres plus grands que 15 !',[[12,0],[17,1],[20,1],[14,0],[19,1],[11,0],[16,1],[18,1]],'Il faut un nombre qui vient après 15.','Bravo ! 16, 17, 18, 19 et 20 sont plus grands que 15.')],
