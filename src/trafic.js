@@ -5,7 +5,14 @@ import * as THREE from 'three';
 const std=(c,r,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:r===undefined?.6:r},o||{}));
 const mats={};const M=(c,r,o)=>mats[c+(r||'')]||(mats[c+(r||'')]=std(c,r,o));
 
-function voiture(kind,col){
+export function moto(col){
+  const g=new THREE.Group();
+  const add=(w,h,d,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;g.add(b);return b};
+  add(.35,.4,1.5,M(col||'#c0392b'),0,.65,0);add(.3,.3,.6,M('#2b2b2b'),0,.95,-.1);add(.6,.06,.06,M('#333'),0,1.15,.7);add(.1,.5,.1,M('#999'),0,.8,.75);
+  const ro=M('#1b1b1b',.9);[.8,-.8].forEach(z=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.14,14),ro);w.rotation.z=Math.PI/2;w.position.set(0,.34,z);g.add(w)});
+  return g;
+}
+export function voiture(kind,col){
   const g=new THREE.Group();
   const add=(w,h,d,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;g.add(b);return b};
   const verre=M('#27384a',.2,{metalness:.3});

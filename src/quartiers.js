@@ -7,7 +7,7 @@ import {panneauPub} from './pub.js';
 import {sponsorN} from './sponsors.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
-import {bitumeDroit,bitumeAnneau} from './routes.js';
+import {bitumeDroit,bitumeAnneau,trottoirsDroit,trottoirsAnneau} from './routes.js';
 
 export const CX=-7;
 export let CZ=70;                    // centre de la place (calculé selon le nombre d'anneaux)
@@ -40,6 +40,8 @@ export function extendVille(w,etat,pave){
   flat(new THREE.PlaneGeometry(5.2,CZ-int0.route-12),dirtM,CX,.02,(14+CZ-int0.route)/2);
   AN.forEach(a=>flat(new THREE.RingGeometry(a.route-2.7,a.route+2.7,Math.min(160,72+a.k*40)),dirtM,CX,.02,CZ));
   // routes à bitumer : l'entrée, puis chaque anneau (le joueur les paie en bitume, pièces et points de savoir)
+  trottoirsDroit(g,CX,13,CZ-int0.route+1,5.2,1.6);
+  AN.forEach(a=>trottoirsAnneau(g,CX,CZ,a.route,5.4,1.0,Math.min(160,72+a.k*40)));
   const routes=[],pv=id=>pave&&pave.has(id);
   if(pv('entree'))bitumeDroit(g,CX,13,CZ-int0.route+1,5.2);else routes.push({id:'entree',type:'entree',i:0,x:CX+3.2,z:20,label:'Bitumer la route d’entrée'});
   AN.forEach(a=>{

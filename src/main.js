@@ -16,7 +16,8 @@ import {makePhotoChar} from './sprites.js';
 import {createRig} from './render.js';
 import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
-import {buildVille,buildClasse,buildMaison} from './world.js';
+import {buildVille,buildClasse,buildMaison,std,cyl} from './world.js';
+import * as TX from './textures.js';
 import {RESS,MJ,mjPos,marqueur,lancer,varier} from './minijeux.js';
 import {extendVille,CX,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
@@ -25,7 +26,8 @@ import {LIEUX} from './lieux70.js';
 import {construireRes,posTerrain,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,LOYER,LOYER_MAX_H,NB_TERRAINS} from './quartier_res.js';
 import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
-import {creerTrafic} from './trafic.js';
+import {creerTrafic,voiture,moto} from './trafic.js';
+import {AE,zArret,buildConduite,melanger} from './conduite.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -155,7 +157,7 @@ window.addEventListener('resize',resize);
 // ---------- Scènes ----------
 let W=null;            // scène courante {group,colliders,boxes,bounds,update,...}
 let playerObj=null;
-let npcObjs={};
+let npcObjs={};let vehObj=null,vehT=0;
 let mangoGroup=null;
 const FABRIC_BOX={mavungu:{top:[.27,.36,.42,.52],bottom:[.30,.62,.44,.78]},ilunga:{top:[.30,.40,.42,.58],skirt:[.30,.62,.70,.82]},lola:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]},bea:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]},mama:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]}};
 function npcLook(id,l){
@@ -189,6 +191,7 @@ const SCENES={
  interieur:{build:()=>{const w=buildInterieur(G.int.t,G.int.n),r=G.int.ret;SCENES.interieur.doors=[{x:0,z:w.dim.D/2-.9,r:1.6,to:'ville',label:'Sortir',tx:r.x,tz:r.z,phi:r.phi}];
    SCENES.interieur.spots=[{x:w.dim.W/2-1.4,z:w.dim.D/2-1.3,r:1.6,label:'Gérer ou améliorer cette construction',run:()=>openBox({kind:'terrain',k:G.int.k,msg:'',retInt:true})}];
    G.x=0;G.z=w.dim.D/2-2.2;return w},interior:true,doors:[],spots:[]},
+ conduite:{build:()=>{const w=buildConduite(AE[G.cond.m],G.cond.veh,makeHuman);G.cond.car=w.car;return w},interior:false,doors:[],spots:[]},
  chambre:{build:()=>buildChambre(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:3.2,tz:1.2,phi:Math.PI}]},
  cuisine:{build:()=>buildCuisine(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:-3.2,tz:1.2,phi:0}]},
  etage:{build:()=>buildEtage(G.adv.maison),interior:true,doors:[{x:3.6,z:.8,r:1.7,to:'maison',label:'Descendre l’escalier',tx:3.1,tz:.6,phi:Math.PI}]},
@@ -269,6 +272,14 @@ function construireVille(){
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
   ext.routes.forEach(r=>qr.spots.push({x:r.x,z:r.z,r:2.6,label:r.label,run:()=>bitumerRoute(r.id,r.type,r.i)}));
+  // concession (motos et voitures) et auto-école, dans le village
+  [[-15,5,'CONCESSION','Motos · Voitures','#b8860b'],[-15,-3,'AUTO-ÉCOLE','Permis · Conduite','#1f5f9e']].forEach(([x,z,t1,t2,bg])=>{
+    cyl(w.group,.07,.09,2.8,std('#5a3a22',.9),x,1.4,z,8);
+    const pn=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshStandardMaterial({map:TX.textBoard([{t:t1,s:80,y:.38},{t:t2,s:42,y:.75,b:false}],1024,512,bg,'#ffffff'),roughness:.6}));
+    pn.position.set(x,2.9,z+.06);w.group.add(pn);w.colliders.push({x:x,z:z,r:.35});
+  });
+  qr.spots.push({x:-13.2,z:5,r:2.4,label:'Concession : acheter une moto ou une voiture',run:()=>openBox({kind:'conc',msg:''})},
+                {x:-13.2,z:-3,r:2.4,label:'Auto-école : passer le permis et s’entraîner',run:()=>openBox({kind:'ae'})});
   SCENES.ville.spots=qr.spots;
   // circulation : piétons et véhicules, d'autant plus nombreux que le quartier se construit
   {
@@ -283,6 +294,7 @@ function construireVille(){
 // libère la mémoire graphique des scènes quittées (important sur téléphone)
 function liberer(o){o.traverse(c=>{if(c.geometry)c.geometry.dispose();const m=c.material;if(m)(Array.isArray(m)?m:[m]).forEach(x=>x.dispose())})}
 function clearScene(){
+  if(vehObj){scene.remove(vehObj);liberer(vehObj);vehObj=null}G.monte=null;
   if(W){scene.remove(W.group);liberer(W.group)}
   if(playerObj){scene.remove(playerObj);liberer(playerObj)}
   Object.values(npcObjs).forEach(o=>{scene.remove(o.obj);liberer(o.obj)});
@@ -378,7 +390,7 @@ function camDesired(dist){
   const t=camTarget();
   return new THREE.Vector3(t.x-dx*dist,t.y+dy*dist+.4,t.z-dz*dist);
 }
-const camDist=()=>G.camOverride||(SCENES[G.sc].interior?3.5:3.9);
+const camDist=()=>G.camOverride||(SCENES[G.sc].interior?3.5:3.9+(G.monte?2.4:0));
 function snapCamera(){
   const p=camDesired(camDist());camera.position.copy(p);camera.lookAt(camTarget());
 }
@@ -519,6 +531,9 @@ function renderDialog(){
   else if(d.kind==='maison')h=htmlMaison(d);
   else if(d.kind==='terrain')h=htmlTerrain(d);
   else if(d.kind==='route')h=htmlRoute(d);
+  else if(d.kind==='conc')h=htmlConc(d);
+  else if(d.kind==='ae')h=htmlAE(d);
+  else if(d.kind==='cond')h=htmlCond(d);
   else if(d.kind==='rond')h=htmlRond(d);
   else if(d.kind==='menu')h=htmlMenu(d);
   else if(d.kind==='profile')h=htmlProfile(d);
@@ -1168,6 +1183,8 @@ function loop(now){
   if(!W||(G.ui==='photo'&&G.mode!=='creator'))return;
   drawMini(now*1);
   const playing=G.mode==='play'||G.mode==='mini'||G.mode==='m3d';
+  if(G.mode==='cond')condTick(dt);
+  if(((tt*4)|0)!==vehT){vehT=(tt*4)|0;majVeh()}
   // déplacement
   let sp=0;
   if(playing){
@@ -1186,6 +1203,7 @@ function loop(now){
         mx=fx*iy+rx*ix;mz=fz*iy+rz*ix;const ml=Math.hypot(mx,mz);mx/=ml;mz/=ml;
         sp=mag<.7?mag/.7*2.5:2.5+(mag-.7)/.3*2.1;
       }
+      if(G.monte&&G.sc==='ville')sp*=G.monte==='moto'?2.3:2.9;
       const [nx,nz]=collide(G.x+mx*sp*dt,G.z+mz*sp*dt);
       G.x=nx;G.z=nz;
       const tr=Math.atan2(mx,mz);G.ry+=angDiff(G.ry,tr)*Math.min(1,dt*12);
@@ -1196,7 +1214,9 @@ function loop(now){
   if(sp===0)G.lean=0;
   G.speed=sp;
   playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
-  playerObj.userData.update(dt,{speed:sp,pose:G.mode==='creator'?'creator':'',cam:camera.position,lean:G.lean||0});
+  if(G.sc==='conduite')playerObj.visible=false;
+  else if(vehObj){vehObj.position.set(G.x,0,G.z);vehObj.rotation.y=G.ry;playerObj.visible=G.monte==='moto';playerObj.position.y=.45}
+  playerObj.userData.update(dt,{speed:G.monte?0:sp,pose:G.mode==='creator'?'creator':'',cam:camera.position,lean:G.lean||0});
   // PNJ
   Object.keys(npcObjs).forEach(id=>{
     const o=npcObjs[id],n=o.n;
@@ -1589,6 +1609,132 @@ function htmlMap(){
   }
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
 }
+// ---------- Véhicules et auto-école ----------
+const PRIX_VEH={moto:{n:'Moto',ico:'🏍',prix:250,d:'Rapide et économique, parfaite pour rejoindre les missions.'},auto:{n:'Voiture',ico:'🚗',prix:700,d:'Plus rapide encore, et confortable.'}};
+const vehs=()=>{const a=G.adv;if(!a.veh)a.veh={};return a.veh};
+const permis=()=>!!(G.adv.done.ae1&&G.adv.done.ae2);
+function majVeh(){
+  const bar=$('vehbar'),v=vehs();
+  const visible=G.mode==='play'&&G.sc==='ville'&&(v.moto||v.auto);
+  bar.classList.toggle('hide',!visible);
+  ['moto','auto'].forEach(k=>{
+    const b=$(k==='moto'?'vm':'va');b.classList.toggle('hide',!v[k]);b.classList.toggle('on',G.monte===k);
+    b.textContent=(G.monte===k?'⬇ Descendre':PRIX_VEH[k].ico+' '+PRIX_VEH[k].n);
+  });
+}
+function monter(k){
+  if(G.sc!=='ville'||G.mode!=='play')return;
+  if(G.monte===k){descendre();return}
+  if(!permis()){toast('Il te faut le permis : réussis les missions 1 et 2 de l’auto-école.');SFX.ko();return}
+  descendre();
+  G.monte=k;vehObj=k==='moto'?moto('#2e86de'):voiture('auto','#2e86de');scene.add(vehObj);
+  SFX.coin();majVeh();
+}
+function descendre(){
+  if(vehObj){scene.remove(vehObj);liberer(vehObj);vehObj=null}
+  G.monte=null;if(playerObj){playerObj.visible=true;playerObj.position.y=0}majVeh();
+}
+$('vm').addEventListener('click',()=>monter('moto'));
+$('va').addEventListener('click',()=>monter('auto'));
+
+function htmlConc(d){
+  const a=G.adv,v=vehs();
+  let h=`<h3>🏍 Concession : motos et voitures</h3><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p>`;
+  if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
+  h+=`<p style="font-size:13px">Pour conduire, il faut le permis : réussis les missions 1 et 2 de l’auto-école. ${permis()?'✔ Tu as ton permis.':'Tu ne l’as pas encore.'}</p>`;
+  Object.keys(PRIX_VEH).forEach(k=>{
+    const x=PRIX_VEH[k];
+    h+=v[k]?`<button disabled>✔ ${x.ico} ${esc(x.n)} (à toi)</button>`
+      :`<button class="${a.pieces>=x.prix?'p':''}" onclick="acheterVeh('${k}')">${x.ico} ${esc(x.n)} : ${x.prix} 🪙<br><small>${esc(x.d)}${a.pieces>=x.prix?'':' — il te manque '+(x.prix-a.pieces)+' 🪙'}</small></button>`;
+  });
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function acheterVeh(k){
+  const a=G.adv,x=PRIX_VEH[k],d=G.dialog;if(!x||vehs()[k])return;
+  if(a.pieces<x.prix){d.msg='Il te manque '+(x.prix-a.pieces)+' pièces.';SFX.ko();renderDialog();return}
+  a.pieces-=x.prix;vehs()[k]=true;save();refreshHud();SFX.win();
+  d.msg='Félicitations ! Ta '+x.n.toLowerCase()+' est à toi. '+(permis()?'Utilise le bouton à gauche pour monter.':'Passe d’abord ton permis à l’auto-école.');renderDialog();
+}
+function htmlAE(d){
+  let h=`<h3>🚦 Auto-école</h3><p style="font-size:13px">Au volant d’un véhicule, tu affrontes de vraies situations de la route. ${permis()?'✔ Tu as le permis.':'Réussis les missions 1 et 2 pour obtenir ton permis.'}</p>`;
+  AE.forEach((m,i)=>{
+    const f=!!G.adv.done[m.id],st=G.adv.stars[m.id]||0;
+    h+=`<button onclick="startConduite(${i})"><b>${f?'✔ ':''}Mission ${i+1} · ${esc(m.titre)}</b><br><small>${m.sit.length} situations${f?' · ★ '+st:''}${i===4?' · à moto':''}</small></button>`;
+  });
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function startConduite(i){
+  closeDialog();
+  const m=AE[i],veh=m.id==='ae5'?'moto':'auto';
+  G.cond={m:i,k:0,v:0,etat:'roule',veh:veh,gain:0,errs:0,firsts:0,sauv:{pitch:G.pitch,co:G.camOverride}};
+  G.sc='conduite';G.x=2.2;G.z=4;G.ry=Math.PI;G.phi=-Math.PI/2;G.pitch=.38;G.camOverride=8;G.near=null;hideBubble();
+  buildScene();G.mode='cond';G.joy.x=G.joy.y=0;$('actwrap').classList.add('hide');
+  snapCamera();
+  openBox({kind:'cond',intro:true,m:i,bad:[],ok:false});
+}
+const sCond=()=>{const c=G.cond;return AE[c.m].sit[c.k]};
+function condTick(dt){
+  const c=G.cond;if(!c||G.dialog)return;
+  const n=AE[c.m].sit.length;
+  const stopZ=(c.k<n?zArret(c.k)+6:zArret(n-1)-42+6);
+  const dist=Math.max(0,G.z-stopZ);
+  let v=Math.min(9.5,Math.sqrt(2*4.5*dist)+.6);
+  if(c.v<v)c.v=Math.min(v,c.v+6*dt);else c.v=v;
+  G.z-=c.v*dt;
+  if(G.z<=stopZ+.12){
+    G.z=stopZ;c.v=0;
+    if(c.k<n){openBox({kind:'cond',intro:false,m:c.m,bad:[],ok:false})}
+    else{c.etat='fin';finConduite()}
+  }
+  if(W&&W.car){W.car.position.set(G.x,0,G.z);W.car.rotation.y=Math.PI;if(W.car.userData.hero&&c.v>0)W.car.userData.hero.userData.update&&W.car.userData.hero.userData.update(dt,{speed:0,cam:camera.position})}
+}
+function htmlCond(d){
+  const c=G.cond,m=AE[c.m];
+  if(d.fin){
+    const n=m.sit.length;
+    return `<h3>🏁 Mission terminée !</h3><div class="mscore">${c.firsts} sur ${n}</div><p style="text-align:center">${esc(m.titre)}<br><b>+${c.gain} 🪙</b> · ${'★'.repeat(d.stars)}</p>`
+      +(d.permis?`<p class="ok">🎉 Tu as obtenu ton permis ! Tu peux conduire une moto ou une voiture dans le quartier.</p>`:'')
+      +`<button class="p" onclick="condSortir()">Retour au quartier</button><button onclick="startConduite(${c.m})">Refaire cette mission</button>`;
+  }
+  if(d.intro)return `<h3>🚦 Mission ${c.m+1} · ${esc(m.titre)}</h3><p>${esc(m.intro)}</p><p style="font-size:13px">Tu es ${c.veh==='moto'?'sur la moto':'au volant'}. Le véhicule avance seul ; à chaque situation, choisis le bon comportement.</p><button class="p" onclick="condGo()">▶ Démarrer</button><button class="s" onclick="condSortir()">Quitter</button>`;
+  const s=sCond();
+  let h=`<div class="hd"><h3>🚦 Situation ${c.k+1} sur ${m.sit.length}</h3></div><p style="font-size:13px"><b>${esc(s.txt)}</b></p><p>${esc(s.q)}</p>`;
+  if(d.ok)return h+`<p class="ok">✔ Bonne réponse !</p><p style="font-size:13px">${esc(s.e)}</p><button class="p" onclick="condGo()">Continuer ▶</button>`;
+  if(d.msg)h+=`<p class="ok" style="background:#fdecea;color:#7b241c">${esc(d.msg)}</p>`;
+  const ordre=melanger(s.o.map((t,i)=>i),c.m*31+c.k*7+3);
+  h+=ordre.map(i=>`<button ${d.bad.includes(i)?'disabled':''} onclick="answerCond(${i})">${esc(s.o[i])}</button>`).join('');
+  return h;
+}
+function answerCond(i){
+  const d=G.dialog,c=G.cond,s=sCond();
+  if(i!==0){d.bad.push(i);c.errs++;SFX.ko();d.msg='Pas tout à fait : regarde bien la situation. Essaie encore !';
+    if(W&&W.car){W.car.rotation.z=.05}renderDialog();return}
+  const first=!d.bad.length;
+  G.adv.total++;if(first){G.adv.good++;c.firsts++}
+  const coin=first?5:1;c.gain+=coin;gain(coin,first?10:3,first?10:3);SFX.bravo();
+  d.ok=true;d.msg='';renderDialog();
+}
+function condGo(){
+  const d=G.dialog;
+  if(d&&!d.intro&&d.ok)G.cond.k++;
+  $('dlg').style.display='none';G.dialog=null;G.mode='cond';
+  if(W&&W.car)W.car.rotation.z=0;
+}
+function finConduite(){
+  const c=G.cond,m=AE[c.m],n=m.sit.length;
+  const st=c.errs===0?3:(c.errs<=2?2:1);
+  const avant=permis();
+  G.adv.done[m.id]=true;G.adv.stars[m.id]=Math.max(G.adv.stars[m.id]||0,st);
+  c.gain+=10;gain(10,10);save();
+  openBox({kind:'cond',fin:true,stars:st,permis:!avant&&permis()});
+  $('actwrap').classList.add('hide');
+}
+function condSortir(){
+  const c=G.cond;$('dlg').style.display='none';G.dialog=null;
+  G.pitch=c.sauv.pitch;G.camOverride=c.sauv.co||null;G.cond=null;
+  goTo({to:'ville',tx:-14,tz:0,phi:0});
+  G.mode='play';$('actwrap').classList.remove('hide');majVeh();refreshHud();
+}
 // ---------- Explorer le Congo : fiches des provinces et des territoires ----------
 function openCongo(){closeDialog();openBox({kind:'congo',pi:null})}
 const nf=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
@@ -1967,7 +2113,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,__condTick:condTick,acheterVeh,startConduite,answerCond,condGo,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

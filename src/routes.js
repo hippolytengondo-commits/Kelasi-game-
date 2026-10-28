@@ -40,3 +40,29 @@ export function rondPoint(g,cx,cz){
   const vas=new THREE.Mesh(new THREE.CylinderGeometry(.7,.3,.3,14),pierre);vas.position.set(cx,2.0,cz);g.add(vas);
 }
 export const COUT_ROND={pieces:120,savoir:200,bitume:12,ciment:6,brique:10};
+
+// trottoirs : dalles légèrement surélevées avec bordure, de chaque côté de la route
+let dalle=null,bord=null;
+const matDalle=()=>dalle||(dalle=new THREE.MeshStandardMaterial({color:0xc9c4b8,roughness:.95}));
+const matBord=()=>bord||(bord=new THREE.MeshStandardMaterial({color:0xe6e2d8,roughness:.9}));
+const H_TROTTOIR=.1;
+// route droite nord-sud : lg = largeur de la chaussée, tr = largeur du trottoir
+export function trottoirsDroit(g,x,z1,z2,lg,tr){
+  const len=Math.abs(z2-z1),zc=(z1+z2)/2,w=tr||1.6;
+  [-1,1].forEach(s=>{
+    const cx=x+s*(lg/2+w/2);
+    const d=new THREE.Mesh(new THREE.BoxGeometry(w,H_TROTTOIR,len),matDalle());d.position.set(cx,H_TROTTOIR/2,zc);d.receiveShadow=true;g.add(d);
+    const b=new THREE.Mesh(new THREE.BoxGeometry(.16,H_TROTTOIR+.03,len),matBord());b.position.set(x+s*(lg/2+.08),(H_TROTTOIR+.03)/2,zc);g.add(b);
+  });
+}
+// anneau : trottoirs intérieur et extérieur
+export function trottoirsAnneau(g,cx,cz,r,lg,tr,seg){
+  const w=tr||1.0;
+  [[r-lg/2-w,r-lg/2],[r+lg/2,r+lg/2+w]].forEach(([a,b])=>{
+    const d=new THREE.Mesh(new THREE.RingGeometry(a,b,seg),matDalle());d.rotation.x=-Math.PI/2;d.position.set(cx,H_TROTTOIR,cz);d.receiveShadow=true;g.add(d);
+  });
+  [r-lg/2,r+lg/2].forEach(rr=>{
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(rr,rr,H_TROTTOIR,seg,1,true),new THREE.MeshStandardMaterial({color:0xe6e2d8,roughness:.9,side:THREE.DoubleSide}));
+    m.position.set(cx,H_TROTTOIR/2,cz);g.add(m);
+  });
+}

@@ -279,3 +279,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 .h2sheet button.p{background:var(--bp);color:#fff;border-color:var(--bp)}
 
 #info.mini{left:12px;transform:none;top:calc(max(8px,env(safe-area-inset-top,0px)) + 52px);width:auto;padding:4px 8px;font-size:14px;border-radius:50%;background:rgba(20,30,25,.45)}
+
+#vehbar{position:absolute;z-index:3;left:14px;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 150px);display:flex;flex-direction:column;gap:6px}
+#vehbar button{border:0;border-radius:12px;background:rgba(255,255,255,.9);color:#1b2b24;font-weight:700;font-size:13px;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer}
+#vehbar button.on{background:#e0a526}

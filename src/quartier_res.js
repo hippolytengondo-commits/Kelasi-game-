@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import {std,box,cyl,gableRoof} from './world.js';
 import {CX} from './quartiers.js';
-import {bitumeDroit,coutRoute,rondPoint} from './routes.js';
+import {bitumeDroit,coutRoute,rondPoint,trottoirsDroit} from './routes.js';
 
 // Quartier résidentiel du joueur, au nord du village (du côté opposé à la ville des missions).
 // Le joueur y achète des terrains avec ses points de savoir (gagnés en réussissant des missions) puis y construit
@@ -178,6 +178,8 @@ export function construireRes(w,etat,cb){
   const yMin=Z0-(Math.ceil(NB_TERRAINS/2)-1)*PAS-9;
   // route centrale vers le nord
   flat(new THREE.PlaneGeometry(5.2,-14-yMin),dirt,CX,.02,(-14+yMin)/2);
+  trottoirsDroit(g,CX,-14,yMin,5.2,1.6);
+  if(etat.rond){trottoirsDroit(g,CX,-14,-8.6,5.2,1.6);trottoirsDroit(g,CX,8.6,13,5.2,1.6)}else trottoirsDroit(g,CX,-14,13,5.2,1.6);
   // tronçons bitumés (un par rangée de terrains) et points d'action pour bitumer les autres
   const NSEG=Math.ceil((-14-yMin)/PAS),spots=[];
   for(let i=0;i<NSEG;i++){
