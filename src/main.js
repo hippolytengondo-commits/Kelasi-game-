@@ -26,7 +26,7 @@ import {LIEUX} from './lieux70.js';
 import {construireRes,posTerrain,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,LOYER,LOYER_MAX_H,NB_TERRAINS} from './quartier_res.js';
 import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
-import {creerTrafic,voiture,moto} from './trafic.js';
+import {creerTrafic,voiture,moto,voitureJoueur,motoJoueur} from './trafic.js';
 import {AE,zArret,buildConduite,melanger} from './conduite.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
@@ -157,7 +157,7 @@ window.addEventListener('resize',resize);
 // ---------- Scènes ----------
 let W=null;            // scène courante {group,colliders,boxes,bounds,update,...}
 let playerObj=null;
-let npcObjs={};let vehObj=null,vehT=0;
+let npcObjs={};let vehObjs={},vehT=0;
 let mangoGroup=null;
 const FABRIC_BOX={mavungu:{top:[.27,.36,.42,.52],bottom:[.30,.62,.44,.78]},ilunga:{top:[.30,.40,.42,.58],skirt:[.30,.62,.70,.82]},lola:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]},bea:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]},mama:{top:[.30,.34,.70,.46],skirt:[.30,.62,.70,.82]}};
 function npcLook(id,l){
@@ -190,6 +190,9 @@ const SCENES={
    spots:[{x:-1.6,z:-2.2,r:1.9,label:'Miroir : changer mon look',run:()=>openCreator('play')},{x:-1.0,z:-.6,r:1.9,label:'Plans : construire ma maison',run:()=>openMaison()}]},
  interieur:{build:()=>{const w=buildInterieur(G.int.t,G.int.n),r=G.int.ret;SCENES.interieur.doors=[{x:0,z:w.dim.D/2-.9,r:1.6,to:'ville',label:'Sortir',tx:r.x,tz:r.z,phi:r.phi}];
    SCENES.interieur.spots=[{x:w.dim.W/2-1.4,z:w.dim.D/2-1.3,r:1.6,label:'Gérer ou améliorer cette construction',run:()=>openBox({kind:'terrain',k:G.int.k,msg:'',retInt:true})}];
+   if(G.int.t==='autoecole'){const W2=w.dim.W,D2=w.dim.D;
+     SCENES.interieur.spots.push({x:-W2/2+2.7,z:-D2/2+3.5,r:1.9,label:'Accueil : s’inscrire à l’auto-école',run:()=>openBox({kind:'insc',msg:'',etape:'accueil',prix:FRAIS_AE})},
+       {x:W2/2-2.6,z:-D2/2+3.3,r:1.9,label:'Moniteur : leçons de conduite',run:()=>{if(G.adv.inscrit)openBox({kind:'ae'});else{toast('Inscris-toi d’abord à l’accueil.');SFX.ko()}}})}
    G.x=0;G.z=w.dim.D/2-2.2;return w},interior:true,doors:[],spots:[]},
  conduite:{build:()=>{const w=buildConduite(AE[G.cond.m],G.cond.veh,makeHuman);G.cond.car=w.car;return w},interior:false,doors:[],spots:[]},
  chambre:{build:()=>buildChambre(G.adv.maison),interior:true,doors:[{x:0,z:2.0,r:1.5,to:'maison',label:'Retourner au salon',tx:3.2,tz:1.2,phi:Math.PI}]},
@@ -272,14 +275,13 @@ function construireVille(){
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
   ext.routes.forEach(r=>qr.spots.push({x:r.x,z:r.z,r:2.6,label:r.label,run:()=>bitumerRoute(r.id,r.type,r.i)}));
-  // concession (motos et voitures) et auto-école, dans le village
-  [[-15,5,'CONCESSION','Motos · Voitures','#b8860b'],[-15,-3,'AUTO-ÉCOLE','Permis · Conduite','#1f5f9e']].forEach(([x,z,t1,t2,bg])=>{
+  // concession (motos et voitures), dans le village
+  [[-15,5,'CONCESSION','Motos · Voitures','#b8860b']].forEach(([x,z,t1,t2,bg])=>{
     cyl(w.group,.07,.09,2.8,std('#5a3a22',.9),x,1.4,z,8);
     const pn=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshStandardMaterial({map:TX.textBoard([{t:t1,s:80,y:.38},{t:t2,s:42,y:.75,b:false}],1024,512,bg,'#ffffff'),roughness:.6}));
     pn.position.set(x,2.9,z+.06);w.group.add(pn);w.colliders.push({x:x,z:z,r:.35});
   });
-  qr.spots.push({x:-13.2,z:5,r:2.4,label:'Concession : acheter une moto ou une voiture',run:()=>openBox({kind:'conc',msg:''})},
-                {x:-13.2,z:-3,r:2.4,label:'Auto-école : passer le permis et s’entraîner',run:()=>openBox({kind:'ae'})});
+  qr.spots.push({x:-13.2,z:5,r:2.4,label:'Concession : acheter une moto ou une voiture',run:()=>openBox({kind:'conc',msg:''})});
   SCENES.ville.spots=qr.spots;
   // circulation : piétons et véhicules, d'autant plus nombreux que le quartier se construit
   {
@@ -294,7 +296,7 @@ function construireVille(){
 // libère la mémoire graphique des scènes quittées (important sur téléphone)
 function liberer(o){o.traverse(c=>{if(c.geometry)c.geometry.dispose();const m=c.material;if(m)(Array.isArray(m)?m:[m]).forEach(x=>x.dispose())})}
 function clearScene(){
-  if(vehObj){scene.remove(vehObj);liberer(vehObj);vehObj=null}G.monte=null;
+  Object.values(vehObjs).forEach(o=>{scene.remove(o);liberer(o)});vehObjs={};G.monte=null;G.vv=0;G.steer=0;
   if(W){scene.remove(W.group);liberer(W.group)}
   if(playerObj){scene.remove(playerObj);liberer(playerObj)}
   Object.values(npcObjs).forEach(o=>{scene.remove(o.obj);liberer(o.obj)});
@@ -325,12 +327,20 @@ function buildScene(){
     if(window.__FACES&&window.__FACES['portraits/'+gid])gl.faceKey='portraits/'+gid;
     addNpc('guide',{sc:'arene',x:-9.5,z:3.5,ry:1.0,name:NPC[gid].name,short:NPC[gid].short,look:gl});
   }
+  if(G.sc==='ville')garerVehicules();
   snapCamera();
   majMusique();
 }
 // habitants et personnel d'une construction : visuels seulement, pour donner de la vie
 function occupants(){
   const I=G.int,b=batsRes()[I.k];if(!b||!W||!W.dim)return [];
+  if(I.t==='autoecole'){
+    const {W:Wd,D:Dd}=W.dim;
+    const L=[{id:'agent',x:-Wd/2+2.7,z:-Dd/2+1.3,ry:0,look:{s:'f',h:.97,skin:'#6b4028',c:'#1f5f9e',k:'uniforme',co:'tresses'}},
+      {id:'moniteur',x:Wd/2-2.6,z:-Dd/2+1.6,ry:0,look:{s:'h',h:1,skin:'#5a3319',c:'#c0392b',k:'uniforme',co:'courtes'}}];
+    for(let i=0;i<(I.n>=2?3:1);i++)L.push({id:'eleve'+i,x:Wd/2-4+i*1.5,z:.3+i*.4,ry:Math.PI,look:{s:i%2?'f':'h',h:.95,skin:'#7a4a2e',c:'#2e86de',k:'uniforme',co:'courtes'}});
+    return L.map(o=>Object.assign({sc:'interieur',name:'',short:''},o));
+  }
   const res=LOYER(I.t,I.n)>0;
   const nb=res?(b.loc?Math.min(5,1+I.n*(I.t==='maison'&&I.n===3?2:1)):0):Math.min(8,2+I.n*2);
   const {W:Wd,D}=W.dim,out=[];
@@ -390,7 +400,7 @@ function camDesired(dist){
   const t=camTarget();
   return new THREE.Vector3(t.x-dx*dist,t.y+dy*dist+.4,t.z-dz*dist);
 }
-const camDist=()=>G.camOverride||(SCENES[G.sc].interior?3.5:3.9+(G.monte?2.4:0));
+const camDist=()=>G.camOverride||(SCENES[G.sc].interior?3.5:3.9+(G.monte?3.2:0));
 function snapCamera(){
   const p=camDesired(camDist());camera.position.copy(p);camera.lookAt(camTarget());
 }
@@ -533,6 +543,7 @@ function renderDialog(){
   else if(d.kind==='route')h=htmlRoute(d);
   else if(d.kind==='conc')h=htmlConc(d);
   else if(d.kind==='ae')h=htmlAE(d);
+  else if(d.kind==='insc')h=htmlInsc(d);
   else if(d.kind==='cond')h=htmlCond(d);
   else if(d.kind==='rond')h=htmlRond(d);
   else if(d.kind==='menu')h=htmlMenu(d);
@@ -1195,7 +1206,23 @@ function loop(now){
       if(mag>.1||G.mode!=='m3d')G.auto=null;
       else{const ax=G.auto.x-G.x,az=G.auto.z-G.z,ad=Math.hypot(ax,az);if(ad<.3)G.auto=null;else auto={mx:ax/ad,mz:az/ad}}
     }
-    if(mag>.1||auto){
+    if(G.monte&&G.sc==='ville'){
+      // conduite : accélérateur et frein (avant/arrière), direction (gauche/droite)
+      const vmax=G.monte==='moto'?15:14;
+      let v=G.vv||0;const th=Math.max(-1,Math.min(1,iy));
+      if(th>.05)v+=(v<0?14:6)*th*dt;
+      else if(th<-.05)v-=(v>0?14:4)*(-th)*dt;
+      else v-=Math.sign(v)*Math.min(Math.abs(v),4*dt);
+      v=Math.max(-4,Math.min(vmax,v));
+      G.steer=(G.steer||0)+(Math.max(-1,Math.min(1,ix))-(G.steer||0))*Math.min(1,dt*8);
+      G.ry-=G.steer*1.7*Math.min(1,Math.abs(v)/4)*dt*(v<0?-1:1);
+      const nx=G.x+Math.sin(G.ry)*v*dt,nz=G.z+Math.cos(G.ry)*v*dt;
+      const [cx,cz]=collide(nx,nz);
+      if(Math.abs(cx-nx)>1e-4||Math.abs(cz-nz)>1e-4)v*=-.25;
+      G.x=cx;G.z=cz;G.vv=v;sp=Math.abs(v);
+      G.phi+=angDiff(G.phi,Math.PI/2-G.ry)*Math.min(1,dt*2.5);
+      stepT+=dt*sp;if(stepT>.5&&sp>2){stepT=0}
+    }else if(mag>.1||auto){
       let mx,mz;
       if(auto){mx=auto.mx;mz=auto.mz;sp=3.6}
       else{
@@ -1203,7 +1230,6 @@ function loop(now){
         mx=fx*iy+rx*ix;mz=fz*iy+rz*ix;const ml=Math.hypot(mx,mz);mx/=ml;mz/=ml;
         sp=mag<.7?mag/.7*2.5:2.5+(mag-.7)/.3*2.1;
       }
-      if(G.monte&&G.sc==='ville')sp*=G.monte==='moto'?2.3:2.9;
       const [nx,nz]=collide(G.x+mx*sp*dt,G.z+mz*sp*dt);
       G.x=nx;G.z=nz;
       const tr=Math.atan2(mx,mz);G.ry+=angDiff(G.ry,tr)*Math.min(1,dt*12);
@@ -1214,9 +1240,17 @@ function loop(now){
   if(sp===0)G.lean=0;
   G.speed=sp;
   playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
+  let assis=false;
   if(G.sc==='conduite')playerObj.visible=false;
-  else if(vehObj){vehObj.position.set(G.x,0,G.z);vehObj.rotation.y=G.ry;playerObj.visible=G.monte==='moto';playerObj.position.y=.45}
-  playerObj.userData.update(dt,{speed:G.monte?0:sp,pose:G.mode==='creator'?'creator':'',cam:camera.position,lean:G.lean||0});
+  else if(G.monte&&vehObjs[G.monte]){
+    const vo=vehObjs[G.monte],ud=vo.userData,st=G.steer||0,co=Math.cos(G.ry),si=Math.sin(G.ry);
+    vo.position.set(G.x,0,G.z);vo.rotation.y=G.ry;
+    if(ud.volant)ud.volant.rotation.z=-st*1.5;
+    if(ud.avant)ud.avant.forEach(w=>w.rotation.y=-st*.45);
+    if(ud.guidon)ud.guidon.rotation.y=-st*.5;
+    const sd=ud.siege;playerObj.position.set(G.x+sd.x*co+sd.z*si,sd.y,G.z-sd.x*si+sd.z*co);playerObj.visible=true;assis=true;
+  }
+  playerObj.userData.update(dt,{speed:G.monte?0:sp,sit:assis,pose:G.mode==='creator'?'creator':'',cam:camera.position,lean:G.lean||0});
   // PNJ
   Object.keys(npcObjs).forEach(id=>{
     const o=npcObjs[id],n=o.n;
@@ -1612,27 +1646,51 @@ function htmlMap(){
 // ---------- Véhicules et auto-école ----------
 const PRIX_VEH={moto:{n:'Moto',ico:'🏍',prix:250,d:'Rapide et économique, parfaite pour rejoindre les missions.'},auto:{n:'Voiture',ico:'🚗',prix:700,d:'Plus rapide encore, et confortable.'}};
 const vehs=()=>{const a=G.adv;if(!a.veh)a.veh={};return a.veh};
-const permis=()=>!!(G.adv.done.ae1&&G.adv.done.ae2);
+const permis=()=>!!(G.adv.done.ae1&&G.adv.done.ae2);   // le permis suppose l'inscription à l'auto-école
+const PARK={moto:{x:-18,z:3,ry:Math.PI/2},auto:{x:-18,z:7.5,ry:Math.PI/2}};
+// véhicules garés dans le village : ils restent là où le joueur les a laissés
+function garerVehicules(){
+  const v=vehs();v.pos=v.pos||{};
+  ['moto','auto'].forEach(k=>{
+    if(!v[k]||vehObjs[k])return;
+    const o=k==='moto'?motoJoueur('#c0392b'):voitureJoueur('#2e86de'),p=v.pos[k]||PARK[k];
+    o.position.set(p.x,0,p.z);o.rotation.y=p.ry;scene.add(o);vehObjs[k]=o;
+  });
+}
+const distVeh=k=>{const o=vehObjs[k];return o?Math.hypot(o.position.x-G.x,o.position.z-G.z):99};
 function majVeh(){
   const bar=$('vehbar'),v=vehs();
   const visible=G.mode==='play'&&G.sc==='ville'&&(v.moto||v.auto);
-  bar.classList.toggle('hide',!visible);
+  let any=false;
   ['moto','auto'].forEach(k=>{
-    const b=$(k==='moto'?'vm':'va');b.classList.toggle('hide',!v[k]);b.classList.toggle('on',G.monte===k);
-    b.textContent=(G.monte===k?'⬇ Descendre':PRIX_VEH[k].ico+' '+PRIX_VEH[k].n);
+    const b=$(k==='moto'?'vm':'va');
+    const ici=G.monte===k||(!G.monte&&v[k]&&distVeh(k)<4.5);
+    b.classList.toggle('hide',!ici);b.classList.toggle('on',G.monte===k);
+    b.textContent=(G.monte===k?'⬇ Descendre':'➡ Monter · '+PRIX_VEH[k].n);
+    if(ici)any=true;
   });
+  bar.classList.toggle('hide',!(visible&&any));
 }
 function monter(k){
   if(G.sc!=='ville'||G.mode!=='play')return;
   if(G.monte===k){descendre();return}
-  if(!permis()){toast('Il te faut le permis : réussis les missions 1 et 2 de l’auto-école.');SFX.ko();return}
-  descendre();
-  G.monte=k;vehObj=k==='moto'?moto('#2e86de'):voiture('auto','#2e86de');scene.add(vehObj);
-  SFX.coin();majVeh();
+  if(G.monte||!vehObjs[k]||distVeh(k)>4.5)return;
+  if(!permis()){toast('Il te faut le permis : inscris-toi dans une auto-école et réussis les missions 1 et 2.');SFX.ko();return}
+  const o=vehObjs[k];
+  G.monte=k;G.vv=0;G.steer=0;G.x=o.position.x;G.z=o.position.z;G.ry=o.rotation.y;
+  SFX.coin();toast('Avant/arrière : accélérer ou freiner · gauche/droite : tourner le volant');majVeh();
 }
 function descendre(){
-  if(vehObj){scene.remove(vehObj);liberer(vehObj);vehObj=null}
-  G.monte=null;if(playerObj){playerObj.visible=true;playerObj.position.y=0}majVeh();
+  const k=G.monte;if(!k)return;
+  if(Math.abs(G.vv||0)>1.5){toast('Arrête-toi d’abord pour descendre.');SFX.ko();return}
+  const o=vehObjs[k],v=vehs();v.pos=v.pos||{};
+  v.pos[k]={x:G.x,z:G.z,ry:G.ry};save();
+  // le conducteur descend du côté gauche du véhicule
+  const gx=G.x+Math.cos(G.ry)*1.7,gz=G.z-Math.sin(G.ry)*1.7;
+  G.monte=null;G.vv=0;G.steer=0;
+  const [nx,nz]=collide(gx,gz);G.x=nx;G.z=nz;
+  if(o){if(o.userData.volant)o.userData.volant.rotation.z=0;if(o.userData.avant)o.userData.avant.forEach(w=>w.rotation.y=0);if(o.userData.guidon)o.userData.guidon.rotation.y=0}
+  if(playerObj)playerObj.visible=true;majVeh();
 }
 $('vm').addEventListener('click',()=>monter('moto'));
 $('va').addEventListener('click',()=>monter('auto'));
@@ -1641,7 +1699,7 @@ function htmlConc(d){
   const a=G.adv,v=vehs();
   let h=`<h3>🏍 Concession : motos et voitures</h3><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p>`;
   if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
-  h+=`<p style="font-size:13px">Pour conduire, il faut le permis : réussis les missions 1 et 2 de l’auto-école. ${permis()?'✔ Tu as ton permis.':'Tu ne l’as pas encore.'}</p>`;
+  h+=`<p style="font-size:13px">Pour conduire, il faut le permis : construis une auto-école dans ton quartier résidentiel, inscris-toi, puis réussis les missions 1 et 2. ${permis()?'✔ Tu as ton permis.':'Tu ne l’as pas encore.'}</p>`;
   Object.keys(PRIX_VEH).forEach(k=>{
     const x=PRIX_VEH[k];
     h+=v[k]?`<button disabled>✔ ${x.ico} ${esc(x.n)} (à toi)</button>`
@@ -1652,8 +1710,44 @@ function htmlConc(d){
 function acheterVeh(k){
   const a=G.adv,x=PRIX_VEH[k],d=G.dialog;if(!x||vehs()[k])return;
   if(a.pieces<x.prix){d.msg='Il te manque '+(x.prix-a.pieces)+' pièces.';SFX.ko();renderDialog();return}
-  a.pieces-=x.prix;vehs()[k]=true;save();refreshHud();SFX.win();
-  d.msg='Félicitations ! Ta '+x.n.toLowerCase()+' est à toi. '+(permis()?'Utilise le bouton à gauche pour monter.':'Passe d’abord ton permis à l’auto-école.');renderDialog();
+  a.pieces-=x.prix;vehs()[k]=true;save();refreshHud();SFX.win();garerVehicules();
+  d.msg='Félicitations ! Ta '+x.n.toLowerCase()+' est à toi. '+(permis()?'Ton véhicule est garé à côté de la concession : approche-toi et touche « Monter ».':'Passe d’abord ton permis à l’auto-école.');renderDialog();
+}
+
+// ---------- Inscription à l'auto-école : on entre, on discute avec l'agent et on paie ----------
+const FRAIS_AE=150;
+function htmlInsc(d){
+  const a=G.adv;
+  let h=`<h3>🚦 Accueil de l’auto-école</h3><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p>`;
+  if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
+  if(a.inscrit)return h+`<p>« Vous êtes déjà inscrit(e) ! Rendez-vous auprès du moniteur pour vos leçons de conduite. »</p><button class="s" onclick="closeDialog()">Merci</button>`;
+  if(d.etape==='question'){
+    const s=d.q,ordre=melanger(s.o.map((t,i)=>i),d.seed);
+    h+=`<p>« Pour obtenir une remise, répondez à cette question : »</p><p style="font-size:13px"><b>${esc(s.txt)}</b></p><p>${esc(s.q)}</p>`;
+    h+=ordre.map(i=>`<button onclick="inscReponse(${i})">${esc(s.o[i])}</button>`).join('');
+    return h;
+  }
+  h+=`<p>« Bonjour ! L’inscription à l’auto-école coûte <b>${d.prix} 🪙</b>${d.remise?' (remise accordée)':''}. Elle vous donne accès aux cours et aux leçons de conduite. »</p>`;
+  h+=`<button class="${a.pieces>=d.prix?'p':''}" onclick="inscPayer()">💰 Payer ${d.prix} 🪙 et m’inscrire</button>`;
+  if(!d.tente&&!d.remise)h+=`<button onclick="inscNegocier()">🤝 Négocier le prix</button>`;
+  return h+`<button class="s" onclick="closeDialog()">Partir</button>`;
+}
+function inscNegocier(){
+  const d=G.dialog;d.tente=true;
+  const m=AE[Math.floor(Math.random()*AE.length)],s=m.sit[Math.floor(Math.random()*m.sit.length)];
+  d.q=s;d.seed=Math.floor(Math.random()*1000);d.etape='question';d.msg='';renderDialog();
+}
+function inscReponse(i){
+  const d=G.dialog;d.etape='accueil';
+  if(i===0){d.remise=true;d.prix=Math.round(FRAIS_AE*.7);d.msg='Bravo ! « Vous connaissez votre code : je vous fais 30 % de remise. »';SFX.bravo()}
+  else{d.msg='« Hmm, ce n’est pas ça. Je ne peux pas faire de remise, mais vous pouvez vous inscrire au tarif normal. »';SFX.ko()}
+  renderDialog();
+}
+function inscPayer(){
+  const a=G.adv,d=G.dialog;
+  if(a.pieces<d.prix){d.msg='Il vous manque '+(d.prix-a.pieces)+' 🪙 : revenez quand vous aurez la somme.';SFX.ko();renderDialog();return}
+  a.pieces-=d.prix;a.inscrit=true;save();refreshHud();SFX.win();
+  d.msg='Inscription validée ! Rendez-vous auprès du moniteur, dans la salle de cours, pour vos leçons.';renderDialog();
 }
 function htmlAE(d){
   let h=`<h3>🚦 Auto-école</h3><p style="font-size:13px">Au volant d’un véhicule, tu affrontes de vraies situations de la route. ${permis()?'✔ Tu as le permis.':'Réussis les missions 1 et 2 pour obtenir ton permis.'}</p>`;
@@ -1664,9 +1758,9 @@ function htmlAE(d){
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
 }
 function startConduite(i){
-  closeDialog();
+  $('dlg').style.display='none';G.dialog=null;
   const m=AE[i],veh=m.id==='ae5'?'moto':'auto';
-  G.cond={m:i,k:0,v:0,etat:'roule',veh:veh,gain:0,errs:0,firsts:0,sauv:{pitch:G.pitch,co:G.camOverride}};
+  G.cond={m:i,k:0,v:0,etat:'roule',veh:veh,gain:0,errs:0,firsts:0,ret:G.int&&G.int.ret?Object.assign({},G.int.ret):null,sauv:{pitch:G.pitch,co:G.camOverride}};
   G.sc='conduite';G.x=2.2;G.z=4;G.ry=Math.PI;G.phi=-Math.PI/2;G.pitch=.38;G.camOverride=8;G.near=null;hideBubble();
   buildScene();G.mode='cond';G.joy.x=G.joy.y=0;$('actwrap').classList.add('hide');
   snapCamera();
@@ -1732,7 +1826,7 @@ function finConduite(){
 function condSortir(){
   const c=G.cond;$('dlg').style.display='none';G.dialog=null;
   G.pitch=c.sauv.pitch;G.camOverride=c.sauv.co||null;G.cond=null;
-  goTo({to:'ville',tx:-14,tz:0,phi:0});
+  const r=c.ret||{x:-14,z:0,phi:0};goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi});
   G.mode='play';$('actwrap').classList.remove('hide');majVeh();refreshHud();
 }
 // ---------- Explorer le Congo : fiches des provinces et des territoires ----------
@@ -2113,7 +2207,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,__condTick:condTick,acheterVeh,startConduite,answerCond,condGo,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,inscNegocier,inscReponse,inscPayer,__condTick:condTick,acheterVeh,startConduite,answerCond,condGo,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

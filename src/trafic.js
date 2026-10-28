@@ -84,3 +84,70 @@ export function creerTrafic(parent,opt){
     }
   };
 }
+
+// ---------- véhicules du joueur : vraie conduite (volant, roues directrices, conducteur assis) ----------
+const mk=(parent,geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o};
+const bx=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const roue=(parent,x,y,z,r,larg)=>{
+  const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);
+  const pneu=new THREE.Mesh(new THREE.CylinderGeometry(r,r,larg,18),M('#1b1b1b',.9));pneu.rotation.z=Math.PI/2;pneu.castShadow=true;g.add(pneu);
+  const jante=new THREE.Mesh(new THREE.CylinderGeometry(r*.6,r*.6,larg+.02,12),M('#cfd3d6',.4,{metalness:.7}));jante.rotation.z=Math.PI/2;g.add(jante);
+  const moy=new THREE.Mesh(new THREE.CylinderGeometry(r*.18,r*.18,larg+.04,8),M('#666',.5,{metalness:.8}));moy.rotation.z=Math.PI/2;g.add(moy);
+  return g;
+};
+const phare=()=>new THREE.MeshBasicMaterial({color:0xfff2b0}),feuAr=()=>new THREE.MeshBasicMaterial({color:0xd62a1a});
+
+// voiture ouverte (type 4x4) : chaque pièce est modélisée ; userData : volant, roues avant (pivots), siège du conducteur
+export function voitureJoueur(col){
+  const g=new THREE.Group(),c=M(col||'#2e86de',.45,{metalness:.35}),noir=M('#222',.8);
+  mk(g,bx(1.8,.5,3.9),c,0,.62,0);                    // caisse
+  mk(g,bx(1.7,.28,1.25),c,0,.98,1.2);                 // capot
+  mk(g,bx(1.8,.12,.3),M('#cfd3d6',.4,{metalness:.7}),0,.5,2.05);   // pare-chocs avant
+  mk(g,bx(1.8,.12,.3),M('#cfd3d6',.4,{metalness:.7}),0,.5,-2.0);   // pare-chocs arrière
+  [-1,1].forEach(s=>{
+    mk(g,new THREE.SphereGeometry(.17,12,8),phare(),s*.6,.98,2.0);       // phares
+    mk(g,bx(.3,.16,.08),feuAr(),s*.75,.78,-1.97);                        // feux arrière
+    mk(g,bx(.08,.7,.08),noir,s*.88,1.2,.62);                             // montants du pare-brise
+    mk(g,bx(.2,.14,.06),noir,s*1.0,1.15,.7);                             // rétroviseurs
+    mk(g,bx(.12,.12,.9),M('#cfd3d6',.4,{metalness:.7}),s*.98,.9,.0);      // marchepied/barre latérale
+  });
+  mk(g,bx(1.7,.06,.06),noir,0,1.58,.6);                                    // haut du pare-brise
+  const verre=new THREE.Mesh(new THREE.PlaneGeometry(1.7,.62),new THREE.MeshStandardMaterial({color:0x9fd6ff,transparent:true,opacity:.28,roughness:.1,side:THREE.DoubleSide}));
+  verre.position.set(0,1.27,.62);verre.rotation.x=-.28;g.add(verre);
+  // arceau de sécurité
+  [-1,1].forEach(s=>mk(g,bx(.07,.95,.07),noir,s*.85,1.45,-.95));mk(g,bx(1.75,.07,.07),noir,0,1.92,-.95);
+  // sièges
+  [-.45,.45].forEach(x=>{mk(g,bx(.55,.14,.55),M('#3a3a3a',.9),x,.92,-.25);mk(g,bx(.55,.62,.12),M('#3a3a3a',.9),x,1.25,-.55)});
+  // volant et colonne
+  mk(g,bx(.07,.07,.6),noir,-.45,1.17,.5);
+  const piv=new THREE.Group();piv.position.set(-.45,1.3,.27);piv.rotation.x=-.95;g.add(piv);
+  const vol=new THREE.Mesh(new THREE.TorusGeometry(.2,.032,8,20),M('#111',.8));piv.add(vol);
+  const br=new THREE.Mesh(bx(.4,.03,.03),M('#111',.8));vol.add(br);
+  // roues : les roues avant pivotent
+  const av=[roue(g,-.95,.45,1.3,.45,.3),roue(g,.95,.45,1.3,.45,.3)];
+  roue(g,-.95,.45,-1.3,.45,.3);roue(g,.95,.45,-1.3,.45,.3);
+  g.userData={volant:vol,avant:av,siege:{x:-.45,y:.7,z:-.2},hauteurSiege:.7};
+  return g;
+}
+
+// moto : guidon et roue avant pivotent ensemble
+export function motoJoueur(col){
+  const g=new THREE.Group(),c=M(col||'#c0392b',.4,{metalness:.35}),noir=M('#222',.8),chrome=M('#cfd3d6',.4,{metalness:.7});
+  roue(g,0,.38,-.85,.38,.14);
+  mk(g,bx(.3,.3,1.0),noir,0,.65,-.1);                         // bloc moteur / cadre
+  mk(g,bx(.34,.3,.6),c,0,.95,.28);                            // réservoir
+  mk(g,bx(.32,.12,.85),M('#222',.9),0,.82,-.45);              // selle
+  mk(g,bx(.3,.06,.5),c,0,.68,-1.05);                          // garde-boue arrière
+  mk(g,new THREE.CylinderGeometry(.06,.05,.9,8),chrome,.2,.42,-.35).rotation.x=Math.PI/2; // pot d'échappement
+  mk(g,bx(.12,.1,.06),feuAr(),0,.8,-1.32);                    // feu arrière
+  // partie avant (pivote autour de l'axe de direction)
+  const avant=new THREE.Group();avant.position.set(0,1.0,.7);g.add(avant);
+  const fourche=mk(avant,bx(.07,.8,.07),chrome,0,-.45,.08);fourche.rotation.x=.25;
+  roue(avant,0,-.62,.2,.38,.14);
+  mk(avant,bx(.8,.05,.05),noir,0,.05,0);                      // guidon
+  [-.4,.4].forEach(x=>mk(avant,new THREE.CylinderGeometry(.03,.03,.14,8),M('#111',.9),x,.05,0).rotation.z=Math.PI/2);
+  mk(avant,new THREE.SphereGeometry(.15,12,8),phare(),0,-.1,.3);   // phare
+  mk(avant,bx(.3,.05,.2),c,0,-.28,.18);                            // garde-boue avant
+  g.userData={guidon:avant,siege:{x:0,y:.78,z:-.4},hauteurSiege:.78};
+  return g;
+}

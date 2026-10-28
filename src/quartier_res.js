@@ -3,6 +3,7 @@ import * as T from './textures.js';
 import {std,box,cyl,gableRoof} from './world.js';
 import {CX} from './quartiers.js';
 import {bitumeDroit,coutRoute,rondPoint,trottoirsDroit} from './routes.js';
+import {voiture} from './trafic.js';
 
 // Quartier résidentiel du joueur, au nord du village (du côté opposé à la ville des missions).
 // Le joueur y achète des terrains avec ses points de savoir (gagnés en réussissant des missions) puis y construit
@@ -38,6 +39,9 @@ export const CATALOGUE={
   police:{n:'Police',ico:'🚓',cat:'Services publics',niv:[
     {n:'Poste de police',cout:{pieces:50,savoir:300,brique:18,ciment:5,fer:3},d:'Pour la sécurité du quartier.'},
     {n:'Commissariat',cout:{pieces:130,savoir:600,brique:30,ciment:10,fer:8},d:'Un grand commissariat avec antenne radio.'}]},
+  autoecole:{n:'Auto-école',ico:'🚦',cat:'Services publics',niv:[
+    {n:'Auto-école',cout:{pieces:120,savoir:350,brique:22,ciment:6,bois:6},d:'Forme les conducteurs : inscription, cours et leçons de conduite.'},
+    {n:'Grande auto-école',cout:{pieces:260,savoir:700,brique:36,ciment:12,fer:6},double:true,d:'Plus de salles et de moniteurs : demande un second terrain.'}]},
   pompiers:{n:'Pompiers',ico:'🚒',cat:'Services publics',niv:[
     {n:'Poste de pompiers',cout:{pieces:60,savoir:300,brique:20,ciment:6,fer:4},d:'Un camion et une équipe prêts à intervenir.'},
     {n:'Caserne',cout:{pieces:150,savoir:600,brique:34,ciment:12,fer:10},double:true,d:'Une caserne avec tour d’entraînement : demande un second terrain.'}]}
@@ -154,6 +158,16 @@ const DESSIN={
     box(g,.5,.3,.3,new THREE.MeshBasicMaterial({color:0x2e7bff}),-.4,H+.5,-.5);box(g,.5,.3,.3,new THREE.MeshBasicMaterial({color:0xe74c3c}),.4,H+.5,-.5);
     if(niv>=2)cyl(g,.05,.07,3.6,M('#999'),3.4,H+1.8,-1.5,6);
     box(g,2,.7,1,M('#ffffff'),-2.8,.5,4.3);box(g,1.2,.5,.9,M('#2e4a7a'),-2.8,1.0,4.3);
+    return {w:W+.4,d:5.4};
+  },
+  autoecole(g,niv,k){
+    const H=niv>=2?4:3.4,W=niv>=2?10.4:9;
+    box(g,W,H,5,M('#f4d03f'),0,H/2,-.5);box(g,W+.4,.3,5.4,M('#1f5f9e'),0,H+.15,-.5);box(g,W,.35,.1,M('#1f5f9e'),0,H*.55,2.02);
+    box(g,1.5,2.2,.12,mat('porte',()=>std('#4a2f1b',.8)),0,1.1,2.06);fenetres(g,niv>=2?4:3,1.1,1.8,2.06,niv>=2?2.4:2.6);
+    enseigne(g,niv>=2?'GRANDE AUTO-ÉCOLE':'AUTO-ÉCOLE','#1f5f9e',H+.7,2.12,5);
+    const vo=voiture('auto','#ffffff');vo.position.set(-2.6,0,4.2);vo.rotation.y=Math.PI/2;g.add(vo);
+    box(g,.5,.25,.2,M('#e0a526'),-2.6,1.75,4.2);
+    [[1.8,4.8],[2.6,4.8],[3.4,4.8]].forEach(([x,z])=>cyl(g,.18,.28,.5,M('#e67e22'),x,.25,z,10));
     return {w:W+.4,d:5.4};
   },
   pompiers(g,niv,k){
