@@ -98,7 +98,7 @@ Lukolela|Lukolela|Équateur|122308|2004|14|8608|lingala|S|3|0|0|Il a été cré�
 Lukula|Lukula|Kongo-Central|263538|2016|81|3270|kikongo|S|5|0|3|Il a été inauguré en juillet 1955
 Luozi|Luozi|Kongo-Central|196083|2016|25|7772|kikongo|S|10|0|1|Il longe le fleuve Congo et touche le Congo-Brazzaville
 Lupatapata|Lupatapata|Kasaï-Oriental|1002710|2015|418|2397|tshiluba|S|4|0|1|Il a été créé en 1978 et son sous-sol contient du diamant
-Lusambo|Lusambo|Sankuru|1174104|2016|71|16508|tshiluba|S|8|0|0|Son chef-lieu est Mpanya-Mutombo
+Lusambo|Lusambo|Sankuru|1174104|2016|71|16508|tshiluba|S|8|0|0|Son chef-lieu, Lusambo, est aussi la capitale de la province du Sankuru
 Madimba|Madimba|Kongo-Central|475402|2016|58|8260|kikongo|S|6|0|2|Kisantu appartient à ce territoire
 Mahagi|Mahagi|Ituri|1885000|2023|230|8184|lingala|N|0|8|1|Il s’étend au nord-est de la province et touche l’Ouganda
 Makanza|Makanza|Équateur|0|0|0|0|lingala|N|3|0|0|Sa localité s’appelait autrefois Nouvelle-Anvers

@@ -27,3 +27,16 @@ export const coutRoute=(type,i)=>{
   if(type==='anneau')return {pieces:60+30*i,savoir:100+50*i,bitume:10+4*i};
   return {pieces:20+10*i,savoir:30+20*i,bitume:5+i};   // res
 };
+
+// rond-point au centre du village : îlot fleuri avec fontaine, route circulaire bitumée
+export function rondPoint(g,cx,cz){
+  bitumeAnneau(g,cx,cz,6.65,3.5,56);
+  const ile=new THREE.Mesh(new THREE.CircleGeometry(4.9,40),new THREE.MeshStandardMaterial({color:0x4f9c3c,roughness:1,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-5}));
+  ile.rotation.x=-Math.PI/2;ile.position.set(cx,.05,cz);g.add(ile);
+  const pierre=new THREE.MeshStandardMaterial({color:0xcfc6b2,roughness:.8});
+  const bas=new THREE.Mesh(new THREE.CylinderGeometry(1.7,1.9,.5,20),pierre);bas.position.set(cx,.3,cz);g.add(bas);
+  const eau=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,.1,20),new THREE.MeshStandardMaterial({color:0x3fa9d9,roughness:.2}));eau.position.set(cx,.58,cz);g.add(eau);
+  const col=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,1.6,10),pierre);col.position.set(cx,1.2,cz);g.add(col);
+  const vas=new THREE.Mesh(new THREE.CylinderGeometry(.7,.3,.3,14),pierre);vas.position.set(cx,2.0,cz);g.add(vas);
+}
+export const COUT_ROND={pieces:120,savoir:200,bitume:12,ciment:6,brique:10};

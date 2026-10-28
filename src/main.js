@@ -23,7 +23,7 @@ import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
 import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,NB_TERRAINS} from './quartier_res.js';
-import {coutRoute} from './routes.js';
+import {coutRoute,COUT_ROND} from './routes.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -244,7 +244,8 @@ function construireVille(){
   SCENES.ville.doors=DOORS_VILLE.concat(ext.doors);
   ext.lots.forEach(l=>{const dd=SCENES[l.scene].doors[0];dd.tx=l.retour.x;dd.tz=l.retour.z;dd.phi=l.retour.phi});
   // quartier résidentiel du joueur (terrains à acheter et maisons à construire)
-  const qr=construireRes(w,{n:G.adv.terrains||0,bat:batsRes(),pave:pave},{
+  const qr=construireRes(w,{n:G.adv.terrains||0,bat:batsRes(),pave:pave,rond:!!G.adv.rond},{
+    rond:()=>openBox({kind:'rond',msg:''}),
     acheter:k=>openBox({kind:'terrain',k:k,msg:''}),ouvrir:k=>openBox({kind:'terrain',k:k,msg:''}),
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
@@ -458,6 +459,7 @@ function renderDialog(){
   else if(d.kind==='maison')h=htmlMaison(d);
   else if(d.kind==='terrain')h=htmlTerrain(d);
   else if(d.kind==='route')h=htmlRoute(d);
+  else if(d.kind==='rond')h=htmlRond(d);
   else if(d.kind==='menu')h=htmlMenu(d);
   else if(d.kind==='profile')h=htmlProfile(d);
   else if(d.kind==='map')h=htmlMap(d);
@@ -500,7 +502,6 @@ function htmlQuiz(d){
     h+=`<p style="font-size:14px;margin:6px 0">Bravo, tu as fini la mission ! Continue avec la suivante ou explore d’autres missions.</p>`;
     if(sv)h+=`<button class="p" onclick="startMission('${sv[0]}','${sv[1]}',${sv[2]})">▶ Suivant : ${esc(sv[3])}</button>`;
     else if(G.ui==='3d'&&!d.rev)h+=`<button class="p" onclick="suivantAventure()">▶ Suivant</button>`;
-    if(!d.rev&&G.mjBonus&&MJ[G.mjBonus])h+=`<button class="p" style="background:#e0a526;border-color:#e0a526;color:#2b2110" onclick="bonusMJ()">🎁 Bonus : ${esc(MJ[G.mjBonus].t.replace('Mini-jeu : ',''))} (1 min)</button>`;
     h+=`<button class="j" onclick="openSuite()">🧭 Explorer d’autres missions</button>`;
     d.menuFait=true;
     if(d.classe)h+=`<p style="font-size:13px">📘 <b>Tu retrouveras ça en classe :</b> ${esc(d.classe)}.</p>`;
@@ -741,6 +742,7 @@ function htmlTerrain(d){
       h+=`<p>Actuellement : ${c.ico} <b>${esc(nomBatiment(b))}</b></p>`;
       if(b.n>=c.niv.length)h+=`<p>✔ Cette construction est au niveau maximal.</p>`;
       else h+=boutonConstruction(k,b.t,b.n);
+      h+=d.conf?`<p style="font-size:13px">Démolir « ${esc(nomBatiment(b))} » ? Tu récupères la moitié des pièces et des points de savoir investis, pas les matériaux.</p><button onclick="demolirTerrain(${k})">Oui, démolir</button><button class="s" onclick="demolirAnnuler()">Non, garder</button>`:`<button class="s" onclick="demolirAnnuler(true)">🔨 Démolir ou changer de construction</button>`;
     }else{
       h+=`<p style="font-size:13px">Choisis ce que tu construis sur ce terrain. Chaque construction coûte des pièces, des matériaux et des points de savoir, et peut être améliorée ensuite.</p>`;
       ['Résidences','Services publics'].forEach(cat=>{
@@ -774,6 +776,18 @@ function construireTerrain(k,t){
   G.refaireVille=true;save();refreshHud();SFX.win();
   d.msg='Chantier terminé : '+lv.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
 }
+function demolirAnnuler(oui){const d=G.dialog;d.conf=!!oui;renderDialog()}
+function demolirTerrain(k){
+  const a=G.adv,d=G.dialog,B=batsRes(),b=B[k];if(!b||b.annexe!==undefined)return;
+  let p=0,sv=0;
+  for(let i=0;i<b.n;i++){const c=CATALOGUE[b.t].niv[i].cout;p+=c.pieces||0;sv+=c.savoir||0}
+  p=Math.floor(p/2);sv=Math.floor(sv/2);
+  B.forEach((x,j)=>{if(x&&x.annexe===k)B[j]=null});
+  B[k]=null;if((a.maisRes||[])[k])a.maisRes[k]=0;
+  a.pieces+=p;a.savoir=(a.savoir||0)+sv;d.conf=false;
+  G.refaireVille=true;save();refreshHud();SFX.coin();
+  d.msg='Construction démolie : +'+p+' 🪙 et +'+sv+' 🎓 récupérés. Le terrain est libre.';renderDialog();
+}
 function bitumerRoute(id,type,i){
   const c=coutRoute(type,i);
   openBox({kind:'route',id:id,type:type,i:i,msg:''});
@@ -786,6 +800,21 @@ function htmlRoute(d){
     +`<button class="${m.length?'':'p'}" onclick="payerRoute()">🛣 Bitumer ce tronçon<br><small>Coût : ${coutTexte(c.cout)}${m.length?' — il te manque : '+m.join(' · '):''}</small></button>`
     +`<p style="font-size:12px">Le bitume s’achète chez Maman Béa ou se récolte dans les mini-jeux.</p>`;
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function htmlRond(d){
+  const a=G.adv,m=manque({cout:COUT_ROND});
+  let h=`<h3>⛲ Rond-point du village</h3><p class="row"><span>Mes points de savoir</span><b>${a.savoir||0} 🎓</b></p><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Mon sac</span><b>${esc(texteSac())}</b></p>`;
+  if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
+  h+=`<p style="font-size:13px">Un rond-point avec fontaine au carrefour central relie le quartier résidentiel et les quartiers de missions.</p>`
+    +`<button class="${m.length?'':'p'}" onclick="payerRond()">⛲ Construire le rond-point<br><small>Coût : ${coutTexte(COUT_ROND)}${m.length?' — il te manque : '+m.join(' · '):''}</small></button>`;
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function payerRond(){
+  const a=G.adv,d=G.dialog;if(!d||d.kind!=='rond'||a.rond)return;
+  const m=manque({cout:COUT_ROND});
+  if(m.length){d.msg='Il te manque : '+m.join(' · ');SFX.ko();renderDialog();return}
+  payer(COUT_ROND);a.rond=true;G.refaireVille=true;save();refreshHud();SFX.win();
+  d.msg='Rond-point construit ! Ferme ce menu pour le voir.';renderDialog();
 }
 function payerRoute(){
   const a=G.adv,d=G.dialog;if(!d||d.kind!=='route')return;
@@ -1822,7 +1851,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

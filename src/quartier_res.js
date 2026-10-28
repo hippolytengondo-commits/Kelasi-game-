@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import {std,box,cyl,gableRoof} from './world.js';
 import {CX} from './quartiers.js';
-import {bitumeDroit,coutRoute} from './routes.js';
+import {bitumeDroit,coutRoute,rondPoint} from './routes.js';
 
 // Quartier résidentiel du joueur, au nord du village (du côté opposé à la ville des missions).
 // Le joueur y achète des terrains avec ses points de savoir (gagnés en réussissant des missions) puis y construit
@@ -185,6 +185,12 @@ export function construireRes(w,etat,cb){
     if(etat.pave&&etat.pave.has(id))bitumeDroit(g,CX,z1,z2,5.2);
     else spots.push({x:CX,z:z1-PAS/2,r:2.6,label:'Bitumer la route (tronçon '+(i+1)+')',run:()=>cb.route(id,'res',i)});
   }
+  // liaison à travers le village : relie le quartier résidentiel aux quartiers de missions ; rond-point possible au centre
+  flat(new THREE.PlaneGeometry(5.2,27),dirt,CX,.02,-.5);
+  if(etat.pave&&etat.pave.has('liaison'))bitumeDroit(g,CX,-14,13,5.2);
+  else spots.push({x:CX+3.2,z:-8,r:2.6,label:'Bitumer la route du village (liaison)',run:()=>cb.route('liaison','liaison',0)});
+  if(etat.rond){rondPoint(g,CX,0);cols.push({x:CX,z:0,r:1.9})}
+  else if(etat.pave&&etat.pave.has('liaison'))spots.push({x:CX,z:0,r:3,label:'Construire un rond-point au centre du village',run:()=>cb.rond()});
   // panneau d'entrée, côté village
   cyl(g,.07,.09,2.6,std('#5a3a22',.9),CX+4,1.3,-12,8);
   const en=new THREE.Mesh(new THREE.PlaneGeometry(3,1.6),new THREE.MeshStandardMaterial({map:T.textBoard([{t:'QUARTIER',s:60,y:.25},{t:'RÉSIDENTIEL ↑',s:50,y:.52},{t:'Terrains à acheter',s:26,y:.78}],1024,546,'#0f2f6b','#ffffff'),roughness:.6}));
