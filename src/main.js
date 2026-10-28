@@ -24,7 +24,7 @@ import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
 import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,NB_TERRAINS} from './quartier_res.js';
 import {coutRoute} from './routes.js';
-import {TERRITOIRES_LISTE,slug as slugTr} from './territoires_gen.js';
+import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
 const KEY='kelas_game_v12';
@@ -461,6 +461,7 @@ function renderDialog(){
   else if(d.kind==='menu')h=htmlMenu(d);
   else if(d.kind==='profile')h=htmlProfile(d);
   else if(d.kind==='map')h=htmlMap(d);
+  else if(d.kind==='congo')h=htmlCongo(d);
   else if(d.kind==='objs')h=htmlObjs(d);
   else if(d.kind==='prog')h=htmlProg(d);
   else if(d.kind==='esp')h=Esp.html(d);
@@ -850,6 +851,7 @@ function htmlMenu(){
    +`<h4>Ma maison</h4>`+Object.keys(ITEMS).map(k=>`<div class="row"><span>${esc(ITEMS[k].n)}</span><b>${a.items[k]?'✔':'—'}</b></div>`).join('')
    +`<p style="font-size:12px;margin-top:8px">${esc(objective())}</p>`
    +`<button class="p" onclick="closeDialog()">Fermer</button>`
+   +`<button onclick="openCongo()">🇨🇩 Explorer le Congo : provinces et territoires</button>`
    +`<button onclick="openProg()">🎓 Missions scolaires</button>`
    +`<button onclick="openComp()">🗺 Carte des compétences${aReviser().length?' · 🔁 '+aReviser().length+' à réviser':''}</button>`
    +`<button onclick="openCarnet()">📒 Mon carnet de progression</button>`
@@ -1457,7 +1459,8 @@ function carnetBasc(g){const d=G.dialog;d.ouvert=d.ouvert||{};d.ouvert[g]=!d.ouv
 function openMap(){openBox({kind:'map'})}
 function htmlMap(){
   const d=G.dialog;
-  let h='<h3>Carte des lieux</h3><p style="font-size:13px">Choisis un lieu. Chaque niveau se débloque quand tu as fini le précédent.</p>';
+  let h='<h3>Carte des lieux</h3><p style="font-size:13px">Choisis un lieu. Chaque niveau se débloque quand tu as fini le précédent.</p>'
+    +`<button class="j" onclick="openCongo()">🇨🇩 Explorer le Congo : provinces et territoires</button><button class="j" onclick="closeDialog();openProg()">🎓 Missions scolaires : toutes les classes</button>`;
   STAGES.forEach((st,i)=>{
     if(st.libre)return;
     const ok=stageUnlocked(i),n=st.npcs.filter(doneNpc).length,done=stageDone(st);
@@ -1477,6 +1480,41 @@ function htmlMap(){
   }
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
 }
+// ---------- Explorer le Congo : fiches des provinces et des territoires ----------
+function openCongo(){closeDialog();openBox({kind:'congo',pi:null})}
+const nf=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+function htmlCongo(d){
+  let h=`<div class="hd"><h3>🇨🇩 Explorer le Congo</h3></div>`;
+  const stat=ids=>{const L=ids.map(id=>STAGES.find(s=>s.id===id)).filter(Boolean);return {t:L.reduce((a,st)=>a+st.npcs.length,0),f:L.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0)}};
+  if(d.pi===null||d.pi===undefined){
+    const tot=stat(Object.keys(PROV_DE).concat(PROVS.map(p=>'pv_'+slugTr(p))));
+    h+=`<p style="font-size:13px">Toute la connaissance du pays au même endroit : les ${PROVS.length} provinces et les ${TERRITOIRES_LISTE.length} territoires, avec leurs fiches. ${tot.f}/${tot.t} missions réussies. Les missions restent aussi dans l’exploration normale.</p>`;
+    PROVS.forEach((p,i)=>{
+      const ts=TERRITOIRES_LISTE.filter(t=>t.prov===p),st=stat(ts.map(t=>'tr_'+slugTr(t.nom)).concat(['pv_'+slugTr(p)]));
+      h+=`<button onclick="congoProv(${i})"><b>${esc(p)}</b><br><small>${ts.length} territoires · ${st.f}/${st.t} missions</small></button>`;
+    });
+    h+=`<button class="j" onclick="openProg()">🎓 Missions scolaires (toutes les classes)</button>`;
+    return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+  }
+  const p=PROVS[d.pi],ts=TERRITOIRES_LISTE.filter(t=>t.prov===p);
+  const pop=ts.reduce((a,t)=>a+t.pop,0),km=ts.reduce((a,t)=>a+t.km2,0);
+  h+=`<h4>${esc(p)}</h4><p style="font-size:13px">${ts.length} territoires${km?' · environ '+nf(km)+' km² recensés':''}${pop?' · environ '+nf(pop)+' habitants recensés':''} (données à vérifier).</p>`;
+  const pv=STAGES.find(s=>s.id==='pv_'+slugTr(p));
+  if(pv){const i=STAGES.indexOf(pv),ok=stageUnlocked(i);h+=`<button ${ok?'':'disabled'} onclick="travel('${pv.id}')"><b>${pv.icon} ${esc(pv.name)}</b><br><small>${ok?pv.npcs.filter(doneNpc).length+'/'+pv.npcs.length+' missions':'🔒 à débloquer dans l’exploration'}</small></button>`}
+  ts.forEach(t=>{
+    const st=STAGES.find(s=>s.id==='tr_'+slugTr(t.nom)),i=st?STAGES.indexOf(st):-1,ok=i>=0&&stageUnlocked(i);
+    const l=[];
+    l.push('Chef-lieu : '+t.cl);
+    if(t.lang)l.push('Langue : '+(t.lang.charAt(0).toUpperCase()+t.lang.slice(1)));
+    if(t.pop)l.push('Population : environ '+nf(t.pop)+(t.an?' ('+t.an+')':''));
+    if(t.km2)l.push('Superficie : '+nf(t.km2)+' km²');
+    if(t.sect)l.push(t.sect+' secteurs');if(t.chef)l.push(t.chef+' chefferies');if(t.comm)l.push(t.comm+' communes');
+    h+=`<div class="row" style="display:block;margin:8px 0;padding:8px;border:1px solid #d9d2bd;border-radius:10px"><b>${esc(t.nom)}</b><br><small>${esc(l.join(' · '))}</small>${t.fait?`<br><small><i>${esc(t.fait)}</i></small>`:''}`
+      +(st?`<br><button ${ok?'':'disabled'} style="margin-top:6px" onclick="travel('${st.id}')">${ok?'Visiter · '+st.npcs.filter(doneNpc).length+'/'+st.npcs.length+' missions':'🔒 à débloquer dans l’exploration'}</button>`:'')+`</div>`;
+  });
+  return h+`<button class="s" onclick="congoProv(null)">← Toutes les provinces</button>`;
+}
+function congoProv(i){const d=G.dialog;d.pi=i;renderDialog()}
 function mapProv(p){const d=G.dialog;d.prov=d.prov===p?null:p;renderDialog()}
 function travel(id){
   const st=STAGES.find(s=>s.id===id);if(!st)return;
@@ -1784,7 +1822,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
