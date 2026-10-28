@@ -17,7 +17,7 @@ import {createRig} from './render.js';
 import {initPhoto} from './photo.js';
 import {setManifest} from './textures.js';
 import {buildVille,buildClasse,buildMaison} from './world.js';
-import {RESS,MJ,mjPos,marqueur,lancer} from './minijeux.js';
+import {RESS,MJ,mjPos,marqueur,lancer,varier} from './minijeux.js';
 import {extendVille,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
@@ -28,6 +28,7 @@ const KEY='kelas_game_v12';
 const $=id=>document.getElementById(id);
 const clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let mjJoue=null; // scène où le mini-jeu a déjà été joué (une seule partie par mission)
 const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
 const dist=(ax,az,bx,bz)=>Math.hypot(ax-bx,az-bz);
 
@@ -211,11 +212,11 @@ marche:{build:()=>buildMarche(),interior:false,spawn:{x:0,z:6.2,phi:-Math.PI/2},
  classe:{build:()=>buildClasse(),interior:true,doors:[{x:0,z:4.1,r:1.9,to:'ville',label:'Sortir de l’école',tx:42,tz:-3.4,phi:Math.PI/2}]}
 };
 // lieux d'exploration générés (voir lieux70.js) : une scène et un mini-jeu pour chacun
-const DESC_MJ={tap:'Touche les objets avant qu’ils ne disparaissent.',fall:'Rattrape les objets qui tombent. Évite les cailloux !',peche:'Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'};
-LIEUX.forEach(l=>{
+const DESC_MJ={memoire:'Retrouve les paires de cartes identiques.',empile:'Empile les blocs bien droit pour monter la tour.',tap:'Touche les objets avant qu’ils ne disparaissent. Évite les pièges !',fall:'Déplace-toi pour rattraper les objets qui tombent. Un piège met fin au jeu !',peche:'Touche l’eau, à la profondeur du poisson, quand il passe sous la canne.'};
+LIEUX.forEach((l,li)=>{
   SCENES[l.id]={build:()=>buildLieu({titre:l.nom,sous:l.npc[0].lib,arch:l.arch,wall:l.wall,accent:l.accent,seed:l.seed}),interior:false,spawn:{x:0,z:6.8,phi:-Math.PI/2},
     doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]};
-  MJ[l.id]={r:l.mj[0],s:l.mj[1],t:'Mini-jeu : '+l.nom,d:DESC_MJ[l.mj[1]]};
+  {const st=varier(l.mj[0],l.mj[1],li);MJ[l.id]={r:l.mj[0],s:st,t:'Mini-jeu : '+l.nom,d:DESC_MJ[st]}}
 });
 const DOORS_VILLE=SCENES.ville.doors.slice();
 const DOORS_MAISON=SCENES.maison.doors.slice();
@@ -263,6 +264,7 @@ function buildScene(){
   scene.fog.color.set(el<=0?0x0b1330:el<14?0xe0b894:0xbcd0e0);
   sun.color.set(el<=0?0x9db4ff:el<14?0xffb070:0xfff0d4);
   sun.intensity=S.interior?2.4:(el<=0?.35:el<14?2.2:3.4);
+  mjJoue=null;
   W.mjMark=MJ[G.sc]?marqueur(G.sc):null;if(W.mjMark)W.group.add(W.mjMark);
   playerObj=makePlayer();scene.add(playerObj);
   Object.keys(NPC).filter(k=>NPC[k].sc===G.sc).forEach(id=>addNpc(id,NPC[id]));
@@ -396,7 +398,7 @@ function actionFor(t){
     return {label:parler(n),enabled:true,run:()=>startQuiz(t.id,false)};
   }
   if(t.t==='tree')return {label:'Cueillir des mangues',enabled:true,run:startMini};
-  if(t.t==='mj')return {label:'Mini-jeu : '+MJ[G.sc].t,enabled:true,run:startMJ};
+  if(t.t==='mj')return mjJoue===G.sc?{label:'Mini-jeu déjà joué : reprends la mission pour rejouer',enabled:false,run:null}:{label:'Mini-jeu : '+MJ[G.sc].t,enabled:true,run:startMJ};
   if(t.t==='spot'){const sp=SCENES[G.sc].spots[t.i];return {label:sp.label,enabled:true,run:sp.run}}
   const d=SCENES[G.sc].doors[t.i];
   if(d.ok&&!d.ok())return {label:d.closed,enabled:false,run:null};
@@ -428,6 +430,7 @@ const MAT_MA=new Set(['maths','marche','transport','footmaths','argent','poisson
 const MAT_SC=new Set(['nutrition','sante','corps','environnement','foret','animaux','agriculture','saisons','sciences','sciences2','meteo','energie','eau','espace','arbres','recyclage','savane','chaine','lacvie','virunga','volcans','incendie','secours','internet','numerique','mines','minesec']);
 const matiereDe=su=>MAT_FR.has(su)?'fr':MAT_MA.has(su)?'ma':MAT_SC.has(su)?'sc':'hg';
 function startQuiz(id,rev){
+  mjJoue=null;
   const n=NPC[id],bank=BANK[n.sujet];
   const qs=rev?shuffle(bank).slice(0,3):bank.slice(0,n.nb);
   const m3d=G.ui==='3d';
@@ -694,10 +697,12 @@ function construire(k){
 }
 let mjJeu=null;
 function startMJ(){
+  if(mjJoue===G.sc)return;
   if(G.mode!=='play'||!MJ[G.sc])return;
   G.mode='mj';G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;resetKnob();hideBubble();
-  mjJeu=lancer(G.sc,{host:$('world'),sfx:SFX,duree:window.__MJD||20,fin:(r)=>{
+  mjJeu=lancer(G.sc,{host:$('world'),sfx:SFX,duree:window.__MJD||60,sexe:G.sexe,fin:(r)=>{
     if(r&&r!=='fermer'){
+      mjJoue=G.sc;
       if(r.res&&r.n){stock()[r.res]=(stock()[r.res]||0)+r.n}
       if(r.pieces||r.n)gain(r.pieces,r.n);else save();
       refreshHud();
