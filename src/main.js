@@ -1649,7 +1649,7 @@ function majAccueil(){
   $('cont').classList.toggle('hide',!a);
   $('hcompte').classList.toggle('hide',!s);
   $('hvisiteur').classList.toggle('hide',!!s);
-  $('hstat').textContent=s?(s.pseudo+' · '+({eleve:'élève',enseignant:'enseignant',parent:'parent',etablissement:'établissement'}[s.role]||s.role)):'';
+  $('hstat').textContent=s?(s.pseudo+' · '+({eleve:'élève',enseignant:'enseignant',parent:'parent',etablissement:'établissement',admin:'administrateur'}[s.role]||s.role)):'';
 }
 // feuille « Ton aventure commence » : prénom et choix du personnage (parcours existant de l'Exploration)
 function ouvrirNouvelle(msg){$('hnewmsg').textContent=msg||'';$('hnew').classList.remove('hide')}

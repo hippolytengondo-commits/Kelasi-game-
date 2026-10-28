@@ -55,12 +55,19 @@ export async function connecter(identifiant,mdp){
   const s=stocker(r.data);
   const p=await appel('/rest/v1/profiles?select=pseudo,role,niveau&id=eq.'+s.uid,{token:s.access});
   if(p.ok&&p.data&&p.data[0]){s.pseudo=p.data[0].pseudo;s.role=p.data[0].role;s.niveau=p.data[0].niveau;ecrire(SK,s)}
+  else if(p.ok&&id.includes('@')){
+    // première connexion d'un adulte : le profil (et l'établissement) est créé à partir des informations d'inscription
+    const c=await appel('/rest/v1/rpc/completer_profil',{method:'POST',token:s.access,body:{}});
+    if(c.ok&&c.data){s.pseudo=c.data.pseudo;s.role=c.data.role;s.niveau=c.data.niveau||null;ecrire(SK,s)}
+    else return {ok:false,status:400,err:(c.err||'Profil introuvable')+' — vérifie ton inscription.'};
+  }
   return {ok:true,data:s};
 }
 export const estGmail=e=>/^[^\s@]+@(gmail|googlemail)\.com$/i.test(String(e).trim());
-// compte adulte (enseignant, parent) : adresse Gmail + mot de passe ; Supabase envoie un e-mail de confirmation
-export async function inscrireAdulte(pseudo,email,mdp,role){
-  const r=await appel('/auth/v1/signup',{method:'POST',body:{email:email.trim().toLowerCase(),password:mdp,data:{pseudo:pseudo.trim(),role:role}}});
+// compte adulte (enseignant, parent, établissement) : adresse Gmail + mot de passe ; Supabase envoie un e-mail de confirmation
+export async function inscrireAdulte(pseudo,email,mdp,role,ecole){
+  const donnees={pseudo:pseudo.trim(),role:role};if(role==='etablissement')donnees.ecole=String(ecole||'').trim();
+  const r=await appel('/auth/v1/signup',{method:'POST',body:{email:email.trim().toLowerCase(),password:mdp,data:donnees}});
   if(!r.ok)return r;
   if(r.data&&r.data.access_token)return connecter(email,mdp); // confirmation non exigée par le serveur : connexion immédiate
   return {ok:true,attente:true};

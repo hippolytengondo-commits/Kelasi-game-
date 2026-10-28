@@ -8,7 +8,7 @@ Chaque mission donne un score exact « points sur total » : 1 point par étape 
 `mission_attempts` garde toutes les tentatives (évolution) ; `mission_results` garde le meilleur score. Les enseignants lisent les résultats de leurs élèves via `assignment_scores` (un devoir) et `class_scores` (toute la classe).
 
 ## Tables
-`profiles` (pseudo, rôle élève/enseignant/parent/admin), `classes` (code à 6 caractères), `class_members`,
+`profiles` (pseudo, rôle élève/enseignant/parent/établissement/admin), `classes` (code à 6 caractères), `class_members`,
 `assignments` (devoirs : missions choisies par l'enseignant), `mission_results`, `save_games` (progression facultative).
 
 ## Règles de sécurité (vérifiées dans la base)
@@ -34,5 +34,12 @@ Les licences payantes ne sont pas activées par l’application : aucun paiement
 - **Mot de passe oublié (adultes)** : e-mail de récupération (`/auth/v1/recover`) ; le lien ramène sur le jeu qui propose de choisir un nouveau mot de passe.
 - À régler dans le tableau de bord Supabase (Authentication) : « Site URL » et « Redirect URLs » = adresse publique du jeu ; « Confirm email » activé ; pour un usage réel, brancher un serveur d’envoi d’e-mails (SMTP) car l’envoi par défaut est très limité.
 
+## Comptes établissement et administrateur (octobre 2026)
+- **Établissement** : inscription adulte (Gmail + mot de passe) avec le nom de l'école. À la première connexion, la fonction `completer_profil` crée le profil, l'établissement (code à 8 caractères), l'appartenance administrateur et la licence d'essai (30 jours, 60 places). Aucun déclencheur sur `auth.users` n'est nécessaire.
+- **Administrateur de la plateforme** : rôle `admin` attribué uniquement dans la base (jamais par l'application) : `update public.profiles set role='admin' where pseudo='…';`. Fonctions `admin_overview` (comptes par rôle, établissements, licences), `admin_set_licence`, `admin_suspend_licence`, toutes réservées à `is_platform_admin()`.
+- `create_school` accepte les rôles enseignant et établissement ; `join_school` reste réservé aux enseignants.
+
 ## Pas encore fait
-Paiement en ligne (mobile money, carte), rôle administrateur de la plateforme dans l’application, récupération de mot de passe, limitation du nombre d’inscriptions par appareil, test de bout en bout des licences expirées sur la vraie base.
+Paiement en ligne (mobile money, carte), limitation du nombre d’inscriptions par appareil, test de bout en bout des licences expirées sur la vraie base.
+
+Évaluations (minuteur, QCM, anti-triche), communiqués avec accusé de lecture, notifications push (FCM/APNs) et options Android natives (FLAG_SECURE, épinglage d'écran) : à concevoir ; les notifications push et FLAG_SECURE exigent une application Android native (hors application web).
