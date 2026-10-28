@@ -22,6 +22,7 @@ import {extendVille,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
+import {TERRITOIRES_LISTE,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
 const KEY='kelas_game_v12';
@@ -218,6 +219,7 @@ LIEUX.forEach((l,li)=>{
     doors:[{x:-3.8,z:10.4,r:2.2,to:'ville',label:'Retour au quartier',tx:-7,tz:-1.2,phi:0}]};
   {const st=varier(l.mj[0],l.mj[1],li);MJ[l.id]={r:l.mj[0],s:st,t:'Mini-jeu : '+l.nom,d:DESC_MJ[st]}}
 });
+const PROV_DE={};TERRITOIRES_LISTE.forEach(t=>{PROV_DE['tr_'+slugTr(t.nom)]=t.prov});
 const DOORS_VILLE=SCENES.ville.doors.slice();
 const DOORS_MAISON=SCENES.maison.doors.slice();
 function construireMaison(){
@@ -231,7 +233,7 @@ function construireMaison(){
 }
 // la ville s'agrandit : les quartiers s'ouvrent au fil des missions d'exploration réussies
 function etatQuartiers(){
-  return STAGES.slice(1).map((st,k)=>({id:st.id,scene:st.scene,name:st.name,icon:st.icon,ouvert:stageUnlocked(k+1),fini:stageDone(st),precedent:STAGES[k].name}));
+  return STAGES.slice(1).filter(st=>!st.libre).map((st,k)=>({id:st.id,scene:st.scene,name:st.name,icon:st.icon,ouvert:stageUnlocked(k+1),fini:stageDone(st),precedent:STAGES[k].name}));
 }
 function construireVille(){
   const w=buildVille({maison:G.adv.maison});
@@ -341,7 +343,7 @@ function objective(){
   if(!a.ilunga)return 'Objectif : entre dans l’école et va voir la Professeure Ilunga.';
   if(!a.junior)return 'Objectif : rejoins Junior, assis dans la classe.';
   if(!a.mavungu)return 'Objectif : le Directeur Mavungu t’attend dans la classe.';
-  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st)&&G.ui!=='photo')return 'Objectif : suis la route jaune vers les nouveaux quartiers (sud du village) et entre ici : '+st.icon+' '+st.name+'.'}
+  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(st.libre)continue;if(!stageDone(st)&&G.ui!=='photo')return 'Objectif : suis la route jaune vers les nouveaux quartiers (sud du village) et entre ici : '+st.icon+' '+st.name+'.'}
   const n=nbItems(),t=Object.keys(ITEMS).length;
   if(n<t)return 'Objectif : cueille des mangues, révise et meuble ta maison ('+n+'/'+t+').';
   return 'Tu as tout accompli ! Continue à réviser pour gagner des étoiles.';
@@ -901,7 +903,7 @@ function missionTarget(){
   else if(!a.junior){ts='classe';tn='junior'}
   else if(!a.mavungu){ts='classe';tn='mavungu'}
   else{
-    for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st)){ts=st.scene;tn=st.npcs.find(k=>!a[k])||st.npcs[0];break}}
+    for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(st.libre)continue;if(!stageDone(st)){ts=st.scene;tn=st.npcs.find(k=>!a[k])||st.npcs[0];break}}
   }
   if(!ts)return null;
   if(G.sc===ts&&NPC[tn])return {x:NPC[tn].x,z:NPC[tn].z,label:NPC[tn].short||NPC[tn].name,kind:'npc'};
@@ -1086,7 +1088,7 @@ $('skip').addEventListener('click',()=>{if(G.mode==='cine')endCine()});
 
 // ---------- Niveaux et carte ----------
 const stageDone=st=>st.npcs.every(doneNpc);
-const stageUnlocked=i=>i===0||stageDone(STAGES[i-1]);
+const stageUnlocked=i=>i===0||!!STAGES[i].libre||stageDone(STAGES[i-1]);
 function stageStars(st){return st.npcs.reduce((a,id)=>a+(G.adv.stars[id]||0),0)}
 // ---------- Missions scolaires (programme) ----------
 function openProg(){openBox({kind:'prog',niv:null,mat:null})}
@@ -1236,7 +1238,7 @@ function prochaineAventure(){
   if(!a.ilunga)return {txt:'Entre dans l’école et va voir la Professeure Ilunga.'};
   if(!a.junior)return {txt:'Rejoins Junior, assis dans la classe.'};
   if(!a.mavungu)return {txt:'Le Directeur Mavungu t’attend dans la classe.'};
-  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(!stageDone(st))return {txt:'Rends-toi ici : '+st.icon+' '+st.name+'.',stage:st}}
+  for(let i=1;i<STAGES.length;i++){const st=STAGES[i];if(st.libre)continue;if(!stageDone(st))return {txt:'Rends-toi ici : '+st.icon+' '+st.name+'.',stage:st}}
   return {txt:'Tu as accompli toute l’aventure ! Continue avec les missions scolaires.'};
 }
 function suivantAventure(){
@@ -1356,13 +1358,28 @@ function carnetBasc(g){const d=G.dialog;d.ouvert=d.ouvert||{};d.ouvert[g]=!d.ouv
 
 function openMap(){openBox({kind:'map'})}
 function htmlMap(){
+  const d=G.dialog;
   let h='<h3>Carte des lieux</h3><p style="font-size:13px">Choisis un lieu. Chaque niveau se débloque quand tu as fini le précédent.</p>';
   STAGES.forEach((st,i)=>{
+    if(st.libre)return;
     const ok=stageUnlocked(i),n=st.npcs.filter(doneNpc).length,done=stageDone(st);
     h+=`<button ${ok?'':'disabled'} onclick="travel('${st.id}')"><b>${st.icon} ${esc(st.name)}</b><br><small>${ok?(done?'✔ Terminé · ':'')+n+'/'+st.npcs.length+' personnes rencontrées · ★ '+stageStars(st):'🔒 Termine « '+esc(STAGES[i-1].name)+' » pour débloquer'}</small></button>`;
   });
+  // exploration libre : les territoires de la RDC, classés par province (toujours ouverts)
+  const libres=STAGES.filter(st=>st.libre);
+  if(libres.length){
+    const prov={};libres.forEach(st=>{const p=PROV_DE[st.id]||'Autres';(prov[p]=prov[p]||[]).push(st)});
+    const tot=libres.reduce((a,st)=>a+st.npcs.length,0),fait=libres.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0);
+    h+=`<h3 style="margin-top:14px">🗺️ Territoires de la RDC · exploration libre</h3><p style="font-size:13px">${libres.length} territoires, 3 missions chacun, ouverts dès maintenant. ${fait}/${tot} missions réussies.</p>`;
+    Object.keys(prov).forEach(p=>{
+      const L=prov[p],f=L.reduce((a,st)=>a+st.npcs.filter(doneNpc).length,0),t=L.reduce((a,st)=>a+st.npcs.length,0),ouvert=d.prov===p;
+      h+=`<button class="j" onclick="mapProv('${p.replace(/'/g,'’')}')"><b>${ouvert?'▾':'▸'} ${esc(p)}</b> · ${L.length} territoires · ${f}/${t}</button>`;
+      if(ouvert)h+=L.map(st=>{const n=st.npcs.filter(doneNpc).length;return `<button onclick="travel('${st.id}')"><b>${st.icon} ${esc(st.name)}</b><br><small>${stageDone(st)?'✔ Terminé · ':''}${n}/${st.npcs.length} missions · ★ ${stageStars(st)}</small></button>`}).join('');
+    });
+  }
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
 }
+function mapProv(p){const d=G.dialog;d.prov=d.prov===p?null:p;renderDialog()}
 function travel(id){
   const st=STAGES.find(s=>s.id===id);if(!st)return;
   const sc=SCENES[st.scene];
@@ -1378,15 +1395,15 @@ function stageCheck(id){
   if(!st||!stageDone(st))return;
   G.adv.stageBonus=G.adv.stageBonus||{};
   if(!G.adv.stageBonus[st.id]){
-    G.adv.stageBonus[st.id]=true;gain(30,30);
-    toast(st.icon+' Niveau terminé : '+st.name+' ! +30 pièces');SFX.win();
-    const nx=STAGES[STAGES.indexOf(st)+1];
+    const bo=st.libre?10:30;G.adv.stageBonus[st.id]=true;gain(bo,bo);
+    toast(st.icon+' '+(st.libre?'Territoire terminé : ':'Niveau terminé : ')+st.name+' ! +'+bo+' pièces');SFX.win();
+    const nx=st.libre?null:STAGES[STAGES.indexOf(st)+1];
     if(nx)setTimeout(()=>toast('🏗 Un nouveau quartier s’ouvre : '+nx.icon+' '+nx.name+'. Suis la route jaune dans la ville !'),2800);
   }
-  if(STAGES.every(stageDone)&&!G.adv.diplome){
+  if(STAGES.filter(x=>!x.libre).every(stageDone)&&!G.adv.diplome){
     G.adv.diplome=true;save();
     setTimeout(()=>openBox({kind:'info',title:'Diplôme de LEXARIS ACADÉMIE',i:0,lines:[
-      'Félicitations '+G.nom+' ! Tu as terminé les '+STAGES.length+' épisodes, de l’école à la place de l’Indépendance.',
+      'Félicitations '+G.nom+' ! Tu as terminé les '+STAGES.filter(x=>!x.libre).length+' épisodes, de l’école à la place de l’Indépendance.',
       'Tu sais compter, lire, protéger la nature, prendre soin de ta santé, connaître ton pays et tes droits. Tu es un vrai citoyen et un champion !']}),1500);
   }
 }
@@ -1667,7 +1684,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

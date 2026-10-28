@@ -1,4 +1,5 @@
 import {THEMES} from './lieux_themes.js';
+import {LIEUX_TR} from './lieux_territoires.js';
 
 // 70 lieux d'exploration supplémentaires : 24 provinces de la RDC (questions générées à partir d'un tableau)
 // et 46 lieux thématiques (métiers, histoire et civisme, sciences, sport et culture, vie pratique).
@@ -80,3 +81,5 @@ export const LIEUX=[];
   for(let k=0;k<2&&t<THEMATIQUES.length;k++)LIEUX.push(THEMATIQUES[t++]);
   if(p<PROVINCES.length)LIEUX.push(PROVINCES[p++]);
 }})();
+// lieux d'exploration libre (un par territoire) : ajoutés à la fin
+LIEUX_TR.forEach(l=>LIEUX.push(l));

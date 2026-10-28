@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {panneauLex} from './pub.js';
+import {panneauPub} from './pub.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng} from './world.js';
 import {leafyTree,palm,grassField,bush} from './nature.js';
@@ -32,7 +32,7 @@ export function buildArene(matiere){
   for(let i=0;i<14;i++){const a=i/14*Math.PI*2,x=Math.cos(a)*17.5,z=Math.sin(a)*17.5;
     cyl(g,.55,.65,4.2,std(th.pil,.85),x,2.1,z,12);cyl(g,.8,.8,.35,std('#efe8da',.8),x,4.35,z,12);colliders.push({x:x,z:z,r:.8})}
   // panneau LEXOTHÈQUE RDC dans quelques matières seulement
-  if(['hg','lit','com','ev'].includes(matiere)){const pb=panneauLex(4.4);pb.position.set(-11.5,0,-5);pb.rotation.y=1.07;g.add(pb);colliders.push({x:-11.5,z:-5,r:1.7})}
+  if(['hg','lit','com','ev'].includes(matiere)){const pb=panneauPub(['hg','lit'].includes(matiere)?'lex':'rulems');pb.position.set(-11.5,0,-5);pb.rotation.y=1.07;g.add(pb);colliders.push({x:-11.5,z:-5,r:1.7})}
   // arbres au loin
   for(let i=0;i<22;i++){const a=r()*6.28,d=22+r()*10;const x=Math.cos(a)*d,z=Math.sin(a)*d;
     const t=i%3===0?palm(i+5):leafyTree({kind:i%2?'mango':'leafy',seed:i+30,fruits:false,trunk:3.2+r()*1.4});t.position.set(x,0,z);t.scale.setScalar(i%3===0?1:1.2+r()*.4);g.add(t);colliders.push({x:x,z:z,r:.7})}

@@ -9,7 +9,6 @@ import {C8,J8,K8} from './programme8.js';
 import {C9,J9,K9} from './programme9.js';
 import {C10,J10,K10} from './programme10.js';
 import {C11,J11,K11} from './programme11.js';
-import {C12,NIVEAU_TR} from './programme12.js';
 
 // Programme scolaire : niveau → matières → missions (titres). Les missions qui ont un contenu jouable
 // sont listées dans CONTENU, clé « niveau|matière|numéro ». Les autres s'affichent « bientôt ».
@@ -263,7 +262,5 @@ Object.assign(C,C2);
 Object.keys(JEUX).forEach(k=>{if(C[k])C[k].jeux=JEUX[k]});
 Object.keys(COLLECTES).forEach(k=>{if(C[k])C[k].collecte=COLLECTES[k]});
 [[C3,J3,K3],[C4,J4,K4],[C5,J5,K5],[C6,J6,K6],[C7,J7,K7],[C8,J8,K8],[C9,J9,K9],[C10,J10,K10],[C11,J11,K11]].forEach(([c,j,k])=>{Object.assign(C,c);Object.keys(j).forEach(x=>{if(C[x])C[x].jeux=j[x]});Object.keys(k).forEach(x=>{if(C[x])C[x].collecte=k[x]})});
-Object.assign(C,C12);
-PROGRAMME.push(NIVEAU_TR);
 export const CONTENU=C;
 export const missionCle=(n,m,i)=>n+'|'+m+'|'+i;

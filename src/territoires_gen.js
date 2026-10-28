@@ -1,10 +1,9 @@
-import {Q} from './data.js';
 import {TERRITOIRES} from './territoires_data.js';
+const Q=(q,c,a,exp)=>({q,c,a,exp});
 
-// Niveau « Les territoires de la RDC » : 3 missions par territoire (situer · chiffres clés · organisation et vie),
+// Territoires de la RDC : 3 missions d'exploration par territoire (situer · chiffres clés · organisation et vie),
 // générées à partir du tableau de données (src/territoires_data.js). Les distractors sont choisis de façon déterministe.
 const M=(intro,qs)=>({intro:intro,qs:qs});
-export const C12={};
 
 const LANGUES={lingala:'Lingala',swahili:'Kiswahili',kikongo:'Kikongo ya leta',tshiluba:'Tshiluba',kiluba:'Kiluba',kinande:'Kinande',kibemba:'Kibemba',mashi:'Mashi',ngbandi:'Ngbandi',otetela:'Otetela',kisongye:'Kisongye',bondengese:'Bondengese'};
 const NATIONALES=['lingala','swahili','kikongo','tshiluba'];
@@ -159,12 +158,7 @@ function mVie(t,i){
   return M([s1,s2],res);
 }
 
-// ---------- niveau ----------
-const BUILD=[mSituer,mChiffres,mVie];
-const TITRES=[t=>t+' : situer le territoire',t=>t+' : chiffres clés',t=>t+' : organisation et vie'];
-export const NIVEAU_TR={id:'tr',nom:'Les territoires de la RDC',matieres:PROVS.map(p=>{
-  const ts=T.filter(t=>t.prov===p),id=slug(p),missions=[];
-  ts.forEach((t,k)=>BUILD.forEach((b,j)=>{missions.push(TITRES[j](t.nom));C12['tr|'+id+'|'+(k*3+j)]=b(t,k)}));
-  return {id:id,nom:p+' ('+ts.length+' territoires)',missions:missions};
-})};
-export const NB_TERRITOIRES=T.length;
+// ---------- export ----------
+export const BUILD=[mSituer,mChiffres,mVie];
+export const TITRES=[t=>t+' : situer le territoire',t=>t+' : chiffres clés',t=>t+' : organisation et vie'];
+export {T as TERRITOIRES_LISTE,PROVS,NB,slug,dn};

@@ -995,20 +995,25 @@ STAGES.push(
   const VISAGES={h:['portraits/mavungu'],f:['portraits/mama','portraits/ilunga']};
   const TEINTES=['#c0392b','#2e86de','#27ae60','#8e44ad','#d35400','#16a085','#e0a526','#2c3e50'];
   let n0=0;
+  const libres=[];
+  const PX=[-5,5.5,0.2],PZ=[-5.5,-5.5,-7.8],PRY=[0.3,-0.4,0];
   LIEUX.forEach(l=>{
-    STAGES.push({id:l.id,scene:l.id,name:l.nom,icon:l.ico,npcs:l.npc.map(n=>n.id)});
+    const st={id:l.id,scene:l.id,name:l.nom,icon:l.ico,npcs:l.npc.map(n=>n.id)};
+    if(l.libre){st.libre=true;libres.push(st)}else STAGES.push(st);
     l.npc.forEach((n,k)=>{
       BANK[n.suj]=n.qs.map(q=>Q(q[0],[q[1],q[2],q[3],q[4]],q[1],q[5]));
       SUJETS[n.suj]=n.lib;
       const sx=n.s,i=n0++;
       const suivant=l.npc[k+1];
-      NPC[n.id]={sc:l.id,x:k?5.5:-5,z:-5.5,ry:k?-0.4:0.3,name:n.nom,short:n.court,role:n.role,kind:'quiz',sujet:n.suj,nb:3,needs:prev,
+      NPC[n.id]={sc:l.id,x:PX[k],z:PZ[k],ry:PRY[k],name:n.nom,short:n.court,role:n.role,kind:'quiz',sujet:n.suj,nb:3,needs:l.libre?null:prev,
         look:{s:sx,h:sx==='h'?1.0:0.97,skin:PEAUX[i%PEAUX.length],c:TEINTES[i%TEINTES.length],k:TENUES[i%TENUES.length],co:CHEV[sx][i%3],faceKey:VISAGES[sx][i%VISAGES[sx].length]},
-        intro:[n.salut,'Voyons ce que tu sais !'],
-        outro:suivant?'Bien joué ! '+suivant.nom+' te parlera de '+suivant.lib.toLowerCase()+'.':'Bravo ! Un nouveau lieu t’attend en ville : suis la route jaune.'};
-      prev=n.id;
+        intro:n.intro||[n.salut,'Voyons ce que tu sais !'],
+        outro:l.libre?(suivant?'Bien joué ! '+suivant.nom+' te parlera de '+suivant.lib.toLowerCase()+'.':'Bravo ! Tu connais bien ce territoire. Reviens à la carte des lieux pour en explorer un autre.'):
+          (suivant?'Bien joué ! '+suivant.nom+' te parlera de '+suivant.lib.toLowerCase()+'.':'Bravo ! Un nouveau lieu t’attend en ville : suis la route jaune.')};
+      if(!l.libre)prev=n.id;
     });
   });
   NPC.lubaki.needs=prev;
   STAGES.push(place);
+  libres.forEach(st=>STAGES.push(st));
 })();
