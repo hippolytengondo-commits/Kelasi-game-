@@ -3,7 +3,7 @@
 // et sinon dans la mémoire de l'appareil. Les images sont gardées après leur premier chargement.
 // Les appels au serveur des comptes (autre domaine) ne sont jamais mis en mémoire.
 const NOM='boyekoli-v1';
-const COEUR=['./','index.html','style.css','dist/game.js','manifest.webmanifest','img/manifest.json','img/faces.json','icons/icon-192.png','icons/icon-512.png','icons/logo.svg'];
+const COEUR=['./','index.html','style.css','dist/game.js','manifest.webmanifest','img/manifest.json','img/faces.json','icons/icon-192.png','icons/icon-512.png','icons/logo.png','icons/logo-embleme.png'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(NOM).then(c=>Promise.all(COEUR.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()));

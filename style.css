@@ -225,13 +225,14 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 .pen .choc{position:absolute;font-size:30px;opacity:0;pointer-events:none;z-index:3;transition:opacity .15s}
 
 /* ---- page d'ouverture et page d'accueil (refonte) ---- */
-:root{--bp:#0f2f6b;--bj:#f7c92b;--bv:#2e9e5b;--fond:#f7f9fd}
+:root{--bp:#0f2f6b;--bj:#f7c92b;--bv:#2e9e5b;--fond:#ffffff}
 #welcome,#start{position:absolute;inset:0;background:var(--fond);color:var(--bp);overflow:auto;-webkit-overflow-scrolling:touch}
 #welcome{z-index:10}#start{z-index:8}
 #welcome.hide,#start .hide,#start.hide{display:none}
 .w2{min-height:100%;max-width:460px;margin:0 auto;padding:max(24px,env(safe-area-inset-top,0px)) 22px max(18px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;text-align:center}
 .w2mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px 0}
-.w2logo{border-radius:28px;box-shadow:0 2px 10px rgba(15,47,107,.18)}
+.w2logo{width:min(70vw,300px);height:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .w2 h1{margin:6px 0 0;font-size:30px;letter-spacing:2px;color:var(--bp)}
 .w2slogan{margin:0;font-size:15px;font-weight:800;letter-spacing:3px;color:var(--bv)}
 .w2illu{width:100%;max-width:320px;height:auto;margin:8px 0 2px}
