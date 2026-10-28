@@ -7,6 +7,7 @@ import {panneauPub} from './pub.js';
 import {sponsorN} from './sponsors.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
+import {bitumeDroit,bitumeAnneau} from './routes.js';
 
 export const CX=-7;
 export let CZ=70;                    // centre de la place (calculé selon le nombre d'anneaux)
@@ -26,7 +27,7 @@ function anneaux(n){
 }
 
 // etat : [{id,scene,name,icon,ouvert,fini,precedent}] pour les stages 1..N (sans le quartier de départ)
-export function extendVille(w,etat){
+export function extendVille(w,etat,pave){
   const g=new THREE.Group();w.group.add(g);
   const n=etat.length,r0=rng(77);
   const AN=anneaux(n),ext=AN[AN.length-1],int0=AN[0];
@@ -38,6 +39,13 @@ export function extendVille(w,etat){
   // routes : entrée depuis le quartier de départ, routes circulaires, place centrale
   flat(new THREE.PlaneGeometry(5.2,CZ-int0.route-12),dirtM,CX,.02,(14+CZ-int0.route)/2);
   AN.forEach(a=>flat(new THREE.RingGeometry(a.route-2.7,a.route+2.7,Math.min(160,72+a.k*40)),dirtM,CX,.02,CZ));
+  // routes à bitumer : l'entrée, puis chaque anneau (le joueur les paie en bitume, pièces et points de savoir)
+  const routes=[],pv=id=>pave&&pave.has(id);
+  if(pv('entree'))bitumeDroit(g,CX,13,CZ-int0.route+1,5.2);else routes.push({id:'entree',type:'entree',i:0,x:CX+3.2,z:20,label:'Bitumer la route d’entrée'});
+  AN.forEach(a=>{
+    if(pv('anneau'+a.k))bitumeAnneau(g,CX,CZ,a.route,5.4,Math.min(160,72+a.k*40));
+    else routes.push({id:'anneau'+a.k,type:'anneau',i:a.k,x:CX+3.2,z:CZ-a.route,label:'Bitumer la route de l’anneau '+(a.k+1)});
+  });
   const plazaM=std('#cdc4ae',.95,{polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-3});
   flat(new THREE.CircleGeometry(int0.route-3.4,56),plazaM,CX,.03,CZ);
 
@@ -164,5 +172,5 @@ export function extendVille(w,etat){
   bxs.push({x0:X0,x1:-33.5,z0:-14.5,z1:14.5});
   bxs.push({x0:CX+ext.R+20,x1:CX+ext.R+60,z0:14.5,z1:CZ+ext.R+24});
   w.bounds={x0:X0,x1:Math.max(58,CX+ext.R+20),z0:-14.5,z1:CZ+ext.R+22};
-  return {doors,lots,suivant,cible};
+  return {doors,lots,suivant,cible,routes};
 }

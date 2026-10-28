@@ -14,7 +14,8 @@ export const RESS={
   cuivre:{e:'🟠',n:'cuivre',p:5},
   cafe:{e:'☕',n:'café',p:3},
   papier:{e:'📄',n:'papier',p:1},
-  tissu:{e:'🧵',n:'tissu',p:3}
+  tissu:{e:'🧵',n:'tissu',p:3},
+  bitume:{e:'🛣️',n:'bitume',p:6}
 };
 
 // style : fall (ça tombe), tap (ça apparaît), peche (timing), penalty (tirs au but)

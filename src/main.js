@@ -22,7 +22,8 @@ import {extendVille,CZ as CZ_Q} from './quartiers.js';
 import {createAudio} from './audio.js';
 import {buildLieu} from './stages7.js';
 import {LIEUX} from './lieux70.js';
-import {construireRes,prixTerrain,NIVEAUX,NB_TERRAINS} from './quartier_res.js';
+import {construireRes,prixTerrain,CATALOGUE,TYPES,batiment,nomBatiment,NB_TERRAINS} from './quartier_res.js';
+import {coutRoute} from './routes.js';
 import {TERRITOIRES_LISTE,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -237,14 +238,17 @@ function etatQuartiers(){
 }
 function construireVille(){
   const w=buildVille({maison:G.adv.maison});
-  const ext=extendVille(w,etatQuartiers());
+  const pave=new Set(G.adv.pave||[]);
+  const ext=extendVille(w,etatQuartiers(),pave);
   ext.doors.forEach(d=>{const sp=SCENES[d.to].spawn;d.tx=sp.x;d.tz=sp.z;d.phi=sp.phi});
   SCENES.ville.doors=DOORS_VILLE.concat(ext.doors);
   ext.lots.forEach(l=>{const dd=SCENES[l.scene].doors[0];dd.tx=l.retour.x;dd.tz=l.retour.z;dd.phi=l.retour.phi});
   // quartier résidentiel du joueur (terrains à acheter et maisons à construire)
-  const qr=construireRes(w,{n:G.adv.terrains||0,niv:G.adv.maisRes||[],savoir:G.adv.savoir||0},{
+  const qr=construireRes(w,{n:G.adv.terrains||0,bat:batsRes(),pave:pave},{
     acheter:k=>openBox({kind:'terrain',k:k,msg:''}),ouvrir:k=>openBox({kind:'terrain',k:k,msg:''}),
+    route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
+  ext.routes.forEach(r=>qr.spots.push({x:r.x,z:r.z,r:2.6,label:r.label,run:()=>bitumerRoute(r.id,r.type,r.i)}));
   SCENES.ville.spots=qr.spots;
   return w;
 }
@@ -453,6 +457,7 @@ function renderDialog(){
   else if(d.kind==='shop')h=htmlShop(d);
   else if(d.kind==='maison')h=htmlMaison(d);
   else if(d.kind==='terrain')h=htmlTerrain(d);
+  else if(d.kind==='route')h=htmlRoute(d);
   else if(d.kind==='menu')h=htmlMenu(d);
   else if(d.kind==='profile')h=htmlProfile(d);
   else if(d.kind==='map')h=htmlMap(d);
@@ -669,7 +674,7 @@ function sellSac(){
   G.adv.stock={};gain(v,0);SFX.coin();
   G.dialog.msg='Merci ! Tout ton sac est vendu : +'+v+' pièces.';renderDialog();
 }
-const PRIX_ACHAT=['brique','bois','sable','ciment','fer'];
+const PRIX_ACHAT=['brique','bois','sable','ciment','fer','bitume'];
 function buyRes(k){
   const r=RESS[k],cout=r.p*10,a=G.adv;
   if(a.pieces<cout){G.dialog.msg='Il te manque '+(cout-a.pieces)+' pièces pour acheter des '+r.n+'.';SFX.ko();renderDialog();return}
@@ -678,7 +683,9 @@ function buyRes(k){
 }
 // ---------- Chantiers de la maison ----------
 function openMaison(){openBox({kind:'maison',msg:''})}
-const manque=(c)=>{const a=G.adv,m=[];Object.keys(c.cout).forEach(k=>{const n=c.cout[k],h=k==='pieces'?a.pieces:(stock()[k]||0);if(h<n)m.push((n-h)+' '+(k==='pieces'?'🪙':RESS[k].e))});return m};
+const icoCout=k=>k==='pieces'?'🪙':k==='savoir'?'🎓':RESS[k].e;
+const manque=(c)=>{const a=G.adv,m=[];Object.keys(c.cout).forEach(k=>{const n=c.cout[k],h=k==='pieces'?a.pieces:k==='savoir'?(a.savoir||0):(stock()[k]||0);if(h<n)m.push((n-h)+' '+icoCout(k))});return m};
+const payer=c=>Object.keys(c).forEach(x=>{const a=G.adv;if(x==='pieces')a.pieces-=c[x];else if(x==='savoir')a.savoir=(a.savoir||0)-c[x];else stock()[x]-=c[x]});
 function htmlMaison(d){
   const mf=G.adv.maison||(G.adv.maison={});
   let h=`<h3>🏗 Plans de ma maison</h3><p class="row"><span>Mes pièces</span><b>${G.adv.pieces} 🪙</b></p><p class="row"><span>Mon sac</span><b>${esc(texteSac())}</b></p>`;
@@ -704,10 +711,21 @@ function construire(k){
   mf[k]=true;save();refreshHud();SFX.win();
   d.msg='Chantier terminé : '+c.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
 }
-// ---------- Quartier résidentiel : terrains et maisons ----------
-const coutTexte=c=>Object.keys(c).map(k=>c[k]+' '+(k==='pieces'?'🪙':RESS[k].e)).join(' · ');
+// ---------- Quartier résidentiel : terrains, constructions, routes ----------
+const coutTexte=c=>Object.keys(c).map(k=>c[k]+' '+icoCout(k)).join(' · ');
+const batsRes=()=>{const a=G.adv;if(!a.batRes)a.batRes=[];(a.maisRes||[]).forEach((n,k)=>{if(n&&!a.batRes[k])a.batRes[k]={t:'maison',n:n}});return a.batRes};
+// terrain voisin (même côté de la route) libre et déjà acheté, pour les constructions à deux terrains
+function annexeLibre(k){
+  const a=G.adv,B=batsRes();
+  return [k+2,k-2].find(j=>j>=0&&j<(a.terrains||0)&&!B[j])||-1;
+}
+function boutonConstruction(k,t,niv){
+  const c=CATALOGUE[t],lv=c.niv[niv],m=manque({cout:lv.cout});
+  const dbl=lv.double&&annexeLibre(k)<0;
+  return `<button class="${m.length||dbl?'':'p'}" onclick="construireTerrain(${k},'${t}')">${c.ico} ${esc(niv?'Améliorer : ':'')}${esc(lv.n)}<br><small>${esc(lv.d)}</small><br><small>Coût : ${coutTexte(lv.cout)}${m.length?' — il te manque : '+m.join(' · '):''}${dbl?' — il faut aussi un terrain voisin (n°'+(k+3)+' ou n°'+(k-1)+') acheté et libre':''}</small></button>`;
+}
 function htmlTerrain(d){
-  const a=G.adv,k=d.k,n=a.terrains||0,niv=(a.maisRes||[])[k]||0;
+  const a=G.adv,k=d.k,n=a.terrains||0,b=batsRes()[k]||null;
   let h=`<h3>🏘 Terrain n°${k+1}</h3><p class="row"><span>Mes points de savoir</span><b>${a.savoir||0} 🎓</b></p><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Mon sac</span><b>${esc(texteSac())}</b></p>`;
   if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
   if(k===n){
@@ -715,11 +733,18 @@ function htmlTerrain(d){
     h+=`<p style="font-size:13px">Un terrain dans ton quartier résidentiel. Les points de savoir se gagnent en réussissant des missions : plus tu apprends, plus ta ville grandit. Chaque terrain coûte plus cher que le précédent.</p>`
       +`<button class="${ok?'p':''}" onclick="acheterTerrain(${k})">Acheter ce terrain : ${prix} 🎓${ok?'':' — il te manque '+(prix-(a.savoir||0))+' 🎓'}</button>`;
   }else if(k<n){
-    if(niv>=NIVEAUX.length)h+=`<p>✔ ${NIVEAUX[niv-1].ico} ${esc(NIVEAUX[niv-1].n)} : ton terrain est entièrement construit.</p>`;
-    else{
-      const c=NIVEAUX[niv],m=manque({cout:c.cout});
-      if(niv>0)h+=`<p>Actuellement : ${NIVEAUX[niv-1].ico} ${esc(NIVEAUX[niv-1].n)}</p>`;
-      h+=`<button class="${m.length?'':'p'}" onclick="construireTerrain(${k})">${c.ico} ${esc(niv?'Améliorer : ':'Construire : ')}${esc(c.n)}<br><small>${esc(c.d)}</small><br><small>Coût : ${coutTexte(c.cout)}${m.length?' — il te manque : '+m.join(' · '):''}</small></button>`;
+    if(b&&b.annexe!==undefined){
+      h+=`<p>Ce terrain sert d’annexe au terrain n°${b.annexe+1} : ${esc(nomBatiment(batsRes()[b.annexe]))}.</p>`;
+    }else if(b){
+      const c=CATALOGUE[b.t];
+      h+=`<p>Actuellement : ${c.ico} <b>${esc(nomBatiment(b))}</b></p>`;
+      if(b.n>=c.niv.length)h+=`<p>✔ Cette construction est au niveau maximal.</p>`;
+      else h+=boutonConstruction(k,b.t,b.n);
+    }else{
+      h+=`<p style="font-size:13px">Choisis ce que tu construis sur ce terrain. Chaque construction coûte des pièces, des matériaux et des points de savoir, et peut être améliorée ensuite.</p>`;
+      ['Résidences','Services publics'].forEach(cat=>{
+        h+=`<h4>${cat}</h4>`+TYPES.filter(t=>CATALOGUE[t].cat===cat).map(t=>boutonConstruction(k,t,0)).join('');
+      });
     }
     h+=`<p style="font-size:12px">Récolte des matériaux dans les mini-jeux, ou achète-les chez Maman Béa.</p>`;
   }
@@ -731,17 +756,43 @@ function acheterTerrain(k){
   if((a.savoir||0)<prix){d.msg='Il te manque '+(prix-(a.savoir||0))+' points de savoir : réussis encore des missions !';SFX.ko();renderDialog();return}
   a.savoir-=prix;a.terrains=k+1;if(!a.maisRes)a.maisRes=[];
   G.refaireVille=true;save();refreshHud();SFX.win();
-  d.msg='Félicitations ! Le terrain n°'+(k+1)+' est à toi. Ferme ce menu pour le voir, puis construis ta maison.';renderDialog();
+  d.msg='Félicitations ! Le terrain n°'+(k+1)+' est à toi. Ferme ce menu pour le voir, puis choisis ce que tu y construis.';renderDialog();
 }
-function construireTerrain(k){
-  const a=G.adv,d=G.dialog;if(k>=(a.terrains||0))return;
-  if(!a.maisRes)a.maisRes=[];
-  const niv=a.maisRes[k]||0;if(niv>=NIVEAUX.length)return;
-  const c=NIVEAUX[niv],m=manque({cout:c.cout});
+function construireTerrain(k,t){
+  const a=G.adv,d=G.dialog;if(k>=(a.terrains||0)||!CATALOGUE[t])return;
+  const B=batsRes(),b=B[k];
+  if(b&&(b.annexe!==undefined||b.t!==t))return;
+  const niv=b?b.n:0,c=CATALOGUE[t];if(niv>=c.niv.length)return;
+  const lv=c.niv[niv],m=manque({cout:lv.cout});
   if(m.length){d.msg='Il te manque : '+m.join(' · ');SFX.ko();renderDialog();return}
-  Object.keys(c.cout).forEach(x=>{if(x==='pieces')a.pieces-=c.cout[x];else stock()[x]-=c.cout[x]});
-  a.maisRes[k]=niv+1;G.refaireVille=true;save();refreshHud();SFX.win();
-  d.msg='Chantier terminé : '+c.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
+  let j=-1;
+  if(lv.double){j=annexeLibre(k);if(j<0){d.msg='Il te faut un second terrain voisin, acheté et libre, pour cette construction.';SFX.ko();renderDialog();return}}
+  payer(lv.cout);
+  B[k]={t:t,n:niv+1};if(j>=0)B[j]={annexe:k};
+  if((a.maisRes||[])[k]!==undefined)a.maisRes[k]=0;
+  G.refaireVille=true;save();refreshHud();SFX.win();
+  d.msg='Chantier terminé : '+lv.n+' ! Ferme ce menu pour voir le résultat.';renderDialog();
+}
+function bitumerRoute(id,type,i){
+  const c=coutRoute(type,i);
+  openBox({kind:'route',id:id,type:type,i:i,msg:''});
+}
+function htmlRoute(d){
+  const a=G.adv,c={cout:coutRoute(d.type,d.i)},m=manque(c);
+  let h=`<h3>🛣 Route à bitumer</h3><p class="row"><span>Mes points de savoir</span><b>${a.savoir||0} 🎓</b></p><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p><p class="row"><span>Mon sac</span><b>${esc(texteSac())}</b></p>`;
+  if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
+  h+=`<p style="font-size:13px">Cette piste en terre devient une route goudronnée, plus belle et plus sûre pour toute la ville.</p>`
+    +`<button class="${m.length?'':'p'}" onclick="payerRoute()">🛣 Bitumer ce tronçon<br><small>Coût : ${coutTexte(c.cout)}${m.length?' — il te manque : '+m.join(' · '):''}</small></button>`
+    +`<p style="font-size:12px">Le bitume s’achète chez Maman Béa ou se récolte dans les mini-jeux.</p>`;
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function payerRoute(){
+  const a=G.adv,d=G.dialog;if(!d||d.kind!=='route')return;
+  const c=coutRoute(d.type,d.i),m=manque({cout:c});
+  if(m.length){d.msg='Il te manque : '+m.join(' · ');SFX.ko();renderDialog();return}
+  payer(c);if(!a.pave)a.pave=[];if(!a.pave.includes(d.id))a.pave.push(d.id);
+  G.refaireVille=true;save();refreshHud();SFX.win();
+  d.msg='Route bitumée ! Ferme ce menu pour la voir.';renderDialog();
 }
 function bonusMJ(){closeDialog();setTimeout(startMJ,350)}
 let mjJeu=null;
@@ -1733,7 +1784,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,acheterTerrain,construireTerrain,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;
