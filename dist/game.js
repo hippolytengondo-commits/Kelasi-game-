@@ -4287,22 +4287,22 @@ Un pr\xEAt de 40 000 FC rembours\xE9 en 4 mois. Par mois ?|10 000 FC|44 000 FC|1
 Une \xE9pargne de 5 000 FC par mois pendant 6 mois fait\u2026|30 000 FC|11 000 FC|5 006 FC|3 000 FC|5 000 \xD7 6.
 Pourquoi \xE9pargner ?|pour faire face aux impr\xE9vus et investir|pour perdre|pour cacher|pour rien|S\xE9curit\xE9.
 `;var ev=`
-Aketi|Aketi|Bas-Uele|157860|2004|6.2|25417|lingala|N|2|6|2|Il portait autrefois le nom d\u2019Aketi Port-Chaltin
+Aketi|Aketi|Bas-Uele|157860|2004|6.2|25417|lingala|N|4|4|2|Il portait autrefois le nom d\u2019Aketi Port-Chaltin
 Ango|Ango|Bas-Uele|71892|2004|2.1|34304|lingala|N|0|4|1|C\u2019est le plus grand territoire du Bas-Uele ; il touche la R\xE9publique centrafricaine
-Aru|Aru|Ituri|1623987|2017|241|6740|lingala|N|0|7|0|Il touche le Soudan du Sud et l\u2019Ouganda, et a \xE9t\xE9 cr\xE9\xE9 en 1956 en se d\xE9tachant de Mahagi
+Aru|Aru|Ituri|1623987|2017|241|6740|lingala|N|1|7|0|Il touche le Soudan du Sud et l\u2019Ouganda, et a \xE9t\xE9 cr\xE9\xE9 en 1956 en se d\xE9tachant de Mahagi
 Bafwasende|Bafwasende|Tshopo|0|0|0|0|swahili|N|6|0|1|Il s\u2019\xE9tend sur la partie orientale de la Tshopo
 Bagata|Bagata|Kwilu|742257|2004|41|18179|kikongo|S|5|0|1|Il est travers\xE9 par les rivi\xE8res Kwilu et Kwango ; 80 % de savane arbustive
 Bambesa|Bambesa|Bas-Uele|167976|2004|18|9130|lingala|N|0|9|2|C\u2019est le plus petit territoire du Bas-Uele
-Banalia|Banalia|Tshopo|493697|0|20|24430|swahili|N|0|0|0|Il est travers\xE9 par la rivi\xE8re Aruwimi ; territoire cr\xE9\xE9 en 1933
+Banalia|Banalia|Tshopo|493697|0|20|24430|swahili|N|4|1|0|Il est travers\xE9 par la rivi\xE8re Aruwimi ; territoire cr\xE9\xE9 en 1933
 Basankusu|Basankusu|\xC9quateur|339424|2004|16|21239|lingala|N|3|0|1|Son chef-lieu porte le m\xEAme nom que le territoire
-Basoko|Basoko|Tshopo|0|0|0|22436|lingala|N|0|0|0|Sa base baigne dans le fleuve Congo, entre les rivi\xE8res Aruwimi et Itimbiri
+Basoko|Basoko|Tshopo|0|0|0|22436|lingala|N|5|3|0|Sa base baigne dans le fleuve Congo, entre les rivi\xE8res Aruwimi et Itimbiri
 Befale|Befale|Tshuapa|112997|2004|6.7|16797|lingala|N|3|0|1|Ses trois secteurs sont Befumbo, Duale et Lomako
 Beni|Beni|Nord-Kivu|916181|2004|122|7484|swahili|N|2|2|5|Il est compos\xE9 des chefferies Bashu et Watalinga et de deux secteurs
 Bikoro|Bikoro|\xC9quateur|244808|2004|18|13842|lingala|S|3|0|0|La localit\xE9 de Bikoro borde le lac Tumba
 Boende|Boende|Tshuapa|318531|2015|16|19728|lingala|S|4|0|0|Il s\u2019\xE9tend au centre-ouest de la Tshuapa
 Bokungu|Bokungu|Tshuapa|167963|2004|8.4|19996|lingala|S|4|1|1|Il s\u2019\xE9tend \xE0 l\u2019est du chef-lieu provincial Boende
-Bolobo|Bolobo|Mai-Ndombe|121270|2003|30|4056|lingala|S|0|0|0|Il est bord\xE9 par le fleuve Congo, tr\xE8s riche en poissons
-Bolomba|Bolomba|\xC9quateur|130896|2004|5.3|24598|lingala|N|5|0|0|Son chef-lieu porte le m\xEAme nom que le territoire
+Bolobo|Bolobo|Mai-Ndombe|121270|2003|30|4056|lingala|S|0|1|0|Il est bord\xE9 par le fleuve Congo, tr\xE8s riche en poissons
+Bolomba|Bolomba|\xC9quateur|130896|2004|5.3|24598|lingala|N|4|1|0|Son chef-lieu porte le m\xEAme nom que le territoire
 Bomongo|Bomongo|\xC9quateur|58909|2004|5.5|10736|lingala|N|2|0|0|Ses deux secteurs sont Ngiri et Djamba
 Bondo|Bondo|Bas-Uele|449131|2021|12|38075|lingala|N|0|10|1|C\u2019est le plus vaste territoire du Bas-Uele ; on y trouve l\u2019okapi
 Bongandanga|Bongandanga|Mongala|325026|2004|12|27910|lingala|N|4|0|0|Il compte quatre secteurs, dont Boso-Djanoa
@@ -4312,14 +4312,14 @@ Bukama|Bukama|Haut-Lomami|514242|2005|26|19865|swahili|S|2|4|2|Il est drain\xE9 
 Bulungu|Bulungu|Kwilu|1256663|2016|94|13404|kikongo|S|10|0|1|Il est organis\xE9 en 10 secteurs
 Bumba|Bumba|Mongala|735669|2004|47|15598|lingala|N|6|0|0|C\u2019est un port fluvial et le d\xE9part du chemin de fer vers Isiro
 Businga|Businga|Nord-Ubangi|394281|2004|23|17411|ngbandi|N|3|0|1|Il compte trois zones de sant\xE9 : Businga, Karawa et Loko
-Buta|Buta|Bas-Uele|125428|2004|15|8098|lingala|N|1|4|0|Il se situe au centre de la partie sud du Bas-Uele
+Buta|Buta|Bas-Uele|125428|2004|15|8098|lingala|N|0|6|0|Il se situe au centre de la partie sud du Bas-Uele
 Dekese|Dekese|Kasa\xEF|0|0|0|25173|bondengese|S|0|2|1|Il s\u2019\xE9tend au nord de la province du Kasa\xEF
 Demba|Demba|Kasa\xEF-Central|936762|2016|106|8825|tshiluba|S|7|0|2|Cr\xE9\xE9 en 1945, son sous-sol contient du diamant exploit\xE9 artisanalement
 Dibaya|Dibaya|Kasa\xEF-Central|0|0|0|8601|tshiluba|S|5|0|2|Il compte plus de quarante rivi\xE8res et le v\xE9lo y transporte les marchandises
-Dilolo|Dilolo|Lualaba|317694|2003|13|24963|swahili|S|4|6|2|Il fait partie de la province du Lualaba
+Dilolo|Dilolo|Lualaba|317694|2003|13|24963|swahili|S|3|6|2|Il fait partie de la province du Lualaba
 Dimbelenge|Dimbelenge|Kasa\xEF-Central|0|0|0|13223|tshiluba|S|5|0|1|Son nom vient d\u2019un arbre dont les feuilles soignent une maladie de la peau
 Djolu|Djolu|Tshuapa|215124|2004|12|17974|lingala|N|4|0|1|La localit\xE9 de Djolu se trouve en pleine for\xEAt \xE9quatoriale
-Djugu|Djugu|Ituri|0|0|0|8184|swahili|N|4|7|2|Il borde la rive occidentale du lac Albert
+Djugu|Djugu|Ituri|0|0|0|8184|swahili|N|4|6|2|Il borde la rive occidentale du lac Albert
 Dungu|Dungu|Haut-Uele|347480|0|11|32446|lingala|N|0|3|1|Il compte trois chefferies : Malingindu, Ndolomo et Wando
 Faradje|Faradje|Haut-Uele|0|0|0|12702|lingala|N|0|8|2|Son agriculture produit ma\xEFs, riz, manioc et s\xE9same
 Feshi|Feshi|Kwango|664640|2021|35|19187|kikongo|S|4|0|1|Il est organis\xE9 en quatre secteurs et 39 groupements
@@ -4334,9 +4334,9 @@ Ingende|Ingende|\xC9quateur|188533|2004|11|17328|lingala|N|3|0|1|Il est divis\xE
 Inongo|Inongo|Mai-Ndombe|0|0|0|24149|lingala|S|3|0|0|Il comprend le lac Mai-Ndombe, dont le nom signifie \xAB eau noire \xBB
 Irumu|Irumu|Ituri|0|0|0|8730|swahili|N|1|11|1|Il s\u2019\xE9tend au sud de la province, pr\xE8s de la ville de Bunia
 Isangi|Isangi|Tshopo|384344|2004|24|15770|swahili|N|7|6|2|Il s\u2019\xE9tend \xE0 l\u2019ouest de la ville de Kisangani ; Yangambi en est une commune
-Kabalo|Kabalo|Tanganyika|194724|2003|13|14779|swahili|S|1|1|1|C\u2019est un important n\u0153ud ferroviaire situ\xE9 sur la Lualaba
-Kabambare|Kabambare|Maniema|0|0|0|0|swahili|S|0|0|0|L\u2019exploitation de l\u2019or autour de Salamabila est une activit\xE9 importante
-Kabare|Kabare|Sud-Kivu|0|0|0|1960|swahili|S|0|0|0|Il est domin\xE9 par le mont Kahuzi, qui s\u2019\xE9l\xE8ve \xE0 3 300 m
+Kabalo|Kabalo|Tanganyika|194724|2003|13|14779|swahili|S|2|0|1|C\u2019est un important n\u0153ud ferroviaire situ\xE9 sur la Lualaba
+Kabambare|Kabambare|Maniema|0|0|0|0|swahili|S|6|0|0|L\u2019exploitation de l\u2019or autour de Salamabila est une activit\xE9 importante
+Kabare|Kabare|Sud-Kivu|0|0|0|1960|swahili|S|0|2|0|Il est domin\xE9 par le mont Kahuzi, qui s\u2019\xE9l\xE8ve \xE0 3 300 m
 Kabeya-Kamwanga|Kabeya-Kamwanga|Kasa\xEF-Oriental|663616|2015|190|3493|tshiluba|S|4|0|1|Ses secteurs sont Kalela, Lac Mukamba, Mpemba et Ndomba
 Kabinda|Kabinda|Lomami|0|0|0|14373|kisongye|S|6|0|0|Il ne faut pas le confondre avec Cabinda, l\u2019enclave angolaise
 Kabongo|Kabongo|Haut-Lomami|353777|2003|17|20621|kiluba|S|1|2|1|Il s\u2019\xE9tend sur le centre de la province
@@ -4353,8 +4353,8 @@ Kapanga|Kapanga|Lualaba|635388|2003|0|0|swahili|S|0|1|1|Il touche l\u2019Angola 
 Kasangulu|Kasangulu|Kongo-Central|194190|2016|41|4680|kikongo|S|3|0|1|Il compte 26 groupements et huit tribus bakongo
 Kasenga|Kasenga|Haut-Katanga|208716|2003|0|0|kibemba|S|4|0|1|Il est reli\xE9 au lac Mwero par la rivi\xE8re Luapula
 Kasongo|Kasongo|Maniema|0|0|0|0|swahili|S|4|6|1|Un poste de l\u2019\xC9tat ind\xE9pendant du Congo y fut cr\xE9\xE9 en 1889
-Kasongo-Lunda|Kasongo-Lunda|Kwango|1640430|2016|62|26648|kikongo|S|0|0|0|Le Kwango forme sa fronti\xE8re sud avec l\u2019Angola
-Katako-Kombe|Katako-Kombe|Sankuru|983892|2016|39|25490||S|10|0|1|Il est divis\xE9 en 10 secteurs
+Kasongo-Lunda|Kasongo-Lunda|Kwango|1640430|2016|62|26648|kikongo|S|6|2|0|Le Kwango forme sa fronti\xE8re sud avec l\u2019Angola
+Katako-Kombe|Katako-Kombe|Sankuru|983892|2016|39|25490||S|9|0|1|Il est divis\xE9 en 9 secteurs
 Katanda|Katanda|Kasa\xEF-Oriental|556676|2015|303|1836|tshiluba|S|4|0|1|Il est tr\xE8s dens\xE9ment peupl\xE9
 Kazumba|Kazumba|Kasa\xEF-Central|0|0|0|12881|tshiluba|S|9|0|1|Sa cath\xE9drale Saint-Joseph se trouve \xE0 Mikalayi
 Kenge|Kenge|Kwango|1523673|2016|84|18126|kikongo|S|4|1|1|Il est drain\xE9 par le Kwango, la Wamba et l\u2019Inzia
@@ -4363,14 +4363,14 @@ Kimvula|Kimvula|Kongo-Central|137441|2016|41|3371|kikongo|S|3|0|1|Il a \xE9t\xE9
 Kipushi|Kipushi|Haut-Katanga|174429|2003|0|0|swahili|S|1|2|1|Il est centr\xE9 autour de la cit\xE9 mini\xE8re et frontali\xE8re de Kipushi
 Kiri|Kiri|Mai-Ndombe|0|0|0|0|lingala|S|3|0|1|Les rivi\xE8res Lokoro et Lutoy y sont tr\xE8s poissonneuses
 Kole|Kole|Sankuru|0|0|0|17682||S|6|0|1|Il s\u2019\xE9tend au nord-ouest de la province du Sankuru
-Kongolo|Kongolo|Tanganyika|610629|2016|46|13408|swahili|S|2|8|0|Les Portes d\u2019Enfer marquent la fin de la navigabilit\xE9 du fleuve Congo
+Kongolo|Kongolo|Tanganyika|610629|2016|46|13408|swahili|S|3|7|0|Les Portes d\u2019Enfer marquent la fin de la navigabilit\xE9 du fleuve Congo
 Kungu|Kungu|Sud-Ubangi|359211|2004|28|12848|lingala|N|5|0|0|Il s\u2019appelait autrefois territoire de Bomboma
 Kutu|Kutu|Mai-Ndombe|0|0|0|0|lingala|S|3|2|5|Il compte cinq communes, dont Nioki et Bokoro
 Kwamouth|Kwamouth|Mai-Ndombe|152709|2004|11|13945|lingala|S|1|0|0|Son nom signifie \xAB l\u2019entr\xE9e de la rivi\xE8re Kwa \xBB ; son port est sur le fleuve Congo
 Libenge|Libenge|Sud-Ubangi|273107|2004|21|12833|lingala|N|3|0|0|Son chef-lieu se trouve sur la rive gauche de l\u2019Ubangi
 Lisala|Binga|Mongala|421005|2004|29|14733|lingala|N|3|0|1|Joseph Mobutu y est n\xE9 en 1930 ; le fleuve Congo le borde au sud
-Lodja|Lodja|Sankuru|450000|0|37|12052|otetela|S|12|0|1|Il s\u2019\xE9tend au centre de la province du Sankuru
-Lomela|Lomela|Sankuru|150000|2006|5.7|26346||S|7|0|1|Il est b\xE2ti au milieu de la for\xEAt \xE9quatoriale, arros\xE9 par la Tshuapa et la Salonga
+Lodja|Lodja|Sankuru|450000|0|37|12052|otetela|S|9|0|1|Il s\u2019\xE9tend au centre de la province du Sankuru
+Lomela|Lomela|Sankuru|150000|2006|5.7|26346||S|5|1|1|Il est b\xE2ti au milieu de la for\xEAt \xE9quatoriale, arros\xE9 par la Tshuapa et la Salonga
 Lubao|Lubao|Lomami|0|0|0|22480|tshiluba|S|4|0|1|Il compte quatre secteurs : Bekalebwe, Kisengwa, Lubao et Tshofa
 Lubefu|Lubefu|Sankuru|0|0|0|12223|otetela|S|4|0|1|Il s\u2019\xE9tend au sud de la province du Sankuru
 Lubero|Lubero|Nord-Kivu|2063586|2018|114|18096|kinande|S|1|3|4|Kipese, \xE0 2 500 m d\u2019altitude, est le village le plus haut du pays
@@ -4422,13 +4422,13 @@ Seke-Banza|Seke-Banza|Kongo-Central|274418|2016|76|3620|kikongo|S|5|0|2|Les barr
 Shabunda|Shabunda|Sud-Kivu|700000|2009|28|25216|swahili|S|0|2|1|Ses chefferies sont Bakisie et Wakabango
 Songololo|Songololo|Kongo-Central|253686|2016|31|8190|kikongo|S|5|0|2|Il abrite la localit\xE9 de Kimpese et les chutes de Vampa
 Tshela|Tshela|Kongo-Central|430114|2016|139|3090|kikongo|S|8|0|1|Joseph Kasa-Vubu, premier pr\xE9sident du pays, est n\xE9 dans ce territoire
-Tshilenge|Tshilenge|Kasa\xEF-Oriental|770211|2015|381|2021|tshiluba|S|0|1|2|Sa chefferie, Bakwa-Kalonji, compte 29 groupements
-Ubundu|Ubundu|Tshopo|0|0|0|41537|swahili|S|9|2|1|Il s\u2019appelait autrefois Ponthierville
-Uvira|Uvira|Sud-Kivu|1165092|2020|370|3146|swahili|S|0|0|3|Uvira est au nord du lac Tanganyika, pr\xE8s de Bujumbura
+Tshilenge|Tshilenge|Kasa\xEF-Oriental|770211|2015|381|2021|tshiluba|S|4|1|2|Sa chefferie, Bakwa-Kalonji, compte 29 groupements
+Ubundu|Ubundu|Tshopo|0|0|0|41537|swahili|S|10|1|1|Il s\u2019appelait autrefois Ponthierville
+Uvira|Uvira|Sud-Kivu|1165092|2020|370|3146|swahili|S|0|3|3|Uvira est au nord du lac Tanganyika, pr\xE8s de Bujumbura
 Walikale|Walikale|Nord-Kivu|612847|2017|26|23475||S|2|0|0|C\u2019est le plus vaste territoire du Nord-Kivu
 Walungu|Walungu|Sud-Kivu|368857|0|205|1800|swahili|S|0|2|0|Il s\u2019\xE9tend au sud-ouest de la ville de Bukavu
 Wamba|Wamba|Haut-Uele|0|0|0|10305|swahili|N|1|10|1|Il s\u2019\xE9tend au sud de la province du Haut-Uele
-Watsa|Watsa|Haut-Uele|0|0|0|0|lingala|N|3|6|1|Le mont Akoti y culmine \xE0 plus de 1 000 m d\u2019altitude
+Watsa|Watsa|Haut-Uele|0|0|0|0|lingala|N|4|5|1|Le mont Akoti y culmine \xE0 plus de 1 000 m d\u2019altitude
 Yahuma|Yahuma|Tshopo|0|0|0|21482|lingala|N|3|1|1|Il s\u2019\xE9tend au nord-ouest de la province de la Tshopo
 Yakoma|Yakoma|Nord-Ubangi|235800|2004|15|15397|lingala|N|3|0|0|Il est peupl\xE9 essentiellement de Ngbandi
 Yumbi|Yumbi|Mai-Ndombe|186292|2003|73|2549|lingala|S|1|0|0|Il a \xE9t\xE9 cr\xE9\xE9 en 1990, sur la rive gauche du fleuve Congo
