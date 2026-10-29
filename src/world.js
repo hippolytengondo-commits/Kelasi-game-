@@ -45,7 +45,7 @@ function clouds(g){
 
 export function tree(g,x,z,s,mango,cols,colliders,pal){
   const t=pal?palm(Math.floor(Math.abs(x*7+z*3))+2):leafyTree({kind:mango?'mango':'leafy',seed:Math.floor(Math.abs(x*13+z*7))+3,fruits:!!mango,trunk:3.0+((s*7)%1)*1.4});
-  t.position.set(x,0,z);t.scale.setScalar(pal?1:s);g.add(t);
+  t.position.set(x,0,z);t.scale.setScalar(pal?1:s);t.userData.vegetal=true;g.add(t);
   if(colliders)colliders.push({x:x,z:z,r:(pal?.35:.6)*(pal?1:s)});
   return t;
 }
@@ -210,7 +210,7 @@ export function buildVille(opts){
   for(let i=0;i<30;i++){
     const x=-33+r0()*90,z=-14+r0()*28;
     if(Math.abs(z)<2.3&&x<27)continue;
-    const b=bush(i+3,.7+r0()*.7);b.position.set(x,0,z);b.rotation.y=r0()*6;g.add(b);
+    const b=bush(i+3,.7+r0()*.7);b.position.set(x,0,z);b.rotation.y=r0()*6;b.userData.vegetal=true;g.add(b);
   }
   // herbe animée par le vent
   const grass=grassField({area:[-34,58,-15,15],count:34000,seed:5,exclude:(x,z)=>{
@@ -221,12 +221,12 @@ export function buildVille(opts){
     if(x>0&&x<8&&z>-5.5&&z<1.5)return true;
     return false;
   }});
-  g.add(grass);
+  grass.userData.vegetal=true;g.add(grass);
   // fleurs (instances)
   const r=rng(31);const m4=new THREE.Matrix4(),col=new THREE.Color();
   const fl=new THREE.InstancedMesh(new THREE.SphereGeometry(.08,6,5),std('#ffffff',.6),160);
   for(let i=0;i<160;i++){const x=-33+r()*60,z=-14+r()*28;if(Math.abs(z)<2.2)continue;m4.compose(new THREE.Vector3(x,.28,z),new THREE.Quaternion(),new THREE.Vector3(1,1,1));fl.setMatrixAt(i,m4);col.set(['#ffd23f','#ff6b9a','#ffffff','#ff8a3d'][i%4]);fl.setColorAt(i,col)}
-  g.add(fl);
+  fl.userData.vegetal=true;g.add(fl);
 
   const cl=[];
   const bounds={x0:-33.5,x1:58,z0:-14.5,z1:14.5};

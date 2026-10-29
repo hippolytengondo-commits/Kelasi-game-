@@ -27,7 +27,7 @@ import {construireRes,posTerrain,prixTerrain,CATALOGUE,TYPES,batiment,nomBatimen
 import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
 import {creerTrafic,voiture,moto,voitureJoueur,motoJoueur} from './trafic.js';
-import {AE,zArret,buildConduite,melanger} from './conduite.js';
+import {AE,zArret,buildConduite,melanger,creerReponses,marquerReponse} from './conduite.js';
 import {construireReperes} from './reperes.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
@@ -277,6 +277,22 @@ function construireVille(){
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
   ext.routes.forEach(r=>qr.spots.push({x:r.x,z:r.z,r:2.6,label:r.label,run:()=>bitumerRoute(r.id,r.type,r.i)}));
+  // une route construite remplace tout ce qui s'y trouvait : arbres, buissons, herbes et fleurs disparaissent
+  {
+    const surRoute=(x,z)=>(Math.abs(x-CX)<4.6&&z>-14.8&&z<14.8)||(G.adv.rond&&Math.hypot(x-CX,z)<9.4)||(Math.abs(z)<2.7&&x<27&&x>-33.5);
+    const zero=new THREE.Matrix4().makeScale(0,0,0);
+    [...w.group.children].forEach(o=>{
+      if(!o.userData.vegetal)return;
+      if(o.isInstancedMesh){
+        const m=new THREE.Matrix4();let ch=false;
+        for(let i=0;i<o.count;i++){o.getMatrixAt(i,m);const e=m.elements;if(e[0]===0&&e[5]===0)continue;if(surRoute(e[12],e[14])){o.setMatrixAt(i,zero);ch=true}}
+        if(ch)o.instanceMatrix.needsUpdate=true;
+      }else if(surRoute(o.position.x,o.position.z)){
+        w.group.remove(o);liberer(o);
+        for(let k=w.colliders.length-1;k>=0;k--){const c=w.colliders[k];if(Math.abs(c.x-o.position.x)<.01&&Math.abs(c.z-o.position.z)<.01)w.colliders.splice(k,1)}
+      }
+    });
+  }
   G.parkings=qr.parkings||[];
   // bâtiments repères : universités, police, santé, bibliothèque, auto-école, concession
   {
@@ -1123,6 +1139,7 @@ cv.addEventListener('pointermove',e=>{
     camPtr=null;
     if(ev==='pointerup'&&etait&&tapMove<14&&performance.now()-tapT<450){
       if(G.mode==='m3d')toucherReponse(e.clientX,e.clientY);
+      else if(G.mode==='cond')toucherCond(e.clientX,e.clientY);
       else if(G.mode==='mini')toucherMangue(e.clientX,e.clientY);
     }
   }
@@ -1134,6 +1151,7 @@ function keyVec(){G.key.y=(held.u?1:0)-(held.d?1:0);G.key.x=(held.r?1:0)-(held.l
 document.addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT')return;
   if(kmap[e.key]){held[kmap[e.key]]=true;keyVec();e.preventDefault()}
+  if(G.mode==='cond'&&G.cond&&G.cond.etat==='question'&&/^[1-4]$/.test(e.key)){answerCond(G.cond.ordre[+e.key-1]);return}
   if(G.mode!=='play'&&G.mode!=='mini')return;
   if(e.key==='e'||e.key==='Enter'||e.key===' '){e.preventDefault();act()}
   if(e.key==='m')openMenu();
@@ -1784,15 +1802,16 @@ function htmlAE(d){
 function startConduite(i){
   $('dlg').style.display='none';G.dialog=null;
   const m=AE[i],veh=m.id==='ae5'?'moto':'auto';
-  G.cond={m:i,k:0,v:0,etat:'roule',veh:veh,gain:0,errs:0,firsts:0,ret:G.int&&G.int.ret?Object.assign({},G.int.ret):null,sauv:{pitch:G.pitch,co:G.camOverride}};
+  G.cond={m:i,k:0,v:0,etat:'intro',veh:veh,gain:0,errs:0,firsts:0,bad:[],ordre:[],ok:false,msg:'',ret:G.int&&G.int.ret?Object.assign({},G.int.ret):null,sauv:{pitch:G.pitch,co:G.camOverride}};
   G.sc='conduite';G.x=2.2;G.z=4;G.ry=Math.PI;G.phi=-Math.PI/2;G.pitch=.38;G.camOverride=8;G.near=null;hideBubble();
   buildScene();G.mode='cond';G.joy.x=G.joy.y=0;$('actwrap').classList.add('hide');
   snapCamera();
-  openBox({kind:'cond',intro:true,m:i,bad:[],ok:false});
+  openBox({kind:'cond',intro:true,m:i});
+  speak(m.intro,'ilunga');
 }
 const sCond=()=>{const c=G.cond;return AE[c.m].sit[c.k]};
 function condTick(dt){
-  const c=G.cond;if(!c||G.dialog)return;
+  const c=G.cond;if(!c||c.etat!=='roule')return;
   const n=AE[c.m].sit.length;
   const stopZ=(c.k<n?zArret(c.k)+6:zArret(n-1)-42+6);
   const dist=Math.max(0,G.z-stopZ);
@@ -1801,10 +1820,66 @@ function condTick(dt){
   G.z-=c.v*dt;
   if(G.z<=stopZ+.12){
     G.z=stopZ;c.v=0;
-    if(c.k<n){openBox({kind:'cond',intro:false,m:c.m,bad:[],ok:false})}
+    if(c.k<n)condQuestion();
     else{c.etat='fin';finConduite()}
   }
-  if(W&&W.car){W.car.position.set(G.x,0,G.z);W.car.rotation.y=Math.PI;if(W.car.userData.hero&&c.v>0)W.car.userData.hero.userData.update&&W.car.userData.hero.userData.update(dt,{speed:0,cam:camera.position})}
+  if(W&&W.car){W.car.position.set(G.x,0,G.z);W.car.rotation.y=Math.PI}
+}
+// situation : la question s'affiche en haut, les quatre réponses flottent au-dessus du véhicule
+function condQuestion(){
+  const c=G.cond,s=sCond();
+  c.etat='question';c.bad=[];c.ok=false;c.msg='';
+  c.ordre=melanger(s.o.map((t,i)=>i),c.m*31+c.k*7+3);
+  W.boards=creerReponses(c.ordre.map(i=>s.o[i]));
+  W.boards.position.set(G.x,0,G.z-3.2);W.group.add(W.boards);
+  G.camOverride=11;G.pitch=.36;
+  majCq();condEcouter(false);
+}
+function majCq(){
+  const c=G.cond,m=AE[c.m],s=sCond(),box=$('cq');
+  if(!c||c.etat==='intro'||c.etat==='roule'||c.etat==='fin'){box.classList.add('hide');return}
+  let h=`<b>🚦 Situation ${c.k+1} sur ${m.sit.length}</b><br>${esc(s.txt)}<br><b>${esc(s.q)}</b>`;
+  if(c.ok)h+=`<div class="cqm cqo">✔ Bonne réponse ! ${esc(s.e)}</div><div class="cqb"><button class="p" onclick="condSuite()">Continuer ▶</button><button onclick="condEcouter(true)">🔊 Réécouter</button></div>`;
+  else h+=(c.msg?`<div class="cqm cqk">${esc(c.msg)}</div>`:`<div class="cqm">👆 Touche la bonne réponse (ou les touches 1 à 4)</div>`)+`<div class="cqb"><button onclick="condEcouter(true)">🔊 Réécouter</button></div>`;
+  box.innerHTML=h;box.classList.remove('hide');
+}
+function condEcouter(force){
+  const c=G.cond;if(!c||c.etat==='intro')return;
+  const s=sCond(),rep=c.ordre.map((i,j)=>'Réponse '+'ABCD'[j]+' : '+s.o[i]).join('. ');
+  const t=s.txt+' '+s.q+' '+rep+'.';
+  if(force){const w=G.voice;G.voice=true;speak(t,'ilunga');G.voice=w}else speak(t,'ilunga');
+}
+function answerCond(i){
+  const c=G.cond;if(!c||c.etat!=='question'||c.ok||c.bad.includes(i))return;
+  const j=c.ordre.indexOf(i);
+  if(i!==0){
+    c.bad.push(i);c.errs++;SFX.ko();c.msg='Pas tout à fait : relis la situation. Essaie une autre réponse !';
+    marquerReponse(W.boards,j,'ko');majCq();speak('Pas tout à fait. Essaie encore.','ilunga');return;
+  }
+  const first=!c.bad.length;
+  G.adv.total++;if(first){G.adv.good++;c.firsts++}
+  const coin=first?5:1;c.gain+=coin;gain(coin,first?10:3,first?10:3);SFX.bravo();
+  c.ok=true;c.msg='';marquerReponse(W.boards,j,'ok');majCq();
+  speak('Bonne réponse. '+sCond().e,'ilunga');
+}
+function condDemarrer(){
+  $('dlg').style.display='none';G.dialog=null;stopSpeech();
+  G.mode='cond';G.cond.etat='roule';
+}
+function condSuite(){
+  const c=G.cond;if(!c||!c.ok)return;
+  stopSpeech();
+  if(W.boards){W.group.remove(W.boards);liberer(W.boards);W.boards=null}
+  $('cq').classList.add('hide');
+  G.camOverride=8;G.pitch=.38;
+  c.k++;c.etat='roule';
+}
+function toucherCond(px,py){
+  const c=G.cond;if(!c||c.etat!=='question'||!W.boards)return;
+  const r=cv.getBoundingClientRect(),rc=new THREE.Raycaster();
+  rc.setFromCamera(new THREE.Vector2(((px-r.left)/r.width)*2-1,-((py-r.top)/r.height)*2+1),camera);
+  const h=rc.intersectObjects(W.boards.children,false)[0];
+  if(h)answerCond(c.ordre[h.object.userData.idx]);
 }
 function htmlCond(d){
   const c=G.cond,m=AE[c.m];
@@ -1814,29 +1889,7 @@ function htmlCond(d){
       +(d.permis?`<p class="ok">🎉 Tu as obtenu ton permis ! Tu peux conduire une moto ou une voiture dans le quartier.</p>`:'')
       +`<button class="p" onclick="condSortir()">Retour au quartier</button><button onclick="startConduite(${c.m})">Refaire cette mission</button>`;
   }
-  if(d.intro)return `<h3>🚦 Mission ${c.m+1} · ${esc(m.titre)}</h3><p>${esc(m.intro)}</p><p style="font-size:13px">Tu es ${c.veh==='moto'?'sur la moto':'au volant'}. Le véhicule avance seul ; à chaque situation, choisis le bon comportement.</p><button class="p" onclick="condGo()">▶ Démarrer</button><button class="s" onclick="condSortir()">Quitter</button>`;
-  const s=sCond();
-  let h=`<div class="hd"><h3>🚦 Situation ${c.k+1} sur ${m.sit.length}</h3></div><p style="font-size:13px"><b>${esc(s.txt)}</b></p><p>${esc(s.q)}</p>`;
-  if(d.ok)return h+`<p class="ok">✔ Bonne réponse !</p><p style="font-size:13px">${esc(s.e)}</p><button class="p" onclick="condGo()">Continuer ▶</button>`;
-  if(d.msg)h+=`<p class="ok" style="background:#fdecea;color:#7b241c">${esc(d.msg)}</p>`;
-  const ordre=melanger(s.o.map((t,i)=>i),c.m*31+c.k*7+3);
-  h+=ordre.map(i=>`<button ${d.bad.includes(i)?'disabled':''} onclick="answerCond(${i})">${esc(s.o[i])}</button>`).join('');
-  return h;
-}
-function answerCond(i){
-  const d=G.dialog,c=G.cond,s=sCond();
-  if(i!==0){d.bad.push(i);c.errs++;SFX.ko();d.msg='Pas tout à fait : regarde bien la situation. Essaie encore !';
-    if(W&&W.car){W.car.rotation.z=.05}renderDialog();return}
-  const first=!d.bad.length;
-  G.adv.total++;if(first){G.adv.good++;c.firsts++}
-  const coin=first?5:1;c.gain+=coin;gain(coin,first?10:3,first?10:3);SFX.bravo();
-  d.ok=true;d.msg='';renderDialog();
-}
-function condGo(){
-  const d=G.dialog;
-  if(d&&!d.intro&&d.ok)G.cond.k++;
-  $('dlg').style.display='none';G.dialog=null;G.mode='cond';
-  if(W&&W.car)W.car.rotation.z=0;
+  return `<h3>🚦 Mission ${c.m+1} · ${esc(m.titre)}</h3><p>${esc(m.intro)}</p><p style="font-size:13px">Tu es ${c.veh==='moto'?'sur la moto':'au volant'}. Le véhicule avance seul ; à chaque situation, les réponses flottent au-dessus du véhicule : touche la bonne. La question est lue à voix haute.</p><button class="p" onclick="condDemarrer()">▶ Démarrer</button><button onclick="speak(AE[G.cond.m].intro,'ilunga')">🔊 Réécouter</button><button class="s" onclick="condSortir()">Quitter</button>`;
 }
 function finConduite(){
   const c=G.cond,m=AE[c.m],n=m.sit.length;
@@ -1848,7 +1901,7 @@ function finConduite(){
   $('actwrap').classList.add('hide');
 }
 function condSortir(){
-  const c=G.cond;$('dlg').style.display='none';G.dialog=null;
+  const c=G.cond;$('cq').classList.add('hide');stopSpeech();$('dlg').style.display='none';G.dialog=null;
   G.pitch=c.sauv.pitch;G.camOverride=c.sauv.co||null;G.cond=null;
   const r=c.ret||{x:-14,z:0,phi:0};goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi});
   G.mode='play';$('actwrap').classList.remove('hide');majVeh();refreshHud();
@@ -2231,7 +2284,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,inscNegocier,inscReponse,inscPayer,__condTick:condTick,acheterVeh,startConduite,answerCond,condGo,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{bonusMJ,condDemarrer,condSuite,condEcouter,speak,inscNegocier,inscReponse,inscPayer,__condTick:condTick,acheterVeh,startConduite,answerCond,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

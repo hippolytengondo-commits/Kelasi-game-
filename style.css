@@ -283,3 +283,10 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 #vehbar{position:absolute;z-index:3;left:14px;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 150px);display:flex;flex-direction:column;gap:6px}
 #vehbar button{border:0;border-radius:12px;background:rgba(255,255,255,.9);color:#1b2b24;font-weight:700;font-size:13px;padding:8px 12px;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer}
 #vehbar button.on{background:#e0a526}
+
+#cq{position:absolute;z-index:4;left:10px;right:10px;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 8px);max-width:640px;margin:0 auto;background:rgba(15,28,22,.88);color:#fff;border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+#cq b{color:#ffe9a8}#cq .cqb{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+#cq button{border:0;border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px;background:rgba(255,255,255,.92);color:#16222f;cursor:pointer}
+#cq button.p{background:#2ecc71;color:#0b2a17}
+#cq .cqm{margin-top:6px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.12)}
+#cq .cqo{background:rgba(46,204,113,.25)}#cq .cqk{background:rgba(231,76,60,.3)}

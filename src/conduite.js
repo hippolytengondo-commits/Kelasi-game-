@@ -124,3 +124,43 @@ export function buildConduite(mission,veh,makeHuman){
   if(hero){hero.position.set(0,veh==='moto'?.45:.35,veh==='moto'?-.1:-.2);hero.scale.setScalar(veh==='moto'?.75:.7);if(veh!=='moto')hero.position.y=.55;car.add(hero);car.userData.hero=hero}
   return {group:g,colliders,boxes,dyn:{},exit:{x:0,z:4},bounds:{x0:-8,x1:8,z0:-Lr-60,z1:12},car:car,update(dt,t){}};
 }
+
+// ---------- réponses flottantes : quatre panneaux au-dessus du véhicule ----------
+const COUL=['#1f5f9e','#b8860b','#7d3c98','#c0572b'];
+function peindre(cv,texte,j,etat){
+  const g=cv.getContext('2d'),w=cv.width,h=cv.height;
+  g.clearRect(0,0,w,h);
+  const bg=etat==='ok'?'#1f7a4d':etat==='ko'?'#8a2a22':'#16222f';
+  g.fillStyle=bg;g.beginPath();g.roundRect(6,6,w-12,h-12,38);g.fill();
+  g.lineWidth=10;g.strokeStyle=etat==='ok'?'#7dffb0':etat==='ko'?'#ff8a80':COUL[j];g.stroke();
+  g.fillStyle=COUL[j];g.beginPath();g.arc(86,h/2,52,0,7);g.fill();
+  g.fillStyle='#fff';g.font='bold 64px Arial';g.textAlign='center';g.textBaseline='middle';g.fillText(etat==='ok'?'✔':etat==='ko'?'✖':'ABCD'[j],86,h/2+3);
+  // texte renvoyé à la ligne
+  g.textAlign='left';g.fillStyle='#fff';
+  let taille=62;const maxW=w-200;let lignes;
+  for(;taille>=30;taille-=4){
+    g.font='bold '+taille+'px Arial';lignes=[];let cur='';
+    texte.split(' ').forEach(m=>{const t=cur?cur+' '+m:m;if(g.measureText(t).width>maxW&&cur){lignes.push(cur);cur=m}else cur=t});
+    lignes.push(cur);
+    if(lignes.length*taille*1.18<h-50)break;
+  }
+  const y0=h/2-(lignes.length-1)*taille*.59;
+  lignes.forEach((l,i)=>g.fillText(l,160,y0+i*taille*1.18));
+}
+export function creerReponses(textes){
+  const grp=new THREE.Group();
+  textes.forEach((t,j)=>{
+    const cv=document.createElement('canvas');cv.width=1024;cv.height=380;peindre(cv,t,j,'');
+    const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(5.2,1.95),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide,depthTest:false}));
+    m.renderOrder=20;
+    m.position.set(j%2?2.8:-2.8,j<2?5.2:2.9,0);
+    m.userData={idx:j,cv:cv,tex:tex,texte:t,etat:''};
+    grp.add(m);
+  });
+  return grp;
+}
+export function marquerReponse(grp,j,etat){
+  const m=grp.children[j];if(!m)return;
+  m.userData.etat=etat;peindre(m.userData.cv,m.userData.texte,j,etat);m.userData.tex.needsUpdate=true;
+}
