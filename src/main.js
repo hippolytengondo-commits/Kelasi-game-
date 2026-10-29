@@ -316,7 +316,8 @@ function construireVille(){
     const zN=bat.length?Math.min(...bat.map(k=>posTerrain(k).z))-9:-16;
     const tr=creerTrafic(w.group,{cx:CX,rond:!!G.adv.rond,zN:zN,zS:34,nbBat:bat.length,nbLoc:bat.filter(k=>B[k].loc).length,
       routeOk:pave.has('liaison')||pave.has('res0')||pave.has('entree'),services:bat.map(k=>B[k].t),makeHuman:makeHuman});
-    const u0=w.update;w.update=function(dt,t,o){if(u0)u0.call(w,dt,t,o);tr.update(dt,camera.position)};
+    G.trafic=tr;
+    const u0=w.update;w.update=function(dt,t,o){if(u0)u0.call(w,dt,t,o);tr.update(dt,camera.position,{x:G.x,z:G.z,ok:!G.monte&&!G.chute&&G.mode==='play'&&G.sc==='ville'},heurteJoueur)};
   }
   return w;
 }
@@ -1231,7 +1232,8 @@ function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
   if(!W||(G.ui==='photo'&&G.mode!=='creator'))return;
   drawMini(now*1);
-  const playing=G.mode==='play'||G.mode==='mini'||G.mode==='m3d';
+  if(G.chute)chuteStep(dt);
+  const playing=!G.chute&&(G.mode==='play'||G.mode==='mini'||G.mode==='m3d');
   if(G.mode==='cond')condTick(dt);
   if(((tt*4)|0)!==vehT){vehT=(tt*4)|0;majVeh()}
   // déplacement
@@ -1279,6 +1281,10 @@ function loop(now){
   G.speed=sp;
   playerObj.position.set(G.x,0,G.z);playerObj.rotation.y=G.ry;
   let assis=false;
+  if(G.chute){
+    const c=G.chute,a=c.t<.35?c.t/.35:c.t>c.dur-.7?Math.max(0,(c.dur-c.t)/.7):1;
+    playerObj.rotation.order='YXZ';playerObj.rotation.x=-Math.PI/2*a*.97;playerObj.position.y=.18*a;
+  }
   if(G.sc==='conduite')playerObj.visible=false;
   else if(G.monte&&vehObjs[G.monte]){
     const vo=vehObjs[G.monte],ud=vo.userData,st=G.steer||0,co=Math.cos(G.ry),si=Math.sin(G.ry);
@@ -1681,6 +1687,21 @@ function htmlMap(){
   }
   return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
 }
+// accident : un véhicule renverse le joueur qui se trouve sur la route
+function heurteJoueur(h){
+  if(G.chute||G.monte)return;
+  const sx=Math.sign(G.x-h.x)||1,perte=Math.min(G.adv.pieces,10);
+  G.chute={t:0,dur:3.4,vx:sx*4.2,vz:h.dir*3};G.joy.x=G.joy.y=0;G.key.x=G.key.y=0;G.auto=null;
+  G.adv.pieces-=perte;SFX.ko();
+  toast('💥 Un '+h.kind+' t’a renversé !'+(perte?' −'+perte+' 🪙 de soins':''));
+  bubble('🚑 <b>Aïe !</b> Ne joue jamais au milieu de la route.<br>Traverse sur les passages piétons et regarde à gauche et à droite.',G.x,G.z,2.6,6500);
+  save();refreshHud();
+}
+function chuteStep(dt){
+  const c=G.chute;c.t+=dt;
+  if(c.t<.6){const k=1-c.t/.6,[nx,nz]=collide(G.x+c.vx*k*dt,G.z+c.vz*k*dt);G.x=nx;G.z=nz}
+  if(c.t>=c.dur){G.chute=null;if(playerObj){playerObj.rotation.order='XYZ';playerObj.rotation.x=0;playerObj.position.y=0}}
+}
 // ---------- Véhicules et auto-école ----------
 const PRIX_VEH={moto:{n:'Moto',ico:'🏍',prix:250,d:'Rapide et économique, parfaite pour rejoindre les missions.'},auto:{n:'Voiture',ico:'🚗',prix:700,d:'Plus rapide encore, et confortable.'}};
 const vehs=()=>{const a=G.adv;if(!a.veh)a.veh={};return a.veh};
@@ -1693,6 +1714,7 @@ function garerVehicules(){
     if(!v[k]||vehObjs[k])return;
     const o=k==='moto'?motoJoueur('#c0392b'):voitureJoueur('#2e86de'),p=v.pos[k]||PARK[k];
     o.position.set(p.x,0,p.z);o.rotation.y=p.ry;scene.add(o);vehObjs[k]=o;
+    o.userData.col={x:p.x,z:p.z,r:k==='moto'?.9:1.6};if(W)W.colliders.push(o.userData.col);
   });
 }
 const distVeh=k=>{const o=vehObjs[k];return o?Math.hypot(o.position.x-G.x,o.position.z-G.z):99};
@@ -1715,6 +1737,7 @@ function monter(k){
   if(G.monte||!vehObjs[k]||distVeh(k)>4.5)return;
   if(!permis()){toast('Il te faut le permis : inscris-toi dans une auto-école et réussis les missions 1 et 2.');SFX.ko();return}
   const o=vehObjs[k];
+  if(W&&o.userData.col){const i=W.colliders.indexOf(o.userData.col);if(i>=0)W.colliders.splice(i,1)}
   G.monte=k;G.vv=0;G.steer=0;G.x=o.position.x;G.z=o.position.z;G.ry=o.rotation.y;
   SFX.coin();toast('Avant/arrière : accélérer ou freiner · gauche/droite : tourner le volant');majVeh();
 }
@@ -1726,6 +1749,7 @@ function descendre(){
   let pk=null,dm=4.5;(G.parkings||[]).forEach(q=>{const dd=Math.hypot(q.x-G.x,q.z-G.z);if(dd<dm){dm=dd;pk=q}});
   if(pk){G.x=pk.x;G.z=pk.z;G.ry=Math.round(G.ry/Math.PI)*Math.PI;toast('🅿 Véhicule garé dans le parking de ta maison');}
   if(o){o.position.set(G.x,0,G.z);o.rotation.y=G.ry}
+  if(o&&o.userData.col){o.userData.col.x=G.x;o.userData.col.z=G.z;if(W)W.colliders.push(o.userData.col)}
   v.pos[k]={x:G.x,z:G.z,ry:G.ry};save();
   // le conducteur descend du côté gauche du véhicule
   const gx=G.x+Math.cos(G.ry)*1.7,gz=G.z-Math.sin(G.ry)*1.7;

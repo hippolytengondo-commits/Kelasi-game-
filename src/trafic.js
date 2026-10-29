@@ -16,6 +16,11 @@ export function voiture(kind,col){
   const g=new THREE.Group();
   const add=(w,h,d,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.castShadow=true;g.add(b);return b};
   const verre=M('#27384a',.2,{metalness:.3});
+  if(kind==='camion'){
+    add(2.2,1.7,1.7,M(col),0,1.15,2.6);add(2.0,.7,.1,verre,0,1.75,3.45);add(2.3,.5,7,M('#555'),0,.65,-.3);add(2.3,2.4,5.2,M('#ecebe4'),0,2.0,-1.1);add(2.34,.25,5.24,M(col),0,3.3,-1.1);
+    [[-1,2.4],[1,2.4],[-1,.2],[1,.2],[-1,-2.6],[1,-2.6]].forEach(([sx,z])=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.32,14),M('#1b1b1b',.9));w.rotation.z=Math.PI/2;w.position.set(sx*1.1,.45,z);g.add(w)});
+    g.userData.dim={l:3.9,w:1.3};return g;
+  }
   if(kind==='bus'){
     add(2,1.5,5,M(col),0,1.05,0);add(2.02,.6,4.4,verre,0,1.55,0);add(2.04,.2,5.02,M('#f2f2f2'),0,.45,0);
   }else if(kind==='pompiers'){
@@ -27,6 +32,7 @@ export function voiture(kind,col){
   }else{
     add(1.7,.7,3.8,M(col),0,.7,0);add(1.5,.6,1.9,M(col),0,1.3,-.1);add(1.52,.35,1.6,verre,0,1.38,-.1);
   }
+  g.userData.dim=g.userData.dim||(kind==='bus'?{l:2.7,w:1.2}:{l:2.2,w:1.0});
   const ro=M('#1b1b1b',.9);
   [[-1,1.3],[1,1.3],[-1,-1.3],[1,-1.3]].forEach(([sx,z])=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.3,12),ro);w.rotation.z=Math.PI/2;w.position.set(sx*(kind==='bus'||kind==='pompiers'?1:.88),.38,z*(kind==='bus'||kind==='pompiers'?1.5:1));g.add(w)});
   return g;
@@ -45,10 +51,10 @@ export function creerTrafic(parent,opt){
     const kinds=[];opt.services.forEach(t=>{if(spe[t])kinds.push(spe[t])});
     const COL=['#e0a526','#2e86de','#c0392b','#27ae60','#8e44ad','#f1f1f1','#d35400'];
     for(let i=0;i<n;i++){
-      const kind=kinds[i]||(i%3===2?'bus':'auto');
+      const kind=kinds[i]||(i%4===3?'camion':i%3===2?'bus':'auto');
       const dir=i%2?1:-1;                    // -1 : vers le nord
       const v=voiture(kind,COL[i%COL.length]);
-      v.userData={dir:dir,v:(kind==='bus'?3.2:4.2)+r()*1.8,z:zS+(zN-zS)*r()};
+      Object.assign(v.userData,{dir:dir,v:(kind==='bus'||kind==='camion'?3.2:4.2)+r()*1.8,z:zS+(zN-zS)*r(),pause:0});
       v.rotation.y=dir<0?Math.PI:0;v.position.set(cx+(dir<0?-1.3:1.3),0,v.userData.z);
       g.add(v);agents.push({o:v,veh:true});
     }
@@ -65,14 +71,21 @@ export function creerTrafic(parent,opt){
     g.add(h);agents.push({o:h,veh:false});
   }
   return {
-    group:g,
-    update(dt,cam){
+    group:g,agents:agents,
+    update(dt,cam,joueur,onHit){
       agents.forEach(a=>{
         if(a.veh){
-          const d=a.o.userData;d.z+=d.dir*d.v*dt;
+          const d=a.o.userData;
+          if(d.pause>0){d.pause-=dt;if(!joueur||!joueur.ok||d.pause>0)return}
+          d.z+=d.dir*d.v*dt;
           if(d.z<zN){d.z=zN;d.dir=1;a.o.rotation.y=0;a.o.position.x=cx+1.3}
           else if(d.z>zS){d.z=zS;d.dir=-1;a.o.rotation.y=Math.PI;a.o.position.x=cx-1.3}
           a.o.position.z=d.z;
+          // le véhicule heurte le joueur s'il est sur sa trajectoire
+          if(joueur&&joueur.ok&&onHit){
+            const dm=d.dim||{l:2.2,w:1};
+            if(Math.abs(joueur.x-a.o.position.x)<dm.w+.2&&Math.abs(joueur.z-d.z)<dm.l+.3){d.pause=2.4;onHit({dir:d.dir,kind:dm.l>3?'camion':'véhicule',x:a.o.position.x,z:d.z})}
+          }
           if(opt.rond&&Math.abs(d.z)<6.65)a.o.position.x=cx+(d.dir<0?-1:1)*Math.max(1.3,Math.sqrt(6.65*6.65-d.z*d.z));
         }else{
           const m=a.o.userData.m;let z=a.o.position.z+m.dir*m.v*dt;
