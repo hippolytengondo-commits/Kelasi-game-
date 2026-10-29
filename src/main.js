@@ -1445,7 +1445,7 @@ function appliquerSave(s){
   $('go').textContent='Nouvelle partie';$('go').className='p';
   if(G.mode!=='start'){buildScene();refreshHud()}
 }
-const Esp=makeEspace({G,esc,renderDialog,PROGRAMME,CONTENU,missionCle,startMission:(a,b,c,o)=>startMission(a,b,c,o),getSave,applySave:appliquerSave,aProgression});
+const Esp=makeEspace({G,esc,renderDialog,toast:t=>toast(t),lire:t=>{const w=G.voice;G.voice=true;speak(t,'ilunga');G.voice=w},PROGRAMME,CONTENU,missionCle,startMission:(a,b,c,o)=>startMission(a,b,c,o),getSave,applySave:appliquerSave,aProgression});
 function openEsp(vue){
   quitterArene();
   if(G.mode==='start'){G.depart=true;G.dialog={kind:'esp',vue:vue||'',msg:''};$('dlg').style.zIndex='9';renderDialog();return}
@@ -2288,6 +2288,7 @@ const confirmee=CLOUD.confirmationRecue();   // lien de confirmation d'adresse r
 const jetonRec=CLOUD.jetonRecuperation();   // lien « mot de passe oublié » reçu par e-mail
 $('wcont').onclick=()=>{
   AUD.unlock();$('welcome').classList.add('hide');$('start').classList.remove('hide');majAccueil();majMusique();
+  if(CLOUD.session())setTimeout(()=>Esp.rattrapage(),2500);
   if(jetonRec){openEsp('');setTimeout(()=>Esp.actions.espRecuperation(jetonRec),30)}
   else if(confirmee){openEspForm('connecter','enseignant');setTimeout(()=>{if(G.dialog)G.dialog.msg='Ton adresse est confirmée ! Connecte-toi avec ton adresse Gmail et ton mot de passe.';renderDialog()},30)}
 };

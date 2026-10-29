@@ -1,4 +1,5 @@
 import * as C from './cloud.js';
+import {makeEvalViews} from './evalviews.js';
 
 // Comptes, classes et missions de classe. Vocabulaire : côté élève « mission de classe » ;
 // le mot « devoir » n'apparaît que dans l'espace enseignant (cahier des charges, 27.4).
@@ -16,6 +17,18 @@ export function makeEspace(x){
   const retour=(vue,lib)=>`<button class="s" onclick="espGo('${vue}')">${lib||'← Retour'}</button>`;
   const msg=d=>d.msg?`<p class="${d.erreur?'ko':'ok'}">${esc(d.msg)}</p>`:'';
 
+  const EV=makeEvalViews({esc,D,maj,val,entete,retour,msg,lire:t=>x.lire&&x.lire(t),apres:()=>afaire(false)});
+  // ce qui attend l'élève : communiqués non lus et évaluations ouvertes (notification de rattrapage à la connexion)
+  async function afaire(notifier){
+    const s=C.session();if(!s||s.role!=='eleve')return;
+    const r=await EV.rattrapage();if(!r)return;
+    const d=D();if(d&&d.kind==='esp')maj({afaire:r});
+    if(notifier&&(r.communiques||r.evaluations)){
+      const t=[];if(r.communiques)t.push('📢 '+r.communiques+' communiqué'+(r.communiques>1?'s':'')+' non lu'+(r.communiques>1?'s':''));
+      if(r.evaluations)t.push('📝 '+r.evaluations+' évaluation'+(r.evaluations>1?'s':'')+' à passer'+(r.prochaine_fermeture?' (avant le '+new Date(r.prochaine_fermeture).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+')':''));
+      x.toast&&x.toast(t.join(' · '));
+    }
+  }
   function html(d){
     const s=C.session();
     if(d.vue==='nouveaumdp')return vueNouveauMdp(d);
@@ -23,6 +36,7 @@ export function makeEspace(x){
     if(d.vue==='oubli')return vueOubli(d);
     if(d.vue==='attente')return vueAttente(d);
     if(!s)return vueAccueil(d);
+    {const ev=EV.html(d);if(ev!==null)return ev}
     if(d.vue==='choix')return vueChoix(d);
     if(d.vue==='rejoindre')return vueRejoindre(d);
     if(d.vue==='mm')return vueMesMissions(d);
@@ -196,6 +210,7 @@ export function makeEspace(x){
     }
     if(x.aProgression())C.envoyerSauvegarde(x.getSave());
     maj({vue:'',msg:'Compte connecté. Ta progression est sauvegardée.',erreur:false});
+    afaire(true);
   }
   function vueChoix(d){
     const a=d.distant&&d.distant.adv||{},nb=Object.keys(a.done||{}).length;
@@ -230,7 +245,11 @@ export function makeEspace(x){
       h+=`<button class="p" onclick="espGo('enfants')">👨‍👩‍👧 Mes enfants : suivre leurs progrès</button>`
         +`<p style="font-size:12px;opacity:.75">Demande à ton enfant son « code parent » (dans son compte élève) pour le relier à ton compte.</p>`;
     }else{
+      if(!d.afaire){afaire(false)}
+      const af=d.afaire||{};
       h+=`<button class="p" onclick="espGo('mm')">📘 Mes missions de classe</button>`
+        +`<button onclick="espEv('evmes')">📝 Mes évaluations${af.evaluations?' · 🔔 '+af.evaluations+' à passer':''}</button>`
+        +`<button onclick="espEv('commes')">📢 Communiqués${af.communiques?' · 🔵 '+af.communiques+' non lu'+(af.communiques>1?'s':''):''}</button>`
         +`<button onclick="espGo('rejoindre')">Rejoindre une classe avec un code</button>`
         +`<button onclick="espGo('codeparent')">👨‍👩‍👧 Mon code parent</button>`;
     }
@@ -320,7 +339,8 @@ export function makeEspace(x){
     if(!d.eleves||!d.devoirs){chargerClasse(c.id);return h+'<p>Chargement…</p>'+retour('classes')}
     h+=`<h4>Élèves (${d.eleves.length})</h4>`+(d.eleves.length?`<p style="font-size:13px">${d.eleves.map(e=>esc(e.profiles&&e.profiles.pseudo||'?')).join(', ')}</p>`:'<p style="font-size:13px">Personne n’a encore rejoint la classe.</p>');
     h+=`<h4>Devoirs</h4>`+d.devoirs.map(v=>`<button onclick="espDevoir('${v.id}')">${esc(v.titre)} · ${v.missions.length} mission(s)</button>`).join('');
-    h+=`<button class="p" onclick="espNouvDevoir('${c.id}')">+ Nouveau devoir</button><button onclick="espBilan()">📊 Bilan de la classe (pourcentages)</button>`+retour('classes');
+    h+=`<button class="p" onclick="espNouvDevoir('${c.id}')">+ Nouveau devoir</button><button onclick="espBilan()">📊 Bilan de la classe (pourcentages)</button>`
+      +`<button onclick="espEv('evprof')">📝 Évaluations : créer, corriger, publier</button><button onclick="espEv('comprof')">📢 Communiqués : avec accusé de lecture</button>`+retour('classes');
     return h;
   }
   async function ouvrirClasse(id){
@@ -579,8 +599,9 @@ export function makeEspace(x){
   async function delier(id){await C.rpc('unlink_child',{p_child:id});maj({vue:'enfants',enfants:null,msg:'Enfant retiré.',erreur:false})}
 
   return {
-    html:html,
+    html:html,rattrapage:()=>afaire(true),
     actions:{
+      espEv:(v)=>maj({vue:v,evals:null,coms:null,evsProf:null,comsProf:null,evData:null,msg:'',erreur:false}),
       espGo:(v)=>{const d=D();maj({vue:v,msg:'',erreur:false,liste:(v==='classes'||v==='mm')?null:d.liste,ecoles:v==='ecole'?null:d.ecoles,admin:v==='admin'?null:d.admin,enfants:v==='enfants'?null:d.enfants,pcode:v==='codeparent'?null:d.pcode})},
       espEcole:ouvrirEcole,espAdLicence:adLicence,espAdSuspendre:adSuspendre,espCreerEcole:creerEcole,espRejoindreEcole:rejoindreEcole,espAttacher:attacher,espLier:lier,espEnfant:ouvrirEnfant,espDelier:delier,
       espForm:(mode,role)=>maj({vue:'form',mode:mode,role:role||'eleve',msg:'',erreur:false,occupe:false,canal:'mail',tel:''}),
@@ -589,7 +610,8 @@ export function makeEspace(x){
       espValider:valider,espOubli:oubli,espNouveauMdp:nouveauMdp,espChoisir:choisir,espSauver:sauver,espDeco:deco,
       espRejoindre:rejoindre,espJouer:jouer,
       espClasse:ouvrirClasse,espCreerClasse:creerClasse,espNouvDevoir:()=>maj({vue:'nouvdevoir',form:{sel:[]},msg:''}),
-      espForme:forme,espBasc:basc,espPublier:publier,espPrevisu:previsu,espDevoir:ouvrirDevoir,espExport:exporterDevoir,espBilan:ouvrirBilan
+      espForme:forme,espBasc:basc,espPublier:publier,espPrevisu:previsu,espDevoir:ouvrirDevoir,espExport:exporterDevoir,espBilan:ouvrirBilan,
+      ...EV.actions
     }
   };
 }
