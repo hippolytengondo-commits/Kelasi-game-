@@ -1695,6 +1695,7 @@ function heurteJoueur(h){
   G.adv.pieces-=perte;SFX.ko();
   toast('💥 Un '+h.kind+' t’a renversé !'+(perte?' −'+perte+' 🪙 de soins':''));
   bubble('🚑 <b>Aïe !</b> Ne joue jamais au milieu de la route.<br>Traverse sur les passages piétons et regarde à gauche et à droite.',G.x,G.z,2.6,6500);
+  {const w=G.voice;G.voice=true;speak('Aïe ! Un véhicule t’a renversé. Ne joue jamais au milieu de la route. Traverse sur les passages piétons, et regarde à gauche et à droite.','ilunga');G.voice=w}
   save();refreshHud();
 }
 function chuteStep(dt){

@@ -8,6 +8,8 @@ Les panneaux sont répartis à tour de rôle entre tous les sponsors de la liste
 
 Sponsors actuels : LEXOTHÈQUE RDC, Rulem’s, MC Ezemo de Zamunda.
 
+Le grand panneau numérique en portique (route du village vers les quartiers de missions, src/panneauNumerique.js) fait défiler automatiquement tous les sponsors de cette liste, une affiche toutes les 10 secondes.
+
 ## Ajouter un sponsor
 1. Déposer l'affiche (JPG ou PNG, de préférence recadrée serrée) dans `img/` (ex. `img/sponsors/nom.jpg`).
 2. Ajouter UNE ligne dans `SPONSORS` (`src/sponsors.js`) : `{id, nom, img, ratio (largeur ÷ hauteur), cadre, dos, largeur}`.

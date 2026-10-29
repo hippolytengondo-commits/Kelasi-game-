@@ -9,6 +9,7 @@ import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
 import {bitumeDroit,bitumeAnneau,trottoirsDroit,trottoirsAnneau} from './routes.js';
 import {grandBatiment} from './institutions.js';
+import {panneauNumerique} from './panneauNumerique.js';
 
 export const CX=-7;
 export let CZ=70;                    // centre de la place (calculé selon le nombre d'anneaux)
@@ -52,6 +53,8 @@ export function extendVille(w,etat,pave){
   const plazaM=std('#cdc4ae',.95,{polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-3});
   flat(new THREE.CircleGeometry(int0.route-3.4,56),plazaM,CX,.03,CZ);
 
+  // grand panneau publicitaire numérique en portique au-dessus de la route : toutes les affiches des sponsors défilent
+  {const pn=panneauNumerique(g,cols,CX,31);const u0=w.update;w.update=function(dt,t,o){if(u0)u0.call(w,dt,t,o);pn.update(t)}}
   // panneau d'accueil à l'entrée
   cyl(g,.07,.09,2.6,std('#5a3a22',.9),CX+4,1.3,26,8);
   const ac=new THREE.Mesh(new THREE.PlaneGeometry(2.8,1.5),new THREE.MeshStandardMaterial({map:T.textBoard([{t:'NOUVEAUX',s:62,y:.22},{t:'QUARTIERS ↓',s:56,y:.5},{t:'Réussis les missions',s:24,y:.78,b:false,c:'#f1c40f'}],384,208,'#1f7a4d','#ffffff','#ffffff')}));
