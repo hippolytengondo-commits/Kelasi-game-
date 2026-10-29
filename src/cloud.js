@@ -48,9 +48,18 @@ export async function inscrire(pseudo,mdp,role,niveau){
   return connecter(pseudo,mdp);
 }
 // identifiant : adresse Gmail (adultes) ou pseudonyme (élèves et anciens comptes)
+// numéro de téléphone : chiffres seulement, indicatif +243 ajouté s'il manque (0812345678 ou 812345678 → 243812345678)
+export function normaliserTel(t){
+  let c=String(t||'').trim();const plus=c.startsWith('+');c=c.replace(/\D/g,'');
+  if(!plus){if(c.startsWith('00'))c=c.slice(2);else if(c.length===10&&c.startsWith('0'))c='243'+c.slice(1);else if(c.length===9)c='243'+c}
+  return c;
+}
+export const estTel=t=>/^[+\d][\d\s().-]{7,}$/.test(String(t).trim())&&normaliserTel(t).length>=9&&normaliserTel(t).length<=15;
+const DOMAINE_TEL='@tel.kelasi.game';
 export async function connecter(identifiant,mdp){
   const id=identifiant.trim().toLowerCase();
-  const r=await appel('/auth/v1/token?grant_type=password',{method:'POST',body:{email:id.includes('@')?id:id+DOMAINE,password:mdp}});
+  const mail=estTel(id)?'tel'+normaliserTel(id)+DOMAINE_TEL:(id.includes('@')?id:id+DOMAINE);
+  const r=await appel('/auth/v1/token?grant_type=password',{method:'POST',body:{email:mail,password:mdp}});
   if(!r.ok)return r;
   const s=stocker(r.data);
   const p=await appel('/rest/v1/profiles?select=pseudo,role,niveau&id=eq.'+s.uid,{token:s.access});
@@ -72,6 +81,13 @@ export async function inscrireAdulte(pseudo,email,mdp,role,ecole){
   if(!r.ok)return r;
   if(r.data&&r.data.access_token)return connecter(email,mdp); // confirmation non exigée par le serveur : connexion immédiate
   return {ok:true,attente:true};
+}
+// compte adulte (enseignant, parent) avec un numéro de téléphone : aucun e-mail ; la récupération en cas de perte est difficile
+export async function inscrireTel(pseudo,tel,mdp,role){
+  const n=normaliserTel(tel);
+  const r=await appel('/functions/v1/inscription',{method:'POST',body:{pseudo:pseudo.trim(),mdp:mdp,role:role,tel:n}});
+  if(!r.ok)return r;
+  return connecter(n,mdp);
 }
 // mot de passe oublié : e-mail avec un lien pour choisir un nouveau mot de passe
 export function demanderReset(email){

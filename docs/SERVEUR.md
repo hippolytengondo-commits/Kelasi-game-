@@ -45,3 +45,8 @@ Paiement en ligne (mobile money, carte), limitation du nombre d’inscriptions p
 Évaluations (minuteur, QCM, anti-triche), communiqués avec accusé de lecture, notifications push (FCM/APNs) et options Android natives (FLAG_SECURE, épinglage d'écran) : à concevoir ; les notifications push et FLAG_SECURE exigent une application Android native (hors application web).
 
 Confirmation d'adresse : le lien de l'e-mail ramène vers l'adresse du jeu seulement si elle figure dans Supabase > Authentication > URL Configuration (Site URL et Redirect URLs = https://hippolytengondo-commits.github.io/boyekoli-play/). Sinon, Supabase renvoie vers localhost:3000 (valeur par défaut).
+
+## Comptes adultes avec numéro de téléphone (octobre 2026)
+- Pour les enseignants et les parents sans adresse e-mail : numéro de téléphone + mot de passe, **sans vérification par SMS**. Le numéro est normalisé (indicatif +243 ajouté si absent) et stocké sous la forme `tel243XXXXXXXXX@tel.kelasi.game`.
+- Création par la fonction Edge `inscription` (version 5) : `{pseudo, mdp, role:'enseignant'|'parent', tel}`. Les établissements gardent l'adresse Gmail.
+- **Limite assumée** : pas d'e-mail de récupération. En cas de perte du mot de passe, la récupération passe par l'administrateur (réinitialisation depuis Supabase). Le message est affiché sous le formulaire d'inscription.

@@ -63,8 +63,16 @@ export function makeEspace(x){
       h+=`<p style="font-size:13px">Choisis un pseudonyme (3 à 20 caractères : lettres, chiffres, point, tiret). Ton <b>mot de passe, c’est ta date de naissance</b> : tu ne l’oublieras jamais !</p>`
        +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
        +`<input id="espNaiss" inputmode="numeric" maxlength="10" placeholder="Date de naissance : JJ/MM/AAAA" autocomplete="off" value="${esc(d.naiss||'')}">`;
+    }else if(creer&&d.role!=='etablissement'&&d.canal==='tel'){
+      h+=`<div class="row"><button onclick="espCanal('mail')">📧 Adresse Gmail</button><button class="p" onclick="espCanal('tel')">📱 Numéro de téléphone</button></div>`
+       +`<p style="font-size:13px">Pas d’adresse e-mail ? Crée ton compte avec ton <b>numéro de téléphone</b>. Le pseudonyme est le nom affiché dans le jeu.</p>`
+       +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme du compte (nom affiché)" autocomplete="nickname" value="${esc(d.pseudo||'')}">`
+       +`<input id="espTel" type="tel" inputmode="tel" maxlength="20" placeholder="Numéro de téléphone (ex. 0812345678 ou +243812345678)" autocomplete="tel" value="${esc(d.tel||'')}">`
+       +`<input id="espMdp" type="password" maxlength="72" placeholder="Mot de passe (8 caractères au moins)" autocomplete="new-password">`
+       +`<input id="espMdp2" type="password" maxlength="72" placeholder="Retape le mot de passe" autocomplete="new-password">`;
     }else if(creer){
-      h+=`<p style="font-size:13px">Utilise ton adresse <b>Gmail</b> : elle sert à confirmer ton compte et à retrouver ton mot de passe si tu l’oublies. Le pseudonyme est le nom affiché dans le jeu.</p>`
+      h+=(d.role!=='etablissement'?`<div class="row"><button class="p" onclick="espCanal('mail')">📧 Adresse Gmail</button><button onclick="espCanal('tel')">📱 Numéro de téléphone</button></div>`:'')
+       +`<p style="font-size:13px">Utilise ton adresse <b>Gmail</b> : elle sert à confirmer ton compte et à retrouver ton mot de passe si tu l’oublies. Le pseudonyme est le nom affiché dans le jeu.</p>`
        +(d.role==='etablissement'?`<input id="espEcoleNom" maxlength="80" placeholder="Nom de l’établissement (école)" autocomplete="organization" value="${esc(d.ecoleNom||'')}"><p style="font-size:12px;opacity:.8">Ton établissement est créé avec un essai gratuit de 30 jours (60 élèves). Le code à donner à tes enseignants apparaît dans « Mon établissement ».</p>`:'')
        +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme du compte (nom affiché)" autocomplete="nickname" value="${esc(d.pseudo||'')}">`
        +`<input id="espEmail" type="email" maxlength="80" placeholder="Adresse Gmail" autocomplete="email" value="${esc(d.email||'')}">`
@@ -75,11 +83,12 @@ export function makeEspace(x){
        +`<input id="espPseudo" maxlength="20" placeholder="Pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
        +`<input id="espNaiss" inputmode="numeric" maxlength="10" placeholder="Date de naissance : JJ/MM/AAAA" autocomplete="off">`;
     }else{
-      h+=`<p style="font-size:13px">Entre ton adresse Gmail et ton mot de passe.</p>`
-       +`<input id="espPseudo" maxlength="80" placeholder="Adresse Gmail (ou pseudonyme)" autocomplete="username" value="${esc(d.pseudo||'')}">`
+      h+=`<p style="font-size:13px">Entre ton adresse Gmail ou ton numéro de téléphone, et ton mot de passe.</p>`
+       +`<input id="espPseudo" maxlength="80" placeholder="Adresse Gmail, numéro de téléphone ou pseudonyme" autocomplete="username" value="${esc(d.pseudo||'')}">`
        +`<input id="espMdp" type="password" maxlength="72" placeholder="Mot de passe" autocomplete="current-password">`;
     }
     h+=`<button class="p" ${d.occupe?'disabled':''} onclick="espValider()">${d.occupe?'Un instant…':(creer?'Créer mon compte':'Me connecter')}</button>`;
+    if(creer&&ad&&d.role!=='etablissement'&&d.canal==='tel')h+=`<p style="font-size:12px;padding:8px 10px;border-radius:10px;background:#fff3cd;color:#664d03">⚠ <b>Important :</b> avec un numéro de téléphone, il n’y a pas d’e-mail de récupération. Si tu perds ton mot de passe ou ton téléphone, il sera <b>difficile de retrouver ton compte</b>. Note ton mot de passe dans un endroit sûr.</p>`;
     if(!creer&&ad)h+=`<button onclick="espGo('oubli')">Mot de passe oublié ?</button>`;
     if(!creer&&!ad)h+=`<p style="font-size:12px;opacity:.8">Mot de passe oublié ? C’est ta date de naissance. Tu es enseignant ou parent ? Choisis « Adulte ».</p>`;
     return h+`<button class="s" onclick="espGo('')">← Retour</button>`;
@@ -105,6 +114,18 @@ export function makeEspace(x){
       if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
       maj({occupe:false,vue:'',msg:'',erreur:false,naiss:''});await synchroniser();return;
     }
+    if(creer&&d.canal==='tel'&&d.role!=='etablissement'){
+      const tel=val('espTel'),m1=document.getElementById('espMdp').value,m2=document.getElementById('espMdp2').value;
+      if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true,tel:tel});return}
+      if(!PSEUDO_OK.test(pseudo)){maj({msg:'Le pseudonyme doit avoir 3 à 20 caractères : lettres, chiffres, point, tiret ou _ (pas d’espace ni d’accent).',erreur:true,tel:tel,pseudo:pseudo});return}
+      if(!C.estTel(tel)){maj({msg:'Écris un numéro de téléphone valide (par exemple 0812345678 ou +243812345678).',erreur:true,pseudo:pseudo,tel:tel});return}
+      if(m1.length<8){maj({msg:'Le mot de passe doit avoir au moins 8 caractères.',erreur:true,pseudo:pseudo,tel:tel});return}
+      if(m1!==m2){maj({msg:'Les deux mots de passe ne sont pas identiques.',erreur:true,pseudo:pseudo,tel:tel});return}
+      maj({occupe:true,msg:'',pseudo:pseudo,tel:tel});
+      const r=await C.inscrireTel(pseudo,tel,m1,d.role);
+      if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
+      maj({occupe:false,vue:'',msg:'',erreur:false});await synchroniser();return;
+    }
     if(creer){
       const email=val('espEmail'),m1=document.getElementById('espMdp').value,m2=document.getElementById('espMdp2').value;
       if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true,email:email});return}
@@ -124,7 +145,7 @@ export function makeEspace(x){
     let mdp;
     if(ad){mdp=document.getElementById('espMdp').value}
     else{const dn=dateNaissance(val('espNaiss'));mdp=dn||val('espNaiss')}
-    if(!pseudo||!mdp){maj({msg:ad?'Écris ton adresse Gmail et ton mot de passe.':'Écris ton pseudonyme et ta date de naissance.',erreur:true,pseudo:pseudo});return}
+    if(!pseudo||!mdp){maj({msg:ad?'Écris ton adresse Gmail (ou ton numéro) et ton mot de passe.':'Écris ton pseudonyme et ta date de naissance.',erreur:true,pseudo:pseudo});return}
     maj({occupe:true,msg:'',pseudo:pseudo});
     const r=await C.connecter(pseudo,mdp);
     if(!r.ok){maj({occupe:false,msg:r.err,erreur:true,pseudo:pseudo});return}
@@ -143,6 +164,7 @@ export function makeEspace(x){
   }
   async function oubli(){
     const email=val('espEmail');
+    if(C.estTel(email)){maj({msg:'Un compte créé avec un numéro de téléphone n’a pas de récupération automatique : contacte l’administrateur de la plateforme.',erreur:true,email:email});return}
     if(!C.estGmail(email)){maj({msg:'Écris une adresse Gmail valide.',erreur:true,email:email});return}
     maj({occupe:true,msg:'',email:email});
     const r=await C.demanderReset(email);
@@ -561,7 +583,8 @@ export function makeEspace(x){
     actions:{
       espGo:(v)=>{const d=D();maj({vue:v,msg:'',erreur:false,liste:(v==='classes'||v==='mm')?null:d.liste,ecoles:v==='ecole'?null:d.ecoles,admin:v==='admin'?null:d.admin,enfants:v==='enfants'?null:d.enfants,pcode:v==='codeparent'?null:d.pcode})},
       espEcole:ouvrirEcole,espAdLicence:adLicence,espAdSuspendre:adSuspendre,espCreerEcole:creerEcole,espRejoindreEcole:rejoindreEcole,espAttacher:attacher,espLier:lier,espEnfant:ouvrirEnfant,espDelier:delier,
-      espForm:(mode,role)=>maj({vue:'form',mode:mode,role:role||'eleve',msg:'',erreur:false,occupe:false}),
+      espForm:(mode,role)=>maj({vue:'form',mode:mode,role:role||'eleve',msg:'',erreur:false,occupe:false,canal:'mail',tel:''}),
+      espCanal:(c)=>maj({canal:c,pseudo:val('espPseudo'),msg:'',erreur:false}),
       espRecuperation:(jeton)=>maj({vue:'nouveaumdp',jeton:jeton,msg:'',erreur:false}),
       espValider:valider,espOubli:oubli,espNouveauMdp:nouveauMdp,espChoisir:choisir,espSauver:sauver,espDeco:deco,
       espRejoindre:rejoindre,espJouer:jouer,
