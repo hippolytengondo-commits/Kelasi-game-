@@ -28,6 +28,7 @@ import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
 import {creerTrafic,voiture,moto,voitureJoueur,motoJoueur} from './trafic.js';
 import {AE,zArret,buildConduite,melanger} from './conduite.js';
+import {construireReperes} from './reperes.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -189,7 +190,8 @@ const SCENES={
  maison:{build:()=>construireMaison(),interior:true,doors:[{x:0,z:2.5,r:1.9,to:'ville',label:'Sortir',tx:-22,tz:-3.9,phi:Math.PI/2}],
    spots:[{x:-1.6,z:-2.2,r:1.9,label:'Miroir : changer mon look',run:()=>openCreator('play')},{x:-1.0,z:-.6,r:1.9,label:'Plans : construire ma maison',run:()=>openMaison()}]},
  interieur:{build:()=>{const w=buildInterieur(G.int.t,G.int.n),r=G.int.ret;SCENES.interieur.doors=[{x:0,z:w.dim.D/2-.9,r:1.6,to:'ville',label:'Sortir',tx:r.x,tz:r.z,phi:r.phi}];
-   SCENES.interieur.spots=[{x:w.dim.W/2-1.4,z:w.dim.D/2-1.3,r:1.6,label:'Gérer ou améliorer cette construction',run:()=>openBox({kind:'terrain',k:G.int.k,msg:'',retInt:true})}];
+   SCENES.interieur.spots=G.int.k>=0?[{x:w.dim.W/2-1.4,z:w.dim.D/2-1.3,r:1.6,label:'Gérer ou améliorer cette construction',run:()=>openBox({kind:'terrain',k:G.int.k,msg:'',retInt:true})}]:[];
+   if(G.int.t==='concession')SCENES.interieur.spots.push({x:w.dim.W/2-2.6,z:-w.dim.D/2+3.2,r:2,label:'Vendeur : acheter une moto ou une voiture',run:()=>openBox({kind:'conc',msg:''})});
    if(G.int.t==='autoecole'){const W2=w.dim.W,D2=w.dim.D;
      SCENES.interieur.spots.push({x:-W2/2+2.7,z:-D2/2+3.5,r:1.9,label:'Accueil : s’inscrire à l’auto-école',run:()=>openBox({kind:'insc',msg:'',etape:'accueil',prix:FRAIS_AE})},
        {x:W2/2-2.6,z:-D2/2+3.3,r:1.9,label:'Moniteur : leçons de conduite',run:()=>{if(G.adv.inscrit)openBox({kind:'ae'});else{toast('Inscris-toi d’abord à l’accueil.');SFX.ko()}}})}
@@ -275,13 +277,22 @@ function construireVille(){
     route:bitumerRoute,
     verrou:k=>{toast('Achète d’abord le terrain n°'+((G.adv.terrains||0)+1)+'.');SFX.ko()}});
   ext.routes.forEach(r=>qr.spots.push({x:r.x,z:r.z,r:2.6,label:r.label,run:()=>bitumerRoute(r.id,r.type,r.i)}));
-  // concession (motos et voitures), dans le village
-  [[-15,5,'CONCESSION','Motos · Voitures','#b8860b']].forEach(([x,z,t1,t2,bg])=>{
-    cyl(w.group,.07,.09,2.8,std('#5a3a22',.9),x,1.4,z,8);
-    const pn=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.3),new THREE.MeshStandardMaterial({map:TX.textBoard([{t:t1,s:80,y:.38},{t:t2,s:42,y:.75,b:false}],1024,512,bg,'#ffffff'),roughness:.6}));
-    pn.position.set(x,2.9,z+.06);w.group.add(pn);w.colliders.push({x:x,z:z,r:.35});
-  });
-  qr.spots.push({x:-13.2,z:5,r:2.4,label:'Concession : acheter une moto ou une voiture',run:()=>openBox({kind:'conc',msg:''})});
+  G.parkings=qr.parkings||[];
+  // bâtiments repères : universités, police, santé, bibliothèque, auto-école, concession
+  {
+    const rp=construireReperes(w);
+    rp.portes.forEach(r=>{
+      const retour={x:r.px+(r.ry?0:0),z:r.pz+(r.ry?-1.6:1.6),phi:r.ry?-Math.PI/2:Math.PI/2};
+      if(r.stage){
+        const i=STAGES.findIndex(s=>s.id===r.stage),st=STAGES[i];
+        SCENES.ville.doors.push({x:r.px,z:r.pz,r:2.3,to:st.scene,label:'Entrer : '+st.name,ok:()=>stageUnlocked(i),closed:'Porte fermée : termine d’abord « '+(STAGES[i-1]?STAGES[i-1].name:'la mission précédente')+' »',
+          tx:SCENES[st.scene].spawn?SCENES[st.scene].spawn.x:-12,tz:SCENES[st.scene].spawn?SCENES[st.scene].spawn.z:0,phi:SCENES[st.scene].spawn?SCENES[st.scene].spawn.phi:0,retour:retour});
+      }else{
+        SCENES.ville.doors.push({x:r.px,z:r.pz,r:2.3,to:'interieur',label:'Entrer : '+r.nom.replace(/^l’|^la |^le /,'').replace(/^./,c=>c.toUpperCase()),tx:0,tz:0,phi:-Math.PI/2,
+          pre:()=>{G.int={t:r.interieur,n:1,k:-1,ret:retour}}});
+      }
+    });
+  }
   SCENES.ville.spots=qr.spots;
   // circulation : piétons et véhicules, d'autant plus nombreux que le quartier se construit
   {
@@ -333,7 +344,12 @@ function buildScene(){
 }
 // habitants et personnel d'une construction : visuels seulement, pour donner de la vie
 function occupants(){
-  const I=G.int,b=batsRes()[I.k];if(!b||!W||!W.dim)return [];
+  const I=G.int,b=I.k>=0?batsRes()[I.k]:null;if(!W||!W.dim||(!b&&I.k>=0))return [];
+  if(I.t==='concession'){
+    const {W:Wd,D:Dd}=W.dim;
+    return [{id:'vendeur',x:Wd/2-2.6,z:-Dd/2+1.6,ry:0,look:{s:'h',h:1,skin:'#5a3319',c:'#2c3e50',k:'uniforme',co:'courtes'}},
+      {id:'client0',x:-1,z:.6,ry:Math.PI/2,look:{s:'f',h:.97,skin:'#7a4a2e',c:'#e0a526',k:'pagne',co:'tresses'}}].map(o=>Object.assign({sc:'interieur',name:'',short:''},o));
+  }
   if(I.t==='autoecole'){
     const {W:Wd,D:Dd}=W.dim;
     const L=[{id:'agent',x:-Wd/2+2.7,z:-Dd/2+1.3,ry:0,look:{s:'f',h:.97,skin:'#6b4028',c:'#1f5f9e',k:'uniforme',co:'tresses'}},
@@ -497,6 +513,10 @@ function actionFor(t){
   return {label:d.label,enabled:true,run:()=>goTo(d)};
 }
 function goTo(d){
+  if(d.pre)d.pre();
+  // retour d'un repère du village : on ressort devant son bâtiment, pas au quartier d'origine
+  if(d.to==='ville'&&G.retourRepere){const r=G.retourRepere;G.retourRepere=null;d=Object.assign({},d,{tx:r.x,tz:r.z,phi:r.phi})}
+  else if(d.to!=='ville')G.retourRepere=d.retour||null;
   G.sc=d.to;G.x=d.tx;G.z=d.tz;G.phi=d.phi;G.near=null;hideBubble();buildScene();
 }
 
@@ -515,7 +535,7 @@ function closeDialog(){
   G.mode='play';
   $('actwrap').classList.remove('hide');
   if(G.sc==='maison')buildScene();
-  if(G.sc==='interieur'){const b=batsRes()[G.int.k];if(!b||b.annexe!==undefined){const r=G.int.ret;goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi})}else{G.int.n=b.n;buildScene()}}
+  if(G.sc==='interieur'&&G.int.k>=0){const b=batsRes()[G.int.k];if(!b||b.annexe!==undefined){const r=G.int.ret;goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi})}else{G.int.n=b.n;buildScene()}}
   if(G.refaireVille){G.refaireVille=false;if(G.sc==='ville')buildScene()}
   refreshHud();
 }
@@ -1647,7 +1667,7 @@ function htmlMap(){
 const PRIX_VEH={moto:{n:'Moto',ico:'🏍',prix:250,d:'Rapide et économique, parfaite pour rejoindre les missions.'},auto:{n:'Voiture',ico:'🚗',prix:700,d:'Plus rapide encore, et confortable.'}};
 const vehs=()=>{const a=G.adv;if(!a.veh)a.veh={};return a.veh};
 const permis=()=>!!(G.adv.done.ae1&&G.adv.done.ae2);   // le permis suppose l'inscription à l'auto-école
-const PARK={moto:{x:-18,z:3,ry:Math.PI/2},auto:{x:-18,z:7.5,ry:Math.PI/2}};
+const PARK={moto:{x:-21,z:1.8,ry:Math.PI/2},auto:{x:-21,z:4,ry:Math.PI/2}};
 // véhicules garés dans le village : ils restent là où le joueur les a laissés
 function garerVehicules(){
   const v=vehs();v.pos=v.pos||{};
@@ -1684,6 +1704,10 @@ function descendre(){
   const k=G.monte;if(!k)return;
   if(Math.abs(G.vv||0)>1.5){toast('Arrête-toi d’abord pour descendre.');SFX.ko();return}
   const o=vehObjs[k],v=vehs();v.pos=v.pos||{};
+  // garé dans le parking d'une de mes maisons s'il y en a un à proximité
+  let pk=null,dm=4.5;(G.parkings||[]).forEach(q=>{const dd=Math.hypot(q.x-G.x,q.z-G.z);if(dd<dm){dm=dd;pk=q}});
+  if(pk){G.x=pk.x;G.z=pk.z;G.ry=Math.round(G.ry/Math.PI)*Math.PI;toast('🅿 Véhicule garé dans le parking de ta maison');}
+  if(o){o.position.set(G.x,0,G.z);o.rotation.y=G.ry}
   v.pos[k]={x:G.x,z:G.z,ry:G.ry};save();
   // le conducteur descend du côté gauche du véhicule
   const gx=G.x+Math.cos(G.ry)*1.7,gz=G.z-Math.sin(G.ry)*1.7;
@@ -1905,7 +1929,7 @@ function travel(id){
   const st=STAGES.find(s=>s.id===id);if(!st)return;
   const sc=SCENES[st.scene];
   closeDialog();
-  G.sc=st.scene;
+  G.sc=st.scene;G.retourRepere=null;
   if(sc.spawn){G.x=sc.spawn.x;G.z=sc.spawn.z;G.phi=sc.spawn.phi}else{G.x=-12;G.z=0;G.phi=0}
   G.near=null;hideBubble();buildScene();toast(st.icon+' '+st.name);
   refreshHud();

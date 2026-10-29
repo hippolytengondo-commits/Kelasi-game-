@@ -8,6 +8,7 @@ import {sponsorN} from './sponsors.js';
 import * as T from './textures.js';
 import {std,box,cyl,rng,gableRoof,tree} from './world.js';
 import {bitumeDroit,bitumeAnneau,trottoirsDroit,trottoirsAnneau} from './routes.js';
+import {grandBatiment} from './institutions.js';
 
 export const CX=-7;
 export let CZ=70;                    // centre de la place (calculé selon le nombre d'anneaux)
@@ -96,14 +97,16 @@ export function extendVille(w,etat,pave){
     lots.push({scene:e.scene,retour:{x:retour.x,z:retour.z,phi:th+Math.PI},th:th,anneau:P.a.k});
     const lg=new THREE.Group();lg.position.set(c.x,0,c.z);lg.rotation.y=ry;g.add(lg);
     if(e.ouvert){
+      if(!grandBatiment(lg,e)){
       const wall=new THREE.MeshStandardMaterial({color:MURS[i%MURS.length],roughness:.9});
-      box(lg,5.8,3.2,4.6,wall,0,1.6,0);
-      gableRoof(lg,0,3.2,0,5.8,4.6,1.4,tin,std('#e9dfca'),.5);
-      box(lg,1.3,2.1,.12,std('#4a2f1b',.8),0,1.05,2.32);
-      [-2.0,2.0].forEach(dx=>box(lg,.9,.9,.1,std('#e8f3fa',.2,{emissive:0x4da6d9,emissiveIntensity:.35}),dx,1.7,2.32));
-      const nm=e.name.length>24?28:e.name.length>20?32:e.name.length>17?34:e.name.length>13?40:46;
-      const sg=new THREE.Mesh(new THREE.PlaneGeometry(4.6,1.0),new THREE.MeshStandardMaterial({map:T.textBoard([{t:e.icon+' '+e.name,s:nm}],768,164,e.fini?'#1f7a4d':'#8a3b12','#ffffff'),roughness:.6}));
-      sg.position.set(0,2.75,2.36);lg.add(sg);
+        box(lg,5.8,3.2,4.6,wall,0,1.6,0);
+        gableRoof(lg,0,3.2,0,5.8,4.6,1.4,tin,std('#e9dfca'),.5);
+        box(lg,1.3,2.1,.12,std('#4a2f1b',.8),0,1.05,2.32);
+        [-2.0,2.0].forEach(dx=>box(lg,.9,.9,.1,std('#e8f3fa',.2,{emissive:0x4da6d9,emissiveIntensity:.35}),dx,1.7,2.32));
+        const nm=e.name.length>24?28:e.name.length>20?32:e.name.length>17?34:e.name.length>13?40:46;
+        const sg=new THREE.Mesh(new THREE.PlaneGeometry(4.6,1.0),new THREE.MeshStandardMaterial({map:T.textBoard([{t:e.icon+' '+e.name,s:nm}],768,164,e.fini?'#1f7a4d':'#8a3b12','#ffffff'),roughness:.6}));
+        sg.position.set(0,2.75,2.36);lg.add(sg);
+      }
       [-2.1,0,2.1].forEach(o=>cols.push({x:c.x+tx*o,z:c.z+tz*o,r:1.5}));
       doors.push({x:devant.x,z:devant.z,r:2.3,to:e.scene,label:'Entrer : '+e.name,lot:i});
       if(e.fini){ // drapeau vert : mission terminée

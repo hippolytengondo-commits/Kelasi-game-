@@ -39,14 +39,14 @@ export const CATALOGUE={
   police:{n:'Police',ico:'🚓',cat:'Services publics',niv:[
     {n:'Poste de police',cout:{pieces:50,savoir:300,brique:18,ciment:5,fer:3},d:'Pour la sécurité du quartier.'},
     {n:'Commissariat',cout:{pieces:130,savoir:600,brique:30,ciment:10,fer:8},d:'Un grand commissariat avec antenne radio.'}]},
-  autoecole:{n:'Auto-école',ico:'🚦',cat:'Services publics',niv:[
+  autoecole:{n:'Auto-école',ico:'🚦',cat:'Services publics',cache:true,niv:[
     {n:'Auto-école',cout:{pieces:120,savoir:350,brique:22,ciment:6,bois:6},d:'Forme les conducteurs : inscription, cours et leçons de conduite.'},
     {n:'Grande auto-école',cout:{pieces:260,savoir:700,brique:36,ciment:12,fer:6},double:true,d:'Plus de salles et de moniteurs : demande un second terrain.'}]},
   pompiers:{n:'Pompiers',ico:'🚒',cat:'Services publics',niv:[
     {n:'Poste de pompiers',cout:{pieces:60,savoir:300,brique:20,ciment:6,fer:4},d:'Un camion et une équipe prêts à intervenir.'},
     {n:'Caserne',cout:{pieces:150,savoir:600,brique:34,ciment:12,fer:10},double:true,d:'Une caserne avec tour d’entraînement : demande un second terrain.'}]}
 };
-export const TYPES=Object.keys(CATALOGUE);
+export const TYPES=Object.keys(CATALOGUE).filter(t=>!CATALOGUE[t].cache);
 // ancien format (niveau numérique d'une maison) -> nouveau (objet {t,n})
 export const batiment=(a,k)=>{
   const b=(a.batRes||[])[k];if(b)return b;
@@ -195,7 +195,7 @@ export function construireRes(w,etat,cb){
   trottoirsDroit(g,CX,-14,yMin,5.2,1.6);
   if(etat.rond){trottoirsDroit(g,CX,-14,-8.6,5.2,1.6);trottoirsDroit(g,CX,8.6,13,5.2,1.6)}else trottoirsDroit(g,CX,-14,13,5.2,1.6);
   // tronçons bitumés (un par rangée de terrains) et points d'action pour bitumer les autres
-  const NSEG=Math.ceil((-14-yMin)/PAS),spots=[];
+  const NSEG=Math.ceil((-14-yMin)/PAS),spots=[],parkings=[];
   for(let i=0;i<NSEG;i++){
     const z1=-14-i*PAS,z2=Math.max(yMin,z1-PAS),id='res'+i;
     if(etat.pave&&etat.pave.has(id))bitumeDroit(g,CX,z1,z2,5.2);
@@ -232,6 +232,16 @@ export function construireRes(w,etat,cb){
     cyl(t,.06,.08,2.2,std('#5a3a22',.9),-3.4,1.1,DEMI-.3,6);
     const sg=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.2),new THREE.MeshStandardMaterial({map:T.textBoard([{t:l1,s:70,y:.35},{t:l2,s:l2.length>14?34:44,y:.72}],1024,512,bg,'#ffffff'),roughness:.6}));
     sg.position.set(-3.4,2.3,DEMI-.2);t.add(sg);
+    if(bat&&!annexe&&['case','maison','villa'].includes(bat.t)){
+      // parking du propriétaire, dans la cour devant la maison
+      const PX=1.2,PZ=4.0;
+      const pad=new THREE.Mesh(new THREE.PlaneGeometry(4.8,2.4),mat('asph',()=>new THREE.MeshStandardMaterial({color:0x4a4b50,roughness:.95,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-3})));
+      pad.rotation.x=-Math.PI/2;pad.position.set(PX,.045,PZ);t.add(pad);
+      [[0,-1.2,4.8,.1],[0,1.2,4.8,.1],[-2.4,0,.1,2.4],[2.4,0,.1,2.4]].forEach(([x,z,w,d])=>box(t,w,.01,d,M('#f2f2f2'),PX+x,.06,PZ+z));
+      const sp=new THREE.Mesh(new THREE.PlaneGeometry(.7,.7),new THREE.MeshStandardMaterial({map:T.textBoard([{t:'P',s:380,y:.52}],256,256,'#1f5f9e','#ffffff'),roughness:.6}));
+      sp.position.set(PX-2.5,1.6,PZ+1.3);t.add(sp);cyl(t,.04,.04,1.6,std('#666'),PX-2.5,.8,PZ+1.3,6);
+      parkings.push({x:p.x+PX*Math.cos(p.ry)+PZ*Math.sin(p.ry),z:p.z-PX*Math.sin(p.ry)+PZ*Math.cos(p.ry),k:k});
+    }
     if(bat&&!annexe){
       const fp=DESSIN[bat.t](t,bat.n,k);
       if(fp){
@@ -249,7 +259,7 @@ export function construireRes(w,etat,cb){
     if(bat&&!annexe&&bat.t!=='sport')spots.push({x:p.x+(p.side?-3.9:3.9),z:p.z,r:1.5,label:'Entrer : '+nomBatiment(bat),run:()=>cb.entrer(k,bat,{x:fx,z:p.z,phi:p.side?Math.PI/2:-Math.PI/2})});
   }
   w.bounds.z0=Math.min(w.bounds.z0,limiteNord);
-  return {spots};
+  return {spots,parkings};
 }
 
 // loyer par heure d'une résidence louée (selon le niveau) ; 0 pour les services publics

@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import * as T from './textures.js';
 import {std,box,cyl,room} from './world.js';
-import {voiture} from './trafic.js';
+import {voiture,voitureJoueur,motoJoueur} from './trafic.js';
 import {CATALOGUE} from './quartier_res.js';
 
 const wood=c=>new THREE.MeshStandardMaterial({map:T.woodTexture(c||'#7a4a26')});
@@ -13,7 +13,7 @@ const dalle=c=>std(c||'#d9dcd9',.6);
 
 // dimensions (largeur, profondeur, hauteur) selon le type et le niveau
 export const TAILLE=(t,n)=>{
-  const base={case:[5,4.5,2.8],maison:[7,5.5,3.2],villa:[9,6.5,3.6],ecole:[11,7,3.6],sante:[9,6.5,3.4],culture:[10,7,4.2],police:[8,6,3.2],autoecole:[10,7,3.4],pompiers:[10,7,4.2],sport:[10,8,4]}[t];
+  const base={case:[5,4.5,2.8],maison:[7,5.5,3.2],villa:[9,6.5,3.6],ecole:[11,7,3.6],sante:[9,6.5,3.4],culture:[10,7,4.2],police:[8,6,3.2],autoecole:[10,7,3.4],concession:[10,7,3.6],pompiers:[10,7,4.2],sport:[10,8,4]}[t];
   const f=1+.12*(n-1);return [base[0]*f,base[1]*f,base[2]];
 };
 
@@ -48,6 +48,14 @@ function croix(g,x,y,z){box(g,.9,.25,.05,std('#c0392b'),x,y,z);box(g,.25,.9,.05,
 function rideau(g,x,z,col){box(g,1.4,2,.08,std(col||'#7fb8d9',.9),x,1.1,z)}
 
 const DECOR={
+  concession(g,B,W,D,n){
+    // salle d'exposition : estrade avec une voiture et une moto, comptoir du vendeur
+    box(g,4.6,.3,3.2,wood('#d9cfae'),-W/2+3.2,.15,.2);const v=voitureJoueur('#c0392b');v.position.set(-W/2+3.2,.3,.2);v.rotation.y=Math.PI/2-.35;g.add(v);B.push({x0:-W/2+.8,x1:-W/2+5.6,z0:-1.4,z1:1.8});
+    box(g,3,.3,2.2,wood('#d9cfae'),0.6,.15,-D/2+2.2);const m=motoJoueur('#2e86de');m.position.set(.6,.3,-D/2+2.2);m.rotation.y=Math.PI/2+.4;g.add(m);B.push({x0:-.9,x1:2.1,z0:-D/2+1.1,z1:-D/2+3.3});
+    box(g,2.6,1.05,.8,wood('#3d4a5a'),W/2-2.6,.52,-D/2+2.3);B.push({x0:W/2-3.9,x1:W/2-1.3,z0:-D/2+1.9,z1:-D/2+2.7});
+    tableau(g,W/2-2.6,2.4,-D/2+.05,3.2,.8,[{t:'NOS VÉHICULES',s:60,y:.5}],'#b8860b');
+    tableau(g,0,2.6,-D/2+.05,4.4,1,[{t:'🏍 MOTOS  ·  🚗 VOITURES',s:58,y:.5}],'#2b2b2b');
+  },
   autoecole(g,B,W,D,n){
     // accueil : comptoir d'inscription à gauche, salle de cours à droite
     box(g,2.6,1.05,.8,wood('#3d4a5a'),-W/2+2.7,.52,-D/2+2.2);B.push({x0:-W/2+1.4,x1:-W/2+4,z0:-D/2+1.8,z1:-D/2+2.6});
@@ -125,7 +133,7 @@ const H3=n=>3.6;
 export function buildInterieur(t,n){
   const [W,D,H]=TAILLE(t,n);
   const g=new THREE.Group(),colliders=[],boxes=[];
-  const murs={case:'#d8b78a',maison:'#efe3c8',villa:'#f4efe4',ecole:'#f1e7cf',sante:'#eef3f3',culture:'#f0d9a8',autoecole:'#f6efc9',police:'#d6dde8',pompiers:'#e8d4cf',sport:'#e6e6e6'}[t];
+  const murs={case:'#d8b78a',maison:'#efe3c8',villa:'#f4efe4',ecole:'#f1e7cf',sante:'#eef3f3',culture:'#f0d9a8',autoecole:'#f6efc9',concession:'#ece7da',police:'#d6dde8',pompiers:'#e8d4cf',sport:'#e6e6e6'}[t];
   room(g,W,D,H,paint(murs),(t==='sante'||t==='pompiers'||t==='police'||t==='autoecole')?dalle(t==='pompiers'?'#b9b9b9':'#d9e3e3'):sol(t==='case'?'#a8855a':'#a8744a'));
   g.children.forEach(c=>{if(c.geometry&&c.geometry.type==='PlaneGeometry'&&c.rotation.x===-Math.PI/2&&c.material.map){c.material=c.material.clone();c.material.map=c.material.map.clone();c.material.map.repeat.set(W/2,D/2);c.material.map.needsUpdate=true}});
   fenetres(g,W,H,D,Math.max(1,Math.round(D/2.4)));
