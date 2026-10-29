@@ -1685,7 +1685,7 @@ function htmlMap(){
 const PRIX_VEH={moto:{n:'Moto',ico:'🏍',prix:250,d:'Rapide et économique, parfaite pour rejoindre les missions.'},auto:{n:'Voiture',ico:'🚗',prix:700,d:'Plus rapide encore, et confortable.'}};
 const vehs=()=>{const a=G.adv;if(!a.veh)a.veh={};return a.veh};
 const permis=()=>!!(G.adv.done.ae1&&G.adv.done.ae2);   // le permis suppose l'inscription à l'auto-école
-const PARK={moto:{x:-21,z:1.8,ry:Math.PI/2},auto:{x:-21,z:4,ry:Math.PI/2}};
+const PARK={moto:{x:-15,z:2.6,ry:Math.PI/2},auto:{x:-15,z:5.4,ry:Math.PI/2}};
 // véhicules garés dans le village : ils restent là où le joueur les a laissés
 function garerVehicules(){
   const v=vehs();v.pos=v.pos||{};

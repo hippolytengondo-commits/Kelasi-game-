@@ -89,8 +89,8 @@ export const MODELES={
 
 // emplacements dans le village (portes tournées vers la grand-place) ; ry 0 : porte au sud (+z), ry π : porte au nord (-z)
 export const REPERES=[
-  {id:'concession',x:-16,z:9.6,ry:Math.PI,interieur:'concession',nom:'la Concession',coul:'#b8860b'},
-  {id:'autoecole',x:3,z:9.6,ry:Math.PI,interieur:'autoecole',nom:'l’Auto-école',coul:'#1f5f9e'}
+  {id:'concession',x:-22.2,z:9.6,ry:Math.PI,interieur:'concession',nom:'la Concession',coul:'#b8860b'},
+  {id:'autoecole',x:8.2,z:9.6,ry:Math.PI,interieur:'autoecole',nom:'l’Auto-école',coul:'#1f5f9e'}
 ];
 
 export function construireReperes(w){

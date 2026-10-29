@@ -106,7 +106,7 @@ const DESSIN={
     [-4,-1.4,1.4,4].forEach(x=>cyl(g,.18,.18,3.2,M('#ffffff'),x,1.6,2.8,10));box(g,9.4,.25,1.2,M('#ffffff'),0,3.3,2.8);
     box(g,1.3,2.2,.12,mat('porte',()=>std('#4a2f1b',.8)),0,1.1,2.5);
     fenetres(g,3,1.4,H>5?5.0:2.2,2.5,3);
-    if(niv>=2){fenetres(g,3,1.4,2.2,2.5,3.2);const eau=new THREE.Mesh(new THREE.PlaneGeometry(4,2),new THREE.MeshStandardMaterial({color:0x3fa9d9,roughness:.2}));eau.rotation.x=-Math.PI/2;eau.position.set(-1.2,.05,4.6);g.add(eau)}
+    if(niv>=2){fenetres(g,3,1.4,2.2,2.5,3.2);}
     return niv>=2?{w:9.4,d:8}:{w:9.2,d:6.4};
   },
   ecole(g,niv,k){
@@ -182,6 +182,21 @@ const DESSIN={
   }
 };
 
+// cour et jardin derrière la maison : massifs de fleurs, aire de jeux pour les enfants, piscine pour la villa
+function jardin(t,type,niv,k){
+  const FLE=['#e74c3c','#f1c40f','#ff7eb6','#ffffff','#9b59b6'];
+  for(let i=0;i<4;i++){const x=-3.2+i*2.2;box(t,1.5,.28,.6,M('#4f8f3a'),x,.14,-4.9);box(t,1.4,.06,.5,M(FLE[(i+k)%FLE.length]),x,.31,-4.9)}
+  cyl(t,.09,.12,1.5,M('#6b4226'),-4.7,.75,-4.3,6);const cm=new THREE.Mesh(new THREE.SphereGeometry(.85,10,8),M('#3f9a53'));cm.position.set(-4.7,1.9,-4.3);t.add(cm);
+  if(type==='maison'&&niv>=2){            // aire de jeux : toboggan et balançoire
+    box(t,.9,1.2,.9,M('#e0a526'),4.6,.6,-3.6);box(t,.7,.08,1.8,M('#e74c3c'),4.6,.6,-2.4).rotation.x=.55;
+    [-.8,.8].forEach(dz=>box(t,.08,1.5,.08,M('#555'),4.7,.75,.2+dz));box(t,.08,.08,1.8,M('#555'),4.7,1.5,.2);box(t,.5,.06,.3,M('#2e86de'),4.7,.55,.2);
+  }
+  if(type==='villa'&&niv>=2){             // piscine
+    const eau=new THREE.Mesh(new THREE.PlaneGeometry(4.2,1.7),new THREE.MeshStandardMaterial({color:0x3fa9d9,roughness:.2}));eau.rotation.x=-Math.PI/2;eau.position.set(.4,.07,-4.2);t.add(eau);
+    box(t,4.6,.06,2.1,M('#d9d9d2'),.4,.04,-4.2);
+  }
+}
+
 // etat : {n: terrains achetés, bat: [{t,n}|{annexe}|null par terrain], pave: Set des tronçons bitumés}
 // cb : {acheter(k), ouvrir(k), verrou(k)} ; renvoie les points d'action et étend les limites de la scène
 export function construireRes(w,etat,cb){
@@ -242,6 +257,7 @@ export function construireRes(w,etat,cb){
       sp.position.set(PX-2.5,1.6,PZ+1.3);t.add(sp);cyl(t,.04,.04,1.6,std('#666'),PX-2.5,.8,PZ+1.3,6);
       parkings.push({x:p.x+PX*Math.cos(p.ry)+PZ*Math.sin(p.ry),z:p.z-PX*Math.sin(p.ry)+PZ*Math.cos(p.ry),k:k});
     }
+    if(bat&&!annexe&&['case','maison','villa'].includes(bat.t))jardin(t,bat.t,bat.n,k);
     if(bat&&!annexe){
       const fp=DESSIN[bat.t](t,bat.n,k);
       if(fp){

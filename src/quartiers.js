@@ -90,10 +90,10 @@ export function extendVille(w,etat,pave){
   const pos=[];let idx=0;                         // position de chaque lieu : anneau + rang dans l'anneau
   AN.forEach(a=>{for(let j=0;j<a.n;j++)pos.push({a:a,j:j,th:rad(ARC0+ARC*(j+.5)/a.n)})});
   etat.forEach((e,i)=>{
-    const P=pos[i],th=P.th,R=P.a.R,Rr=P.a.route,c=pt(th,R);
+    const P=pos[i],th=P.th,R=P.a.R,Rr=P.a.route,SET=3.2,c=pt(th,R+SET);   // bâtiment reculé : une cour de 3 m le sépare de la route
     const ry=Math.atan2(-Math.cos(th),-Math.sin(th));
     const tx=-Math.sin(th),tz=Math.cos(th);
-    const devant=pt(th,R-3.1),retour=pt(th,Rr-.9);
+    const devant=pt(th,R-.4),retour=pt(th,Rr-.9);
     lots.push({scene:e.scene,retour:{x:retour.x,z:retour.z,phi:th+Math.PI},th:th,anneau:P.a.k});
     const lg=new THREE.Group();lg.position.set(c.x,0,c.z);lg.rotation.y=ry;g.add(lg);
     if(e.ouvert){
@@ -107,6 +107,9 @@ export function extendVille(w,etat,pave){
         const sg=new THREE.Mesh(new THREE.PlaneGeometry(4.6,1.0),new THREE.MeshStandardMaterial({map:T.textBoard([{t:e.icon+' '+e.name,s:nm}],768,164,e.fini?'#1f7a4d':'#8a3b12','#ffffff'),roughness:.6}));
         sg.position.set(0,2.75,2.36);lg.add(sg);
       }
+      // cour devant le bâtiment : allée et massifs de fleurs
+      box(lg,1.6,.03,3.4,std('#cfc6b2'),0,.03,3.9);
+      [-2.2,2.2].forEach((x,j)=>{box(lg,1.5,.25,.8,std('#4f8f3a'),x,.12,3.9);box(lg,1.3,.06,.6,std('#'+['e74c3c','f1c40f','ff7eb6','9b59b6'][(i+j)%4]),x,.27,3.9)});
       [-2.1,0,2.1].forEach(o=>cols.push({x:c.x+tx*o,z:c.z+tz*o,r:1.5}));
       doors.push({x:devant.x,z:devant.z,r:2.3,to:e.scene,label:'Entrer : '+e.name,lot:i});
       if(e.fini){ // drapeau vert : mission terminée
