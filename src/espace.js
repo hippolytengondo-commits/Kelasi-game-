@@ -39,6 +39,7 @@ export function makeEspace(x){
     {const ev=EV.html(d);if(ev!==null)return ev}
     if(d.vue==='choix')return vueChoix(d);
     if(d.vue==='rejoindre')return vueRejoindre(d);
+    if(d.vue==='choixclasse')return vueChoixClasse(d);
     if(d.vue==='mm')return vueMesMissions(d);
     if(d.vue==='classes')return vueClasses(d);
     if(d.vue==='classe')return vueClasse(d);
@@ -109,6 +110,12 @@ export function makeEspace(x){
     return h+`<button class="s" onclick="espGo('')">← Retour</button>`;
   }
   // « 12/03/2012 », « 12-03-2012 » ou « 12032012 » → 12032012 ; null si ce n'est pas une vraie date
+  // saisie de la date de naissance : les « / » s'ajoutent tout seuls (JJ/MM/AAAA)
+  document.addEventListener('input',e=>{
+    const t=e.target;if(!t||t.id!=='espNaiss')return;
+    const c=t.value.replace(/\D/g,'').slice(0,8);
+    t.value=c.length>4?c.slice(0,2)+'/'+c.slice(2,4)+'/'+c.slice(4):c.length>2?c.slice(0,2)+'/'+c.slice(2):c;
+  });
   function dateNaissance(t){
     const c=String(t||'').replace(/\D/g,'');
     if(c.length!==8)return null;
@@ -270,14 +277,26 @@ export function makeEspace(x){
 
   // ---------- élève ----------
   function vueRejoindre(d){
-    return entete('Rejoindre une classe')+msg(d)+`<p style="font-size:13px">Saisis le code de ta classe (6 lettres ou chiffres), donné par ton enseignant ou par ton établissement.</p>`
-      +`<input id="espCode" maxlength="6" placeholder="CODE" style="text-transform:uppercase" autocomplete="off">`
+    return entete('Rejoindre une classe')+msg(d)+`<p style="font-size:13px">Saisis le code de ta classe (6 lettres ou chiffres), donné par ton enseignant, ou le code de ton établissement (8 caractères) pour choisir ta classe dans la liste.</p>`
+      +`<input id="espCode" maxlength="8" placeholder="CODE" style="text-transform:uppercase" autocomplete="off">`
       +`<button class="p" onclick="espRejoindre()">Rejoindre</button>`+retour('');
   }
   async function rejoindre(){
     const code=val('espCode');if(!code){maj({msg:'Écris le code de la classe.',erreur:true});return}
+    if(code.length>6){
+      const l=await C.rpc('classes_par_code_ecole',{p_code:code});
+      if(!l.ok){maj({msg:l.err,erreur:true});return}
+      if(!l.data||!l.data.length){maj({msg:'Code d’établissement inconnu, ou aucune classe créée pour le moment.',erreur:true});return}
+      maj({vue:'choixclasse',choix:l.data,msg:'',erreur:false});return;
+    }
+    return rejoindreCode(code);
+  }
+  function vueChoixClasse(d){
+    return entete('Choisis ta classe')+msg(d)+d.choix.map(c=>`<button class="p" onclick="espRejoindreCode('${esc(c.code)}')">${esc(c.nom)}</button>`).join('')+retour('')
+  }
+  async function rejoindreCode(code){
     const r=await C.rpc('join_class',{p_code:code});
-    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    if(!r.ok){maj({vue:'rejoindre',msg:r.err,erreur:true});return}
     maj({vue:'mm',msg:'Tu as rejoint la classe !',erreur:false,liste:null});
     chargerMM();
   }
@@ -684,7 +703,7 @@ export function makeEspace(x){
       espCanal:(c)=>maj({canal:c,pseudo:val('espPseudo'),msg:'',erreur:false}),
       espRecuperation:(jeton)=>maj({vue:'nouveaumdp',jeton:jeton,msg:'',erreur:false}),
       espValider:valider,espOubli:oubli,espNouveauMdp:nouveauMdp,espChoisir:choisir,espSauver:sauver,espDeco:deco,
-      espRejoindre:rejoindre,espJouer:jouer,
+      espRejoindre:rejoindre,espRejoindreCode:rejoindreCode,espJouer:jouer,
       espClasse:ouvrirClasse,espCreerClasse:creerClasse,espNouvDevoir:()=>maj({vue:'nouvdevoir',form:{sel:[]},msg:''}),
       espForme:forme,espBasc:basc,espPublier:publier,espPrevisu:previsu,espDevoir:ouvrirDevoir,espExport:exporterDevoir,espBilan:ouvrirBilan,
       ...EV.actions
