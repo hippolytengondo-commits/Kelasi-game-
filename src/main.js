@@ -1935,7 +1935,7 @@ function finConduite(){
   $('actwrap').classList.add('hide');
 }
 function condSortir(){
-  .style.display='';
+  $('info').style.display='';
   const c=G.cond;$('cq').classList.add('hide');stopSpeech();$('dlg').style.display='none';G.dialog=null;
   G.pitch=c.sauv.pitch;G.camOverride=c.sauv.co||null;G.cond=null;
   const r=c.ret||{x:-14,z:0,phi:0};goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi});
