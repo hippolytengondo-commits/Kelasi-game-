@@ -324,3 +324,18 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-
 
 #cq .cqr{min-width:48px;font-weight:700;font-size:17px}
 #cq .cqx{opacity:.35;text-decoration:line-through}
+
+#carb{background:rgba(255,255,255,.92);color:#1b2b24;border-radius:12px;padding:6px 10px;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3);min-width:110px}
+#carb.hide{display:none}
+#carb i{display:block;height:7px;border-radius:4px;background:#ddd;margin-top:4px;overflow:hidden}
+#carb i b{display:block;height:100%;background:#2a9d5c;width:100%}
+#carb.bas i b{background:#d9822b}#carb.vide i b{background:#c0392b}
+#volant{position:absolute;z-index:3;right:max(12px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));display:flex;align-items:flex-end;gap:12px}
+#volant.hide{display:none}
+#vol{width:140px;height:140px;border-radius:50%;touch-action:none;user-select:none;-webkit-user-select:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));background:rgba(255,255,255,.12)}
+#vol svg{width:100%;height:100%;display:block;pointer-events:none}
+#pedales{display:flex;flex-direction:column;gap:10px}
+#pedales button{width:84px;height:66px;border:0;border-radius:14px;font-size:24px;font-weight:800;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.4);touch-action:none;user-select:none;-webkit-user-select:none;line-height:1}
+#pedales button small{display:block;font-size:10px;font-weight:600;margin-top:2px}
+#pacc{background:#2a9d5c}#pfrein{background:#c0392b}
+#pedales button.on{filter:brightness(1.25);transform:scale(.96)}

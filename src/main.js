@@ -28,7 +28,7 @@ import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
 import {creerTrafic,voiture,moto,voitureJoueur,motoJoueur} from './trafic.js';
 import {AE,zArret,buildConduite,melanger,creerReponses,marquerReponse,disposerReponses} from './conduite.js';
-import {construireReperes} from './reperes.js';
+import {construireReperes,construireStation} from './reperes.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
 
@@ -310,6 +310,11 @@ function construireVille(){
     });
   }
   SCENES.ville.spots=qr.spots;
+  // stations-service : une au village, une à l'entrée de la cité
+  STATIONS.forEach(st=>{
+    const r=construireStation(w.group,w.colliders,w.boxes,st.x,st.z,st.nom);
+    SCENES.ville.spots.push({x:st.x,z:st.z+.6,r:4.6,label:'⛽ Pompe : acheter du carburant',run:()=>ouvrirPompe()});
+  });
   // circulation : piétons et véhicules, d'autant plus nombreux que le quartier se construit
   {
     const B=batsRes(),bat=B.map((b,k)=>b&&b.annexe===undefined?k:-1).filter(k=>k>=0);
@@ -584,6 +589,7 @@ function renderDialog(){
   else if(d.kind==='cond')h=htmlCond(d);
   else if(d.kind==='rond')h=htmlRond(d);
   else if(d.kind==='menu')h=htmlMenu(d);
+  else if(d.kind==='pompe')h=htmlPompe(d);
   else if(d.kind==='profile')h=htmlProfile(d);
   else if(d.kind==='map')h=htmlMap(d);
   else if(d.kind==='congo')h=htmlCongo(d);
@@ -1257,17 +1263,29 @@ function loop(now){
     if(G.monte&&G.sc==='ville'){
       // conduite : accélérateur et frein (avant/arrière), direction (gauche/droite)
       const vmax=G.monte==='moto'?15:14;
-      let v=G.vv||0;const th=Math.max(-1,Math.min(1,iy));
+      let v=G.vv||0;
+      const vol=commandeVolant(),cb=niveauCarb(G.monte);
+      if(vol&&!G.wheelHeld)G.wheel=(G.wheel||0)*(1-Math.min(1,dt*7));
+      const sIn=Math.max(-1,Math.min(1,ix+(vol?(G.wheel||0):0)));
+      let th=Math.max(-1,Math.min(1,iy+(vol?(G.ped||0):0)));
+      if(cb<=0&&!(th<0&&v>.1))th=0;   // réservoir vide : plus d'accélération
+      if(vol){const vl=$('vol');if(vl)vl.style.transform='rotate('+((G.wheel||0)*120).toFixed(1)+'deg)'}
       if(th>.05)v+=(v<0?14:6)*th*dt;
       else if(th<-.05)v-=(v>0?14:4)*(-th)*dt;
       else v-=Math.sign(v)*Math.min(Math.abs(v),4*dt);
       v=Math.max(-4,Math.min(vmax,v));
-      G.steer=(G.steer||0)+(Math.max(-1,Math.min(1,ix))-(G.steer||0))*Math.min(1,dt*8);
+      G.steer=(G.steer||0)+(sIn-(G.steer||0))*Math.min(1,dt*8);
       G.ry-=G.steer*1.7*Math.min(1,Math.abs(v)/4)*dt*(v<0?-1:1);
       const nx=G.x+Math.sin(G.ry)*v*dt,nz=G.z+Math.cos(G.ry)*v*dt;
       const [cx,cz]=collide(nx,nz);
       if(Math.abs(cx-nx)>1e-4||Math.abs(cz-nz)>1e-4)v*=-.25;
       G.x=cx;G.z=cz;G.vv=v;sp=Math.abs(v);
+      if(cb>0){
+        const nc=cb-sp*dt*100/CARB[G.monte].m;fixerCarb(G.monte,nc);
+        if(nc<=0){G.alerteCarb=true;toast('⛽ Panne sèche ! Descends du véhicule et rends-toi à une station-service.');SFX.ko()}
+        else if(nc<=15&&!G.alerteCarb){G.alerteCarb=true;toast('⛽ Il reste peu de carburant : va à la station-service !')}
+        else if(nc>15)G.alerteCarb=false;
+      }
       G.phi+=angDiff(G.phi,Math.PI/2-G.ry)*Math.min(1,dt*2.5);
       stepT+=dt*sp;if(stepT>.5&&sp>2){stepT=0}
     }else if(mag>.1||auto){
@@ -1713,6 +1731,12 @@ function chuteStep(dt){
 }
 // ---------- Véhicules et auto-école ----------
 const PRIX_VEH={moto:{n:'Moto',ico:'🏍',prix:250,d:'Rapide et économique, parfaite pour rejoindre les missions.'},auto:{n:'Voiture',ico:'🚗',prix:700,d:'Plus rapide encore, et confortable.'}};
+const STATIONS=[{x:41,z:7.5,nom:'BOYEKOLI'},{x:11,z:30.5,nom:'LA ROUTE'}];
+// carburant : le réservoir se vide avec la distance parcourue ; il se remplit à la station avec des pièces (gagnées en répondant juste)
+const CARB={moto:{m:1800,prix:.1},auto:{m:1300,prix:.15}};     // m : mètres pour un plein ; prix : pièces par % de réservoir
+const LIVRAISON=3;                                              // frais pour faire livrer le carburant à un véhicule resté en route
+const niveauCarb=k=>{const v=vehs();v.carb=v.carb||{};return v.carb[k]===undefined?100:v.carb[k]};
+const fixerCarb=(k,n)=>{const v=vehs();v.carb=v.carb||{};v.carb[k]=Math.max(0,Math.min(100,n))};
 const vehs=()=>{const a=G.adv;if(!a.veh)a.veh={};return a.veh};
 const permis=()=>!!(G.adv.done.ae1&&G.adv.done.ae2);   // le permis suppose l'inscription à l'auto-école
 const PARK={moto:{x:-15,z:2.6,ry:Math.PI/2},auto:{x:-15,z:5.4,ry:Math.PI/2}};
@@ -1739,7 +1763,45 @@ function majVeh(){
     if(ici)any=true;
   });
   bar.classList.toggle('hide',!(visible&&any));
+  const m=!!G.monte&&G.mode==='play'&&G.sc==='ville';
+  $('vh').classList.toggle('hide',!m);$('vc').classList.toggle('hide',!m);
+  $('vc').textContent=cmdV?'🛞 Commande : volant':'🕹 Commande : flèches';
+  $('volant').classList.toggle('hide',!(m&&cmdV));
+  if(m&&cmdV){$('joy').classList.add('hide');$('actwrap').classList.add('hide');G.joyCache=true}else if(G.joyCache){G.joyCache=false;$('joy').classList.remove('hide');$('actwrap').classList.remove('hide')}
+  const cj=$('carb');cj.classList.toggle('hide',!m);
+  if(m){const n=niveauCarb(G.monte);$('carbn').textContent=Math.round(n)+' %';$('carbj').style.width=n+'%';cj.classList.toggle('bas',n<=15&&n>0);cj.classList.toggle('vide',n<=0)}
 }
+// ---------- Commandes de conduite : vrai volant (glisser pour tourner) + pédales, ou touches de direction ----------
+const CMD_KEY='boyekoli_cmd';
+let cmdV=true;try{cmdV=localStorage.getItem(CMD_KEY)!=='fleches'}catch(e){}
+const commandeVolant=()=>cmdV&&!!G.monte;
+function basculerCommande(){cmdV=!cmdV;try{localStorage.setItem(CMD_KEY,cmdV?'volant':'fleches')}catch(e){}G.wheel=0;G.ped=0;majVeh()}
+function klaxonner(){
+  if(!G.monte)return;SFX.klaxon();
+  if(G.trafic&&G.trafic.klaxon)G.trafic.klaxon(G.x,G.z);
+  const b=$('vh');b.classList.add('on');setTimeout(()=>b.classList.remove('on'),300);
+}
+{
+  const vl=$('vol');let cx=0,cy=0,prev=0,id=null,ang=0;
+  const a=e=>Math.atan2(e.clientY-cy,e.clientX-cx);
+  vl.addEventListener('pointerdown',e=>{e.preventDefault();id=e.pointerId;vl.setPointerCapture(id);const r=vl.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;prev=a(e);ang=(G.wheel||0)*120*Math.PI/180;G.wheelHeld=true});
+  vl.addEventListener('pointermove',e=>{
+    if(e.pointerId!==id)return;e.preventDefault();
+    let d=a(e)-prev;if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;prev=a(e);
+    ang=Math.max(-120,Math.min(120,ang*180/Math.PI+d*180/Math.PI))*Math.PI/180;G.wheel=ang/(120*Math.PI/180);
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>vl.addEventListener(ev,e=>{if(e.pointerId===id){id=null;G.wheelHeld=false}}));
+  const ped=(bid,val)=>{
+    const b=$(bid);
+    b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);G.ped=val;b.classList.add('on')});
+    ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>{if(G.ped===val)G.ped=0;b.classList.remove('on')}));
+  };
+  ped('pacc',1);ped('pfrein',-1);
+}
+$('vh').addEventListener('click',klaxonner);
+$('vc').addEventListener('click',basculerCommande);
+document.addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;if((e.key==='h'||e.key==='H')&&G.monte&&G.mode==='play')klaxonner()});
+
 function monter(k){
   if(G.sc!=='ville'||G.mode!=='play')return;
   if(G.monte===k){descendre();return}
@@ -1747,8 +1809,8 @@ function monter(k){
   if(!permis()){toast('Il te faut le permis : inscris-toi dans une auto-école et réussis les missions 1 et 2.');SFX.ko();return}
   const o=vehObjs[k];
   if(W&&o.userData.col){const i=W.colliders.indexOf(o.userData.col);if(i>=0)W.colliders.splice(i,1)}
-  G.monte=k;G.vv=0;G.steer=0;G.x=o.position.x;G.z=o.position.z;G.ry=o.rotation.y;
-  SFX.coin();toast('Avant/arrière : accélérer ou freiner · gauche/droite : tourner le volant');majVeh();
+  G.wheel=0;G.ped=0;G.monte=k;G.vv=0;G.steer=0;G.x=o.position.x;G.z=o.position.z;G.ry=o.rotation.y;
+  SFX.coin();toast(cmdV?'Tourne le volant et appuie sur ▲ pour avancer · 📯 pour klaxonner · ⛽ surveille le carburant':'Flèches : avancer, freiner, tourner · 📯 pour klaxonner · ⛽ surveille le carburant');majVeh();
 }
 function descendre(){
   const k=G.monte;if(!k)return;
@@ -1762,7 +1824,7 @@ function descendre(){
   v.pos[k]={x:G.x,z:G.z,ry:G.ry};save();
   // le conducteur descend du côté gauche du véhicule
   const gx=G.x+Math.cos(G.ry)*1.7,gz=G.z-Math.sin(G.ry)*1.7;
-  G.monte=null;G.vv=0;G.steer=0;
+  G.monte=null;G.vv=0;G.steer=0;G.wheel=0;G.ped=0;
   const [nx,nz]=collide(gx,gz);G.x=nx;G.z=nz;
   if(o){if(o.userData.volant)o.userData.volant.rotation.z=0;if(o.userData.avant)o.userData.avant.forEach(w=>w.rotation.y=0);if(o.userData.guidon)o.userData.guidon.rotation.y=0}
   if(playerObj)playerObj.visible=true;majVeh();
@@ -1770,6 +1832,38 @@ function descendre(){
 $('vm').addEventListener('click',()=>monter('moto'));
 $('va').addEventListener('click',()=>monter('auto'));
 
+// ---------- Station-service : on descend, on achète du carburant avec les pièces gagnées par les bonnes réponses ----------
+function ouvrirPompe(){
+  if(G.monte){toast('Arrête-toi puis descends de ton véhicule pour faire le plein.');SFX.ko();return}
+  if(!vehs().moto&&!vehs().auto){bubble('⛽ <b>Station-service</b><br>Quand tu auras une moto ou une voiture, tu viendras ici faire le plein avec tes pièces.',G.x,G.z,2.6,5000);return}
+  openBox({kind:'pompe',msg:''});
+}
+function htmlPompe(d){
+  const a=G.adv;let h=`<h3>⛽ Station-service</h3><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p>`;
+  if(d.msg)h+=`<p class="ok">${esc(d.msg)}</p>`;
+  h+=`<p style="font-size:13px">Le carburant s’achète avec les pièces que tu gagnes en répondant juste. Le véhicule sert à rejoindre les missions, ta maison ou récolter tes loyers : quand le réservoir est vide, retourne apprendre !</p>`;
+  Object.keys(PRIX_VEH).forEach(k=>{
+    if(!vehs()[k])return;
+    const n=niveauCarb(k),loin=!(vehObjs[k]&&distVeh(k)<10),frais=loin&&n<100?LIVRAISON:0,x=CARB[k];
+    h+=`<h4>${PRIX_VEH[k].ico} ${esc(PRIX_VEH[k].n)} · réservoir ${Math.round(n)} %</h4><div style="height:8px;border-radius:5px;background:#ddd;overflow:hidden;margin-bottom:6px"><div style="height:100%;width:${n}%;background:${n<=15?'#c0392b':'#2a9d5c'}"></div></div>`;
+    if(n>=100){h+=`<button disabled>Réservoir plein ✔</button>`;return}
+    if(loin)h+=`<p style="font-size:12px;opacity:.8">Ton véhicule est loin de la station : le carburant est livré sur place (+${LIVRAISON} 🪙).</p>`;
+    [25,50,100].forEach(p=>{
+      const pct=Math.min(p,100-Math.round(n));if(pct<=0)return;
+      const c=Math.ceil(pct*x.prix)+frais,ok=a.pieces>=c;
+      h+=`<button class="${ok?'p':''}" onclick="acheterCarb('${k}',${pct})">${p===100?'Faire le plein':'+'+pct+' %'}${p===100?' (+'+pct+' %)':''} : ${c} 🪙${ok?'':' — il te manque '+(c-a.pieces)+' 🪙'}</button>`;
+    });
+  });
+  return h+`<button class="s" onclick="closeDialog()">Fermer</button>`;
+}
+function acheterCarb(k,pct){
+  const a=G.adv,d=G.dialog,x=CARB[k];if(!x||!vehs()[k])return;
+  const n=niveauCarb(k),loin=!(vehObjs[k]&&distVeh(k)<10),p=Math.min(pct,100-Math.round(n)),c=Math.ceil(p*x.prix)+(loin?LIVRAISON:0);
+  if(p<=0)return;
+  if(a.pieces<c){d.msg='Il te manque '+(c-a.pieces)+' pièces : réponds juste aux questions pour en gagner.';SFX.ko();renderDialog();return}
+  a.pieces-=c;fixerCarb(k,n+p);G.alerteCarb=false;save();refreshHud();SFX.coin();
+  d.msg='Plein effectué : +'+p+' % de carburant ('+c+' 🪙).';renderDialog();
+}
 function htmlConc(d){
   const a=G.adv,v=vehs();
   let h=`<h3>🏍 Concession : motos et voitures</h3><p class="row"><span>Mes pièces</span><b>${a.pieces} 🪙</b></p>`;
@@ -2347,7 +2441,7 @@ $('hcom').onclick=()=>entrerPuis(openComp);
 $('hcla').onclick=()=>{const s=CLOUD.session();openEsp(s&&s.role==='enseignant'?'classes':'mm')};
 $('cont').onclick=()=>{if(G.ui==='photo')enterPhoto(false);else{$('cv').style.display='block';enterGame(false)}};
 
-Object.assign(window,Esp.actions,{bonusMJ,condDemarrer,condSuite,condEcouter,speak,inscNegocier,inscReponse,inscPayer,__condTick:condTick,acheterVeh,startConduite,answerCond,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
+Object.assign(window,Esp.actions,{acheterCarb,monter,descendre,klaxonner,ouvrirPompe,basculerCommande,__CARB:niveauCarb,bonusMJ,condDemarrer,condSuite,condEcouter,speak,inscNegocier,inscReponse,inscPayer,__condTick:condTick,acheterVeh,startConduite,answerCond,condSortir,__ae:()=>AE,visiterMission,libreSerie,louerTerrain,encaisserLoyer,demolirTerrain,demolirAnnuler,payerRond,openCongo,congoProv,acheterTerrain,construireTerrain,payerRoute,__ROUTE:bitumerRoute,mapProv,toggleMusic,startMini,openComp,compNiv,reviserCle,__REV:aReviser,construire,buyRes,openMaison,startMJ,sellSac,openShop,__CZ:()=>CZ_Q,__AUD:AUD,__MUS:MUS,__GO:(sc,x,z,phi)=>goTo({to:sc,tx:x,tz:z,phi}),__SC:()=>SCENES,__STG:()=>STAGES,__MJ_IDS:()=>MJ,__MJPOS:mjPos,suivantAventure,openCarnet,carnetBasc,installer,openSuite,__M3:M3,__CAM:camera,__CLES:()=>Object.keys(CONTENU),nextLine,jeuOrdre,jeuOrdreRaz,jeuOrdreOk,jeuPan,jeuPanOk,jeuPanTotal,jeuTriPick,jeuTriPose,openEsp,openProg,progGo,progBack,startMission,__NPCDATA:NPC,travel,openMap,cycleQuality,openCreatorFromPhoto,setChar,openProfile,setGenre,replay,toggleVoice,crStyle,crChar,crPhoto,crUpload,crTab,crSlide,crSet,crHair,crOutfit,crAcc,crBuy,creatorDone,shopMode,nextLine,answerQ,nextQ,closeDialog,infoNext,sellMangoes,buy,toggleSound,resetGame,__G:G,__W:()=>W,__snap:()=>snapCamera(),__dbg:()=>({cam:camera.position.toArray().map(v=>+v.toFixed(1)),bea:npcObjs.bea&&npcObjs.bea.obj.position.toArray(),beaVis:npcObjs.bea&&npcObjs.bea.obj.visible,n:Object.keys(npcObjs)})});
 
 // ---------- Installation comme application (Android, iPhone, ordinateur) ----------
 let invite=null;

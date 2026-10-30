@@ -107,3 +107,33 @@ export function construireReperes(w){
   });
   return {portes};
 }
+
+// ---------- Station-service : auvent, deux pompes et une boutique. On y arrive en véhicule, on descend, on fait le plein.
+// (x, z) : centre des pompes ; la boutique est derrière (côté +z local). Retourne les positions des pompes.
+export function construireStation(parent,cols,bxs,x,z,nom){
+  const g=new THREE.Group();g.position.set(x,0,z);parent.add(g);
+  box(g,13,.12,10,M('#8d8d8d',.95),0,.06,1.2);                                   // dalle
+  box(g,13,.05,.35,M('#f1c40f'),0,.14,-3.7);                                       // ligne d'entrée
+  // auvent
+  box(g,11.4,.5,6.2,M('#d6232c'),0,4.5,0);box(g,11.6,.18,6.4,M('#ffffff'),0,4.2,0);
+  [[-5,-2.4],[5,-2.4],[-5,2.4],[5,2.4]].forEach(([px,pz])=>{cyl(g,.22,.22,4.3,M('#e8e8e8'),px,2.15,pz,10);cols.push({x:x+px,z:z+pz,r:.45})});
+  // pompes
+  const pompes=[];
+  [-1.8,1.8].forEach((px,i)=>{
+    const c=i?'#1f5f9e':'#d6232c';
+    box(g,.95,1.7,.7,M(c),px,.95,0);box(g,.8,.45,.04,M('#111'),px,1.45,.37);box(g,.5,.2,.05,M('#7CFC9a',.3),px,1.45,.4);
+    box(g,.14,.5,.14,M('#222'),px-.55,.85,.2);box(g,.5,.12,.55,M('#333'),px,.06,0);
+    cols.push({x:x+px,z:z,r:.7});pompes.push({x:x+px,z:z});
+  });
+  // boutique
+  box(g,8,3.4,3.2,M('#f2e6c9'),0,1.7,5.4);box(g,8.4,.35,3.6,M('#d6232c'),0,3.55,5.4);
+  box(g,5.2,1.6,.08,verre(),0,1.7,3.76);box(g,1.1,2.2,.1,M('#4a2f1b'),2.8,1.1,3.78);
+  bxs.push({x0:x-4,x1:x+4,z0:z+3.8,z1:z+7});
+  // grande enseigne haute, visible de loin
+  cyl(g,.13,.16,7.4,M('#444'),-6.4,3.7,-3.2,8);
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(3.6,2.1),new THREE.MeshStandardMaterial({map:T.textBoard([{t:'⛽ STATION',s:104,y:.3},{t:nom||'SERVICE',s:70,y:.62},{t:'Carburant · 🪙',s:48,y:.86,b:false,c:'#ffe9a8'}],1024,598,'#c0392b','#ffffff'),roughness:.6}));
+  pl.position.set(-6.4,7.6,-3.2);g.add(pl);const dos=pl.clone();dos.rotation.y=Math.PI;dos.position.z=-3.25;g.add(dos);
+  // bidons et pneus
+  [[5.2,3.2],[5.8,3.2]].forEach(([px,pz],i)=>cyl(g,.28,.28,.8,M(i?'#d6232c':'#1f5f9e'),px,.4,pz,10));
+  return {pompes:pompes,x:x,z:z};
+}

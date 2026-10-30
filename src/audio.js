@@ -61,6 +61,7 @@ export function createAudio(opt){
         tone(f,d,'sawtooth',.06,t,null,f*(i===3?.82:.96));tone(f*1.005,d,'square',.02,t,null,f*(i===3?.82:.96));
       });
     },
+    klaxon:()=>{if(!sonOn())return;tone(420,.42,'square',.07);tone(530,.42,'square',.06);tone(210,.42,'sawtooth',.03)},
     coin:()=>{if(sonOn()){tone(1200,.08,'triangle',.07);tone(1600,.12,'triangle',.06,.06)}},
     win:()=>SFX.felicitations(),
     ko:()=>SFX.perdu(),
