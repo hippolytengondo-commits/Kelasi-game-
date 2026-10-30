@@ -270,7 +270,7 @@ export function makeEspace(x){
 
   // ---------- élève ----------
   function vueRejoindre(d){
-    return entete('Rejoindre une classe')+msg(d)+`<p style="font-size:13px">Demande le code à ton enseignant (6 lettres ou chiffres).</p>`
+    return entete('Rejoindre une classe')+msg(d)+`<p style="font-size:13px">Saisis le code de ta classe (6 lettres ou chiffres), donné par ton enseignant ou par ton établissement.</p>`
       +`<input id="espCode" maxlength="6" placeholder="CODE" style="text-transform:uppercase" autocomplete="off">`
       +`<button class="p" onclick="espRejoindre()">Rejoindre</button>`+retour('');
   }
@@ -284,7 +284,7 @@ export function makeEspace(x){
   function vueMesMissions(d){
     let h=entete('📘 Mes missions de classe')+msg(d);
     if(!d.liste){chargerMM();return h+'<p>Chargement…</p>'+retour('')}
-    if(!d.liste.length)h+=`<p style="font-size:13px">Pas encore de mission de classe. Si ton enseignant t’a donné un code, rejoins sa classe.</p>`;
+    if(!d.liste.length)h+=`<p style="font-size:13px">Pas encore de mission de classe. Si ton enseignant ou ton établissement t’a donné un code de classe, rejoins-la.</p>`;
     d.liste.forEach(a=>{
       let p=0,t=0,faites=0;
       a.missions.forEach(k=>{const r=d.res&&d.res[a.id+'|'+k];if(r&&r.total){p+=r.pts;t+=r.total;faites++}});
