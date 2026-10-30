@@ -162,6 +162,14 @@ export function enregistrerScore(mission,assignment,pts,total){
   vider();
 }
 let enCours=false;
+// question mal répondue : visible par l'enseignant, l'établissement et les parents
+export function enregistrerErreur(mission,assignment,question,reponse,bonne){
+  const se=session();if(!se||se.role!=='eleve'||!question)return;
+  const f=lire(QK)||[];
+  f.push({k:'err',m:mission,a:assignment||null,q:String(question).slice(0,500),r:String(reponse||'').slice(0,300),b:bonne?String(bonne).slice(0,300):null,h:Date.now()});
+  ecrire(QK,f.slice(-200));
+  vider();
+}
 export async function vider(){
   if(enCours||!connecte())return;
   enCours=true;
@@ -169,7 +177,8 @@ export async function vider(){
     let f=lire(QK)||[];
     while(f.length){
       const x=f[0];
-      const r=x.p!==undefined?await rpc('record_score',{p_mission:x.m,p_assignment:x.a,p_pts:x.p,p_total:x.t})
+      const r=x.k==='err'?await rpc('noter_erreur',{p_mission:x.m,p_assignment:x.a,p_question:x.q,p_reponse:x.r,p_bonne:x.b})
+        :x.p!==undefined?await rpc('record_score',{p_mission:x.m,p_assignment:x.a,p_pts:x.p,p_total:x.t})
         :await rpc('record_result',{p_mission:x.m,p_assignment:x.a,p_stars:x.s,p_errs:x.e});
       if(r.ok||(r.status>=400&&r.status<500&&r.status!==401&&r.status!==408&&r.status!==429)){f.shift();ecrire(QK,f)}
       else break; // réseau coupé ou connexion expirée : on réessaiera plus tard

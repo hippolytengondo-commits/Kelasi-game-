@@ -714,7 +714,7 @@ function nextLine(){
 }
 function answerQ(i){
   const d=G.dialog,q=d.qs[d.qi],c=d.opts[i];
-  if(c!==q.a){d.bad.push(c);d.qerr=true;d.errs++;SFX.ko();renderDialog();return}
+  if(c!==q.a){if(!d.qerr&&!d.preview)CLOUD.enregistrerErreur(d.id,d.assign||null,q.q,c,q.a);d.bad.push(c);d.qerr=true;d.errs++;SFX.ko();renderDialog();return}
   const first=!d.qerr;
   G.adv.total++;
   if(first){G.adv.good++;d.firsts++;d.pts=(d.pts||0)+1}
@@ -1487,7 +1487,7 @@ const M3=createMission3D({
     if(first)d.pts=(d.pts||0)+1;
     const coin=d.rev?(first?2:0):(first?5:1);d.gain+=coin;gain(coin,first?(d.rev?3:10):3,first?(d.rev?3:10):3);
   },
-  erreur:()=>{if(G.dialog)G.dialog.errs++},
+  erreur:(i)=>{const d=G.dialog;if(d){d.errs++;if(i&&i.q&&!d.preview)CLOUD.enregistrerErreur(d.id,d.assign||null,i.q,i.rep,i.bonne)}},
   fin:()=>finMission3D()
 });
 function toucherReponse(px,py){

@@ -127,8 +127,7 @@ export function createMission3D(env){
     if(message)voix(message);
   }
   function faux(j,message,rester){
-    S.err++;env.erreur();env.sfx('ko');
-    const u=j.userData;
+    S.err++;const u=j.userData;env.erreur({q:S.etape.q||S.etape.consigne||'',rep:u.texte||'',bonne:S.etape.answer||(S.etape.type==='ordre'&&S.etape.rep?S.etape.rep[S.k]:null)});env.sfx('ko');
     eclat(j.position.x,1.0,j.position.z,0xff6b6b,24);
     u.pad.material.color.set('#c0392b');u.pad.material.emissive.set('#c0392b');
     S.secoue=j;S.secT=.5;
@@ -167,7 +166,7 @@ export function createMission3D(env){
         if(p.userData.cat===u.cat){eclat(j.position.x,1.6,j.position.z,0x6bff9e,40);p.visible=false;S.porte=null;S.places++;env.sfx('ok');
           hud({prog:(S.i+1)+' / '+S.etapes.length,q:e.consigne,sous:S.places+' / '+e.objets.length+' rangés',msg:''});
           if(S.places>=e.objets.length)reussite(j,e.exp||'Tout est bien rangé, bravo !')}
-        else{S.err++;env.erreur();env.sfx('ko');eclat(j.position.x,1.2,j.position.z,0xff6b6b,24);
+        else{S.err++;env.erreur({q:(e.consigne||'')+' · '+(p.userData.texte||''),rep:u.cat||u.texte||'',bonne:p.userData.cat||null});env.sfx('ko');eclat(j.position.x,1.2,j.position.z,0xff6b6b,24);
           p.position.set(p.userData.x0,0,p.userData.z0);p.userData.pad.visible=true;p.userData.anneau.visible=true;p.userData.faisceau.visible=true;p.userData.actif=true;S.porte=null;
           hud({prog:(S.i+1)+' / '+S.etapes.length,q:e.consigne,sous:'Touche un objet pour le porter, puis va dans son panier.',msg:e.indice||('« '+p.userData.texte+' » ne va pas dans ce panier. L’objet est revenu à sa place.')})}
       }

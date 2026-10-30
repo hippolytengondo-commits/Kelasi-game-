@@ -42,6 +42,7 @@ export function makeEspace(x){
     if(d.vue==='mm')return vueMesMissions(d);
     if(d.vue==='classes')return vueClasses(d);
     if(d.vue==='classe')return vueClasse(d);
+    if(d.vue==='erreurs')return vueErreurs(d);
     if(d.vue==='nouvclasse')return vueNouvClasse(d);
     if(d.vue==='nouvdevoir')return vueNouvDevoir(d);
     if(d.vue==='devoir')return vueDevoir(d);
@@ -236,7 +237,8 @@ export function makeEspace(x){
         +`<button onclick="espGo('ecole')">🏛 Mon établissement : licence, enseignants, classes</button>`
         +`<p style="font-size:12px;opacity:.75">Ton activité de jeu n’influence jamais les résultats de tes élèves.</p>`;
     }else if(s.role==='etablissement'){
-      h+=`<button class="p" onclick="espGo('ecole')">🏛 Mon établissement : licence, enseignants, classes</button>`
+      h+=`<button class="p" onclick="espGo('ecole')">🏛 Mon établissement : classes, enseignants, licence</button>`
+        +`<button onclick="espGo('classes')">🏫 Mes classes : élèves et questions ratées</button>`
         +`<button onclick="openProg()">🎓 Voir les missions scolaires</button>`
         +`<p style="font-size:12px;opacity:.75">Donne le code de ton établissement à tes enseignants : ils le saisissent dans leur compte pour rejoindre l’école.</p>`;
     }else if(s.role==='admin'){
@@ -309,13 +311,41 @@ export function makeEspace(x){
     x.startMission(c.n.id,c.m.id,c.i,{assignment:aid,retourEsp:true});
   }
 
+
+  // ---------- questions mal répondues (enseignant, établissement, parent) ----------
+  const libMission=k=>{
+    if(String(k).startsWith('cur:')){const c=cleInfo(String(k).slice(4));return (c.nom?c.nom+' · ':'')+(c.mat?c.mat+' · ':'')+(c.titre||'')}
+    return 'Mission d’exploration';
+  };
+  function vueErreurs(d){
+    let h=entete('🔎 '+(d.errTitre||'Questions à revoir'))+msg(d);
+    if(!d.erreurs){chargerErreurs();return h+'<p>Chargement…</p>'+retour(d.errRetour||'','← Retour')}
+    if(!d.erreurs.length)h+='<p style="font-size:13px">Aucune question ratée enregistrée pour le moment. 🎉</p>';
+    d.erreurs.forEach(e=>{
+      h+=`<div class="row" style="display:block;margin:8px 0;padding:8px;border:1px solid #e4d8b5;border-radius:10px"><b style="font-size:13px">${esc(e.question)}</b><br>`
+        +(e.reponse?`<span style="font-size:12px;color:#c0392b">✖ Réponse donnée : ${esc(e.reponse)}</span><br>`:'')
+        +(e.bonne?`<span style="font-size:12px;color:#1f7a4d">✔ Bonne réponse : ${esc(e.bonne)}</span><br>`:'')
+        +`<span style="font-size:11px;opacity:.7">${e.mission?esc(libMission(e.mission))+' · ':''}${e.eleves?e.eleves+' élève(s) · ':''}${e.total||e.nb||1} erreur(s)</span></div>`;
+    });
+    return h+retour(d.errRetour||'','← Retour');
+  }
+  async function chargerErreurs(){
+    const d=D();
+    const r=d.errClasse?await C.rpc('erreurs_classe',{p_class:d.errClasse}):await C.rpc('erreurs_eleve',{p_student:d.errEleve,p_limite:100});
+    if(D()&&D().vue==='erreurs')maj({erreurs:r.ok?(r.data||[]):[],msg:r.ok?'':r.err,erreur:!r.ok});
+  }
+  const ouvrirErreurs=(eleve,pseudo,retourVue)=>maj({vue:'erreurs',errEleve:eleve,errClasse:null,errTitre:'Questions ratées · '+pseudo,errRetour:retourVue,erreurs:null,msg:'',erreur:false});
+  const ouvrirErreursClasse=()=>{const c=D().classe;maj({vue:'erreurs',errEleve:null,errClasse:c.id,errTitre:'Questions les plus ratées · '+c.nom,errRetour:'classe',erreurs:null,msg:'',erreur:false})};
+
   // ---------- enseignant ----------
   function vueClasses(d){
     let h=entete('🏫 Espace enseignant')+msg(d);
     if(!d.liste){chargerClasses();return h+'<p>Chargement…</p>'+retour('')}
     if(!d.liste.length)h+=`<p style="font-size:13px">Crée ta première classe : tes élèves la rejoindront avec un code.</p>`;
     h+=d.liste.map(c=>`<button onclick="espClasse('${c.id}')">${esc(c.nom)} · code <b>${esc(c.code)}</b></button>`).join('');
-    return h+`<button class="p" onclick="espGo('nouvclasse')">+ Créer une classe</button>`+retour('');
+    const role=C.session().role;
+    if(role==='etablissement')return h+`<p style="font-size:12px;opacity:.8">Les classes se créent dans « Mon établissement ».</p><button class="p" onclick="espGo('ecole')">🏛 Créer et gérer les classes de mon établissement</button>`+retour('');
+    return h+`<button class="p" onclick="espGo('ecole')">🏛 Rejoindre une classe de mon établissement</button><button onclick="espGo('nouvclasse')">+ Créer une classe (enseignant sans établissement)</button>`+retour('');
   }
   async function chargerClasses(){
     const r=await C.lireTable('classes?select=id,nom,niveau,code&order=created_at.desc');
@@ -338,7 +368,7 @@ export function makeEspace(x){
     const c=d.classe;
     let h=entete(c.nom)+msg(d)+`<p>Code à donner aux élèves : <b style="font-size:22px;letter-spacing:3px">${esc(c.code)}</b></p>`;
     if(!d.eleves||!d.devoirs){chargerClasse(c.id);return h+'<p>Chargement…</p>'+retour('classes')}
-    h+=`<h4>Élèves (${d.eleves.length})</h4>`+(d.eleves.length?`<p style="font-size:13px">${d.eleves.map(e=>esc(e.profiles&&e.profiles.pseudo||'?')).join(', ')}</p>`:'<p style="font-size:13px">Personne n’a encore rejoint la classe.</p>');
+    h+=`<h4>Élèves (${d.eleves.length})</h4>`+(d.eleves.length?d.eleves.map(e=>`<button onclick="espErreurs('${e.student_id}','${esc(e.profiles&&e.profiles.pseudo||'?').replace(/'/g,'’')}','classe')">🔎 ${esc(e.profiles&&e.profiles.pseudo||'?')} · questions à revoir</button>`).join('')+`<button onclick="espErreursClasse()">📊 Questions les plus ratées de la classe</button>`:'<p style="font-size:13px">Personne n’a encore rejoint la classe.</p>');
     h+=`<h4>Devoirs</h4>`+d.devoirs.map(v=>`<button onclick="espDevoir('${v.id}')">${esc(v.titre)} · ${v.missions.length} mission(s)</button>`).join('');
     h+=`<button class="p" onclick="espNouvDevoir('${c.id}')">+ Nouveau devoir</button><button onclick="espBilan()">📊 Bilan de la classe (pourcentages)</button>`
       +`<button onclick="espEv('evprof')">📝 Évaluations : créer, corriger, publier</button><button onclick="espEv('comprof')">📢 Communiqués : avec accusé de lecture</button>`+retour('classes');
@@ -510,10 +540,50 @@ export function makeEspace(x){
     h+=`<div class="row" style="display:block"><b>Licence : ${e.plan==='essai'?'essai gratuit':e.plan==='ecole'?'établissement':'aucune'}</b> · <span style="color:${actif?'#1f7a4d':'#c0392b'}">${actif?'active':e.statut==='suspendue'?'suspendue':'expirée'}</span><br><span style="font-size:12px">${e.places||0} places · fin le ${dateFr(e.fin)} · ${e.eleves} élève(s) inscrit(s)</span></div>`;
     if(!actif||e.plan==='essai')h+=`<p style="font-size:12px;opacity:.8">Pour une licence d’établissement, contactez l’équipe BOYEKOLI PLAY : le paiement en ligne n’est pas encore disponible, la licence est activée par l’administrateur de la plateforme après accord.</p>`;
     if(admin&&e.enseignants&&e.enseignants.length)h+=`<h4>Enseignants</h4><p style="font-size:13px">${e.enseignants.map(t=>esc(t.pseudo)+(t.role==='admin'?' (admin)':'')).join(', ')}</p>`;
+    const profs=(e.enseignants||[]).filter(t=>t.role==='enseignant');
     h+=`<h4>Classes de l’établissement (${(e.classes||[]).length})</h4>`;
-    h+=(e.classes||[]).length?(e.classes||[]).map(c=>`<div class="row"><span>${esc(c.nom)} · ${esc(c.enseignant)}</span><b>${c.eleves} élève(s)</b></div>`).join(''):'<p style="font-size:13px">Aucune classe rattachée.</p>';
-    if(d.mesClasses&&d.mesClasses.length){h+=`<h4>Rattacher une de mes classes</h4>`+d.mesClasses.map(c=>`<button onclick="espAttacher('${c.id}','${e.school_id}')">+ ${esc(c.nom)}</button>`).join('')}
+    if(admin)h+=`<p style="font-size:13px">C’est à l’établissement de créer les classes : tes enseignants les rejoignent ensuite avec le code de l’établissement.</p>`
+      +`<input id="espClNom" maxlength="60" placeholder="Nom de la nouvelle classe (ex. 1re A)"><select id="espClNiv">${PROGRAMME.map(n=>`<option value="${n.id}">${esc(n.nom)}</option>`).join('')}</select><button class="p" onclick="espCreerClasseEcole('${e.school_id}')">+ Créer la classe</button>`;
+    (e.classes||[]).forEach(c=>{
+      h+=`<div class="row" style="display:block;margin:8px 0;padding:8px;border:1px solid #e4d8b5;border-radius:10px"><b>${esc(c.nom)}</b> · ${c.eleves} élève(s)${c.code?` · code <b>${esc(c.code)}</b>`:''}<br><span style="font-size:12px">Enseignant(s) : ${c.enseignants&&c.enseignants.length?esc(c.enseignants.join(', ')):'<i>aucun pour l’instant</i>'}</span>`;
+      if(admin){
+        h+=`<div class="row"><button onclick="espClasseOuvrir('${c.id}')">Ouvrir : élèves, évaluations, questions ratées</button></div>`;
+        if(profs.length)h+=`<div style="display:flex;gap:6px"><select id="espAff${c.id}" style="flex:1">${profs.map(t=>`<option value="${t.id}">${esc(t.pseudo)}</option>`).join('')}</select><button onclick="espAffecter('${c.id}')">Affecter</button></div>`;
+      }else if(c.mien)h+=`<div class="row"><button class="p" onclick="espClasseOuvrir('${c.id}')">Ouvrir ma classe</button><button onclick="espQuitterClasse('${c.id}')">Quitter</button></div>`;
+      else h+=`<button class="p" onclick="espRejoindreClasse('${c.id}')">Rejoindre cette classe</button>`;
+      h+='</div>';
+    });
+    if(!(e.classes||[]).length)h+=admin?'':'<p style="font-size:13px">Aucune classe pour l’instant : l’établissement doit d’abord en créer.</p>';
+    if(d.mesClasses&&d.mesClasses.length){h+=`<h4>Rattacher une de mes anciennes classes</h4>`+d.mesClasses.map(c=>`<button onclick="espAttacher('${c.id}','${e.school_id}')">+ ${esc(c.nom)}</button>`).join('')}
     return h+retour('ecole');
+  }
+
+  async function creerClasseEcole(ec){
+    const nom=val('espClNom');if(nom.length<2){maj({msg:'Donne un nom à la classe.',erreur:true});return}
+    const r=await C.rpc('create_school_class',{p_school:ec,p_nom:nom,p_niveau:val('espClNiv')});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecole:null,mesClasses:null,msg:'Classe « '+nom+' » créée. Tes enseignants peuvent la rejoindre ; les élèves la rejoignent avec son code.',erreur:false});
+  }
+  async function affecter(cl){
+    const t=val('espAff'+cl);if(!t){maj({msg:'Choisis un enseignant.',erreur:true});return}
+    const r=await C.rpc('assign_class_teacher',{p_class:cl,p_teacher:t});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecole:null,mesClasses:null,msg:'Enseignant affecté à la classe.',erreur:false});
+  }
+  async function rejoindreClasseEns(cl){
+    const r=await C.rpc('join_class_teacher',{p_class:cl});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecole:null,mesClasses:null,msg:'Tu as rejoint la classe. Elle apparaît dans « Espace enseignant ».',erreur:false});
+  }
+  async function quitterClasseEns(cl){
+    const r=await C.rpc('retire_class_teacher',{p_class:cl,p_teacher:C.session().uid});
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    maj({ecole:null,mesClasses:null,msg:'Tu as quitté la classe.',erreur:false});
+  }
+  async function ouvrirClasseId(id){
+    const r=await C.lireTable('classes?select=id,nom,niveau,code&id=eq.'+id);
+    if(!r.ok||!r.data[0]){maj({msg:r.err||'Classe introuvable.',erreur:true});return}
+    maj({vue:'classe',classe:r.data[0],eleves:null,devoirs:null,msg:''});
   }
   async function attacher(cl,ec){
     const r=await C.rpc('attach_class',{p_class:cl,p_school:ec});
@@ -594,7 +664,8 @@ export function makeEspace(x){
     let h=entete('👦 '+d.enfantNom)+msg(d);
     if(!d.detail){chargerEnfant(d.enfantId);return h+'<p>Chargement…</p>'+retour('enfants')}
     h+=d.detail.length?d.detail.map(r=>{const c=cleInfo(r.mission_key);return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><span>${esc(c.nom?c.nom+' · '+c.mat+' · ':'')}${esc(c.titre)}</span><b>${sc(r.pts,r.total)}</b></div><div style="font-size:11px;opacity:.7">${r.attempts} essai(s) · ${dateFr(r.updated_at)}</div></div>`}).join(''):'<p style="font-size:13px">Pas encore de mission terminée.</p>';
-    h+=`<button onclick="espDelier('${d.enfantId}')">Retirer cet enfant de mon compte</button>`;
+    h+=`<button class="p" onclick="espErreurs('${d.enfantId}','${esc(d.enfantNom).replace(/'/g,'’')}','enfant')">🔎 Questions où mon enfant s’est trompé</button>`
+      +`<button onclick="espDelier('${d.enfantId}')">Retirer cet enfant de mon compte</button>`;
     return h+retour('enfants');
   }
   async function delier(id){await C.rpc('unlink_child',{p_child:id});maj({vue:'enfants',enfants:null,msg:'Enfant retiré.',erreur:false})}
@@ -602,6 +673,7 @@ export function makeEspace(x){
   return {
     html:html,rattrapage:()=>afaire(true),
     actions:{
+      espErreurs:ouvrirErreurs,espErreursClasse:ouvrirErreursClasse,espCreerClasseEcole:creerClasseEcole,espAffecter:affecter,espRejoindreClasse:rejoindreClasseEns,espQuitterClasse:quitterClasseEns,espClasseOuvrir:ouvrirClasseId,
       espEv:(v)=>maj({vue:v,evals:null,coms:null,evsProf:null,comsProf:null,evData:null,msg:'',erreur:false}),
       espGo:(v)=>{const d=D();maj({vue:v,msg:'',erreur:false,liste:(v==='classes'||v==='mm')?null:d.liste,ecoles:v==='ecole'?null:d.ecoles,admin:v==='admin'?null:d.admin,enfants:v==='enfants'?null:d.enfants,pcode:v==='codeparent'?null:d.pcode})},
       espEcole:ouvrirEcole,espAdLicence:adLicence,espAdSuspendre:adSuspendre,espCreerEcole:creerEcole,espRejoindreEcole:rejoindreEcole,espAttacher:attacher,espLier:lier,espEnfant:ouvrirEnfant,espDelier:delier,
