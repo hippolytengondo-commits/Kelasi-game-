@@ -142,16 +142,17 @@ export function makeEspace(x){
     }
     if(creer){
       const email=val('espEmail'),m1=document.getElementById('espMdp').value,m2=document.getElementById('espMdp2').value;
-      if(!pseudo){maj({msg:'Écris ton pseudonyme.',erreur:true,email:email});return}
-      if(!PSEUDO_OK.test(pseudo)){maj({msg:'Le pseudonyme doit avoir 3 à 20 caractères : lettres, chiffres, point, tiret ou _ (pas d’espace ni d’accent).',erreur:true,email:email,pseudo:pseudo});return}
-      if(!C.estGmail(email)){maj({msg:'Écris une adresse Gmail valide (par exemple nom@gmail.com).',erreur:true,pseudo:pseudo,email:email});return}
-      if(m1.length<8){maj({msg:'Le mot de passe doit avoir au moins 8 caractères.',erreur:true,pseudo:pseudo,email:email});return}
-      if(m1!==m2){maj({msg:'Les deux mots de passe ne sont pas identiques.',erreur:true,pseudo:pseudo,email:email});return}
-      maj({occupe:true,msg:'',pseudo:pseudo,email:email});
       const ecole=d.role==='etablissement'?val('espEcoleNom'):'';
-      if(d.role==='etablissement'&&ecole.length<2){maj({msg:'Écris le nom de l’établissement.',erreur:true,pseudo:pseudo,email:email});return}
+      const er=t=>maj({msg:t,erreur:true,occupe:false,pseudo:pseudo,email:email,ecoleNom:ecole});
+      if(d.role==='etablissement'&&ecole.length<2)return er('Écris le nom de l’établissement (dans le premier champ).');
+      if(!pseudo)return er('Écris ton pseudonyme.');
+      if(!PSEUDO_OK.test(pseudo))return er('Le pseudonyme doit avoir 3 à 20 caractères : lettres, chiffres, point, tiret ou _ (pas d’espace ni d’accent).');
+      if(!C.estGmail(email))return er('Écris une adresse Gmail valide (par exemple nom@gmail.com).');
+      if(m1.length<8)return er('Le mot de passe doit avoir au moins 8 caractères.');
+      if(m1!==m2)return er('Les deux mots de passe ne sont pas identiques.');
+      maj({occupe:true,msg:'',pseudo:pseudo,email:email,ecoleNom:ecole});
       const r=await C.inscrireAdulte(pseudo,email,m1,d.role,ecole);
-      if(!r.ok){maj({occupe:false,msg:r.err,erreur:true});return}
+      if(!r.ok){maj({occupe:false,msg:r.err,erreur:true,pseudo:pseudo,email:email,ecoleNom:ecole});return}
       if(r.attente){maj({occupe:false,vue:'attente',email:email,msg:'',erreur:false});return}
       maj({occupe:false,vue:'',msg:'',erreur:false});await synchroniser();return;
     }
