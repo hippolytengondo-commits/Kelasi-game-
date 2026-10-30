@@ -237,7 +237,7 @@ export function makeEspace(x){
         +`<button onclick="espGo('ecole')">🏛 Mon établissement : licence, enseignants, classes</button>`
         +`<p style="font-size:12px;opacity:.75">Ton activité de jeu n’influence jamais les résultats de tes élèves.</p>`;
     }else if(s.role==='etablissement'){
-      h+=`<button class="p" onclick="espGo('ecole')">🏛 Mon établissement : classes, enseignants, licence</button>`
+      h+=`<button class="p" onclick="espGo('ecole')">🏛 Mon établissement : créer mes classes, enseignants, licence</button>`
         +`<button onclick="espGo('classes')">🏫 Mes classes : élèves et questions ratées</button>`
         +`<button onclick="openProg()">🎓 Voir les missions scolaires</button>`
         +`<p style="font-size:12px;opacity:.75">Donne le code de ton établissement à tes enseignants : ils le saisissent dans leur compte pour rejoindre l’école.</p>`;
@@ -509,7 +509,10 @@ export function makeEspace(x){
   async function chargerEcoles(){
     const r=await C.lireTable('school_members?select=school_id,role,schools(nom)&user_id=eq.'+C.session().uid);
     if(!r.ok){maj({ecoles:[],msg:r.err,erreur:true});return}
-    if(D()&&D().vue==='ecole')maj({ecoles:r.data});
+    if(D()&&D().vue==='ecole'){
+      if(r.data.length===1&&!D().retourListe){maj({vue:'ecoledet',ecoleId:r.data[0].school_id,ecole:null,mesClasses:null,ecoles:r.data,msg:''});return}
+      maj({ecoles:r.data});
+    }
   }
   async function creerEcole(){
     const nom=val('espEcNom');if(nom.length<2){maj({msg:'Écris le nom de l’établissement.',erreur:true});return}
@@ -531,19 +534,19 @@ export function makeEspace(x){
   }
   function vueEcoleDet(d){
     let h=entete('🏛 Établissement')+msg(d);
-    if(!d.ecole){chargerEcoleDet(d.ecoleId);return h+'<p>Chargement…</p>'+retour('ecole')}
-    const e=d.ecole;if(e.erreur)return h+retour('ecole');
+    if(!d.ecole){chargerEcoleDet(d.ecoleId);return h+'<p>Chargement…</p>'+retour('')}
+    const e=d.ecole;if(e.erreur)return h+retour('');
     const admin=e.mon_role==='admin';
     h+=`<h4>${esc(e.nom)}</h4>`;
     if(admin&&e.code)h+=`<p>Code à donner aux enseignants : <b style="font-size:20px;letter-spacing:3px">${esc(e.code)}</b></p>`;
+    if(admin)h+=`<h4>➕ Créer une classe</h4><p style="font-size:13px">C’est à l’établissement de créer les classes : tes enseignants les rejoignent ensuite avec le code de l’établissement.</p>`
+      +`<input id="espClNom" maxlength="60" placeholder="Nom de la nouvelle classe (ex. 1re A)"><select id="espClNiv">${PROGRAMME.map(n=>`<option value="${n.id}">${esc(n.nom)}</option>`).join('')}</select><button class="p" onclick="espCreerClasseEcole('${e.school_id}')">+ Créer la classe</button>`;
     const actif=e.statut==='active';
     h+=`<div class="row" style="display:block"><b>Licence : ${e.plan==='essai'?'essai gratuit':e.plan==='ecole'?'établissement':'aucune'}</b> · <span style="color:${actif?'#1f7a4d':'#c0392b'}">${actif?'active':e.statut==='suspendue'?'suspendue':'expirée'}</span><br><span style="font-size:12px">${e.places||0} places · fin le ${dateFr(e.fin)} · ${e.eleves} élève(s) inscrit(s)</span></div>`;
     if(!actif||e.plan==='essai')h+=`<p style="font-size:12px;opacity:.8">Pour une licence d’établissement, contactez l’équipe BOYEKOLI PLAY : le paiement en ligne n’est pas encore disponible, la licence est activée par l’administrateur de la plateforme après accord.</p>`;
     if(admin&&e.enseignants&&e.enseignants.length)h+=`<h4>Enseignants</h4><p style="font-size:13px">${e.enseignants.map(t=>esc(t.pseudo)+(t.role==='admin'?' (admin)':'')).join(', ')}</p>`;
     const profs=(e.enseignants||[]).filter(t=>t.role==='enseignant');
     h+=`<h4>Classes de l’établissement (${(e.classes||[]).length})</h4>`;
-    if(admin)h+=`<p style="font-size:13px">C’est à l’établissement de créer les classes : tes enseignants les rejoignent ensuite avec le code de l’établissement.</p>`
-      +`<input id="espClNom" maxlength="60" placeholder="Nom de la nouvelle classe (ex. 1re A)"><select id="espClNiv">${PROGRAMME.map(n=>`<option value="${n.id}">${esc(n.nom)}</option>`).join('')}</select><button class="p" onclick="espCreerClasseEcole('${e.school_id}')">+ Créer la classe</button>`;
     (e.classes||[]).forEach(c=>{
       h+=`<div class="row" style="display:block;margin:8px 0;padding:8px;border:1px solid #e4d8b5;border-radius:10px"><b>${esc(c.nom)}</b> · ${c.eleves} élève(s)${c.code?` · code <b>${esc(c.code)}</b>`:''}<br><span style="font-size:12px">Enseignant(s) : ${c.enseignants&&c.enseignants.length?esc(c.enseignants.join(', ')):'<i>aucun pour l’instant</i>'}</span>`;
       if(admin){
