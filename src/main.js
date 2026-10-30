@@ -1035,11 +1035,19 @@ function htmlMenu(){
    +`<button onclick="toggleSound()">Son : ${G.sound?'activé':'coupé'}</button>`
    +`<button onclick="toggleMusic()">Musique : ${G.sound&&G.music!==false?'activée':'coupée'}</button>`
    +`<button onclick="toggleVoice()">Lecture à voix haute : ${G.voice?'activée':'coupée'}</button>`
+   +`<button class="s" onclick="quitterJeu()">🚪 ${G.dialog&&G.dialog.confirmQuit?'Appuie encore pour quitter le jeu':'Quitter le jeu'}</button>`
    +`<button class="s" onclick="resetGame()">${G.dialog&&G.dialog.confirmReset?'Appuie encore pour tout effacer':'Recommencer une nouvelle partie'}</button>`;
 }
 function toggleMusic(){G.music=G.music===false;if(G.music&&!G.sound)G.sound=true;save();majMusique();renderDialog()}
 function toggleSound(){G.sound=!G.sound;save();majMusique();if(G.ui==='photo'){if(G.sound)PM.ambientOn();else PM.ambientOff()}renderDialog()}
 function toggleVoice(){G.voice=!G.voice;if(!G.voice)stopSpeech();save();renderDialog()}
+function quitterJeu(){
+  if(!G.dialog.confirmQuit){G.dialog.confirmQuit=true;renderDialog();return}
+  try{save()}catch(e){}
+  try{window.close()}catch(e){}
+  setTimeout(()=>location.reload(),150);   // si la fenêtre ne peut pas se fermer : retour à la page d'accueil, partie sauvegardée
+}
+window.quitterJeu=quitterJeu;
 let resetArmed=false;
 function resetGame(){
   if(!resetArmed){resetArmed=true;G.dialog.confirmReset=true;renderDialog();return}
