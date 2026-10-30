@@ -27,7 +27,7 @@ import {construireRes,posTerrain,prixTerrain,CATALOGUE,TYPES,batiment,nomBatimen
 import {coutRoute,COUT_ROND} from './routes.js';
 import {buildInterieur} from './interieurs.js';
 import {creerTrafic,voiture,moto,voitureJoueur,motoJoueur} from './trafic.js';
-import {AE,zArret,buildConduite,melanger,creerReponses,marquerReponse} from './conduite.js';
+import {AE,zArret,buildConduite,melanger,creerReponses,marquerReponse,disposerReponses} from './conduite.js';
 import {construireReperes} from './reperes.js';
 import {TERRITOIRES_LISTE,PROVS,slug as slugTr} from './territoires_gen.js';
 import {buildChambre,buildCuisine,buildEtage} from './maisonplus.js';
@@ -1201,7 +1201,7 @@ function missionTarget(){
 function drawMini(now){
   const cvm=$('mm'),w=$('mmw');
   if(!w||w.classList.contains('hide'))return;
-  if(G.mode==='mini'||G.mode==='m3d'||G.sc==='arene'||G.ui==='photo'){w.style.display='none';return}
+  if(G.mode==='mini'||(G.mode==='cond'&&G.cond&&G.cond.etat==='question')||G.mode==='m3d'||G.sc==='arene'||G.ui==='photo'){w.style.display='none';return}
   w.style.display='';
   if(now-mmLast<90)return;mmLast=now;
   const B=W.bounds,bw=B.x1-B.x0,bh=B.z1-B.z0,cw=cvm.clientWidth||150;
@@ -1866,15 +1866,18 @@ function condQuestion(){
   W.boards=creerReponses(c.ordre.map(i=>s.o[i]));
   W.boards.position.set(G.x,0,G.z-3.2);W.group.add(W.boards);
   G.camOverride=11;G.pitch=.36;
+  ajusterReponses();
   majCq();condEcouter(false);
 }
+function ajusterReponses(){if(W.boards)disposerReponses(W.boards,innerWidth/innerHeight,camera.fov,(G.camOverride||11)+3.2)}
+addEventListener('resize',ajusterReponses);
 function majCq(){
   const c=G.cond,m=AE[c.m],s=sCond(),box=$('cq');
-  $('info').style.display=(c.etat==='question')?'none':'';   // la bande d'objectif ne cache pas les réponses
+  $('info').style.display=$('mmw').style.display=(c.etat==='question')?'none':'';   // la bande d'objectif ne cache pas les réponses
   if(!c||c.etat==='intro'||c.etat==='roule'||c.etat==='fin'){box.classList.add('hide');return}
   let h=`<b>🚦 Situation ${c.k+1} sur ${m.sit.length}</b><br>${esc(s.txt)}<br><b>${esc(s.q)}</b>`;
   if(c.ok)h+=`<div class="cqm cqo">✔ Bonne réponse ! ${esc(s.e)}</div><div class="cqb"><button class="p" onclick="condSuite()">Continuer ▶</button><button onclick="condEcouter(true)">🔊 Réécouter</button></div>`;
-  else h+=(c.msg?`<div class="cqm cqk">${esc(c.msg)}</div>`:`<div class="cqm">👆 Touche la bonne réponse (ou les touches 1 à 4)</div>`)+`<div class="cqb"><button onclick="condEcouter(true)">🔊 Réécouter</button></div>`;
+  else h+=(c.msg?`<div class="cqm cqk">${esc(c.msg)}</div>`:`<div class="cqm">👆 Touche la bonne réponse sur le panneau, ou la lettre ci-dessous</div>`)+`<div class="cqb">${c.ordre.map((i,j)=>`<button class="cqr${c.bad.includes(i)?' cqx':''}" onclick="answerCond(${i})">${'ABCD'[j]}</button>`).join('')}<button onclick="condEcouter(true)">🔊</button></div>`;
   box.innerHTML=h;box.classList.remove('hide');
 }
 function condEcouter(force){
@@ -1935,7 +1938,7 @@ function finConduite(){
   $('actwrap').classList.add('hide');
 }
 function condSortir(){
-  $('info').style.display='';
+  $('info').style.display=$('mmw').style.display='';
   const c=G.cond;$('cq').classList.add('hide');stopSpeech();$('dlg').style.display='none';G.dialog=null;
   G.pitch=c.sauv.pitch;G.camOverride=c.sauv.co||null;G.cond=null;
   const r=c.ret||{x:-14,z:0,phi:0};goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi});

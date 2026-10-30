@@ -160,6 +160,18 @@ export function creerReponses(textes){
   });
   return grp;
 }
+// disposition adaptée à l'écran : en portrait (téléphone) les 4 réponses s'empilent en une colonne et tiennent dans la largeur visible
+export function disposerReponses(grp,aspect,fovDeg,dist){
+  if(!grp)return;
+  const portrait=aspect<1.05,visW=2*dist*Math.tan(fovDeg*Math.PI/360)*aspect;
+  if(portrait){
+    grp.children.forEach((m,j)=>m.position.set(0,6.9-j*2.35,0));
+    grp.scale.setScalar(Math.min(1,visW*0.94/5.2));
+  }else{
+    grp.children.forEach((m,j)=>m.position.set(j%2?2.8:-2.8,j<2?5.2:2.9,0));
+    grp.scale.setScalar(Math.min(1,visW*0.94/10.8));
+  }
+}
 export function marquerReponse(grp,j,etat){
   const m=grp.children[j];if(!m)return;
   m.userData.etat=etat;peindre(m.userData.cv,m.userData.texte,j,etat);m.userData.tex.needsUpdate=true;
