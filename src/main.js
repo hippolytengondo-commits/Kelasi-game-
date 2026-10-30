@@ -2273,6 +2273,29 @@ $('go').onclick=()=>{
   enterGame(true);
 };
 $('cpt').onclick=()=>openEsp();
+// ---------- rappel des communiqués non lus : 5 secondes à l'écran, puis de nouveau après 2 minutes ----------
+let ncT=null;
+const NC_AFFICHE=5000,NC_PAUSE=120000,NC_RETRY=15000;
+function ncBoucle(delai){
+  clearTimeout(ncT);
+  ncT=setTimeout(async()=>{
+    const s=CLOUD.session();
+    if(!s||s.role!=='eleve'){ncBoucle(s?NC_PAUSE:NC_RETRY);return}
+    const ok=['play','mini','mj','cond'].includes(G.mode)&&!document.hidden;
+    if(!ok){ncBoucle(NC_RETRY);return}
+    let n=0;try{n=await Esp.nonLus()}catch(e){}
+    if(!n){ncBoucle(NC_PAUSE);return}
+    $('nctxt').textContent=n>1?'('+n+')':'';
+    $('notifcom').classList.remove('hide');
+    setTimeout(()=>$('notifcom').classList.add('hide'),NC_AFFICHE);
+    ncBoucle(NC_AFFICHE+NC_PAUSE);
+  },delai);
+}
+$('notifcom').onclick=()=>{
+  $('notifcom').classList.add('hide');
+  if(G.mode==='play'){openEsp('');setTimeout(()=>{if(Esp.actions.espEv)Esp.actions.espEv('commes')},60)}
+  else toast('Tu pourras lire ton communiqué après cette activité : ☰ puis Mon compte.');
+};
 // ---------- page d'accueil : présentation puis vraie page d'accueil ----------
 function majAccueil(){
   const s=CLOUD.session(),sv=readSave(),a=!!(sv&&sv.nom);
@@ -2297,6 +2320,7 @@ const jetonRec=CLOUD.jetonRecuperation();   // lien « mot de passe oublié » r
 $('wcont').onclick=()=>{
   AUD.unlock();$('welcome').classList.add('hide');$('start').classList.remove('hide');majAccueil();majMusique();
   if(CLOUD.session())setTimeout(()=>Esp.rattrapage(),2500);
+  ncBoucle(9000);
   if(jetonRec){openEsp('');setTimeout(()=>Esp.actions.espRecuperation(jetonRec),30)}
   else if(confirmee){openEspForm('connecter','enseignant');setTimeout(()=>{if(G.dialog)G.dialog.msg='Ton adresse est confirmée ! Connecte-toi avec ton adresse Gmail et ton mot de passe.';renderDialog()},30)}
 };

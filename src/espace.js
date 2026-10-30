@@ -694,6 +694,7 @@ export function makeEspace(x){
 
   return {
     html:html,rattrapage:()=>afaire(true),
+    nonLus:async()=>{const s=C.session();if(!s||s.role!=='eleve')return 0;const r=await EV.rattrapage();return r?(r.communiques||0):0},
     actions:{
       espErreurs:ouvrirErreurs,espErreursClasse:ouvrirErreursClasse,espCreerClasseEcole:creerClasseEcole,espAffecter:affecter,espRejoindreClasse:rejoindreClasseEns,espQuitterClasse:quitterClasseEns,espClasseOuvrir:ouvrirClasseId,
       espEv:(v)=>maj({vue:v,evals:null,coms:null,evsProf:null,comsProf:null,evData:null,msg:'',erreur:false}),
