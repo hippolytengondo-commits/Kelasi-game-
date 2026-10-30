@@ -1121,7 +1121,7 @@ joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId){e.preventDefault(
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joy.addEventListener(ev,e=>{if(e.pointerId===joyId)resetKnob()}));
 // glisser sur la scène : orienter la caméra ; pincer ou molette : zoom ; toucher une réponse en mission
 const ptrs=new Map();let camPtr=null,lastX=0,lastY=0,pinchD=0,tapX=0,tapY=0,tapT=0,tapMove=0;
-const camOk=()=>G.mode==='play'||G.mode==='mini'||G.mode==='creator'||G.mode==='m3d';
+const camOk=()=>G.mode==='play'||G.mode==='mini'||G.mode==='creator'||G.mode==='m3d'||(G.mode==='cond'&&G.cond&&G.cond.etat==='question');
 cv.addEventListener('pointerdown',e=>{
   if(!camOk())return;
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});cv.setPointerCapture(e.pointerId);
@@ -1870,6 +1870,7 @@ function condQuestion(){
 }
 function majCq(){
   const c=G.cond,m=AE[c.m],s=sCond(),box=$('cq');
+  $('info').style.display=(c.etat==='question')?'none':'';   // la bande d'objectif ne cache pas les réponses
   if(!c||c.etat==='intro'||c.etat==='roule'||c.etat==='fin'){box.classList.add('hide');return}
   let h=`<b>🚦 Situation ${c.k+1} sur ${m.sit.length}</b><br>${esc(s.txt)}<br><b>${esc(s.q)}</b>`;
   if(c.ok)h+=`<div class="cqm cqo">✔ Bonne réponse ! ${esc(s.e)}</div><div class="cqb"><button class="p" onclick="condSuite()">Continuer ▶</button><button onclick="condEcouter(true)">🔊 Réécouter</button></div>`;
@@ -1934,6 +1935,7 @@ function finConduite(){
   $('actwrap').classList.add('hide');
 }
 function condSortir(){
+  .style.display='';
   const c=G.cond;$('cq').classList.add('hide');stopSpeech();$('dlg').style.display='none';G.dialog=null;
   G.pitch=c.sauv.pitch;G.camOverride=c.sauv.co||null;G.cond=null;
   const r=c.ret||{x:-14,z:0,phi:0};goTo({to:'ville',tx:r.x,tz:r.z,phi:r.phi});
