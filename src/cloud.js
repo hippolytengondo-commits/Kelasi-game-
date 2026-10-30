@@ -133,6 +133,23 @@ async function authAppel(chemin,opt){
 export const lireTable=(requete)=>authAppel('/rest/v1/'+requete);
 export const rpc=(nom,args)=>authAppel('/rest/v1/rpc/'+nom,{method:'POST',body:args||{}});
 export const inserer=(table,ligne)=>authAppel('/rest/v1/'+table,{method:'POST',body:ligne,headers:{Prefer:'return=representation'}});
+// pièces jointes des communiqués (stockage privé, dossier = identifiant de la classe)
+export async function deposerFichier(chemin,fichier){
+  const t=await jeton();if(!t)return {ok:false,status:401,err:'Tu n’es pas connecté.'};
+  try{
+    const r=await fetch(URL+'/storage/v1/object/communiques/'+chemin,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+t,'Content-Type':fichier.type||'application/octet-stream','x-upsert':'false'},body:fichier});
+    if(!r.ok)return {ok:false,status:r.status,err:r.status===413?'Fichier trop lourd (10 Mo maximum).':'Envoi du fichier impossible. Vérifie le format (PDF, Word ou photo) et ta connexion.'};
+    return {ok:true};
+  }catch(e){return {ok:false,status:0,err:message(0)}}
+}
+export async function lireFichier(chemin){
+  const t=await jeton();if(!t)return {ok:false,err:'Tu n’es pas connecté.'};
+  try{
+    const r=await fetch(URL+'/storage/v1/object/authenticated/communiques/'+chemin,{headers:{apikey:KEY,Authorization:'Bearer '+t}});
+    if(!r.ok)return {ok:false,err:'Fichier introuvable.'};
+    return {ok:true,blob:await r.blob()};
+  }catch(e){return {ok:false,err:message(0)}}
+}
 export const supprimer=(requete)=>authAppel('/rest/v1/'+requete,{method:'DELETE'});
 
 // ---- sauvegarde de la progression (facultative) ----

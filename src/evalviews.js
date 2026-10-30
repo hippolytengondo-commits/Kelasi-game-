@@ -88,7 +88,7 @@ export function makeEvalViews(h){
     return s+retour('');
   }
   async function chargerComMes(){
-    const [a,b]=await Promise.all([C.lireTable('communiques?select=id,titre,texte,important,created_at&order=created_at.desc&limit=50'),C.lireTable('communique_lus?select=communique_id')]);
+    const [a,b]=await Promise.all([C.lireTable('communiques?select=id,titre,texte,important,created_at,fichier_chemin,fichier_nom,fichier_type&order=created_at.desc&limit=50'),C.lireTable('communique_lus?select=communique_id')]);
     if(D()&&D().vue==='commes')maj({coms:a.ok?a.data:[],lus:new Set((b.ok?b.data:[]).map(z=>z.communique_id)),msg:a.ok?'':a.err,erreur:!a.ok});
   }
   async function lire(id){
@@ -100,9 +100,24 @@ export function makeEvalViews(h){
       maj({accuse:r.ok});h.apres&&h.apres();
     }
   }
+  function boutonFichier(c){
+    if(!c||!c.fichier_chemin)return '';
+    const ic=/pdf/.test(c.fichier_type||'')?'📄':/^image/.test(c.fichier_type||'')?'🖼':'📝';
+    return `<button class="p" onclick="comFichier('${c.id}')">${ic} Ouvrir : ${esc(c.fichier_nom||'fichier joint')}</button>`;
+  }
+  async function ouvrirFichier(id){
+    const c=[].concat(D().coms||[],D().comsProf||[]).find(z=>z.id===id);if(!c)return;
+    maj({msg:'Ouverture du fichier…',erreur:false});
+    const r=await C.lireFichier(c.fichier_chemin);
+    if(!r.ok){maj({msg:r.err,erreur:true});return}
+    const u=URL.createObjectURL(r.blob);
+    if(/^image|pdf/.test(c.fichier_type||'')&&window.open(u,'_blank')){maj({msg:'',erreur:false});return}
+    const a=document.createElement('a');a.href=u;a.download=c.fichier_nom||'communique';document.body.appendChild(a);a.click();a.remove();
+    maj({msg:'',erreur:false});
+  }
   function vueComLire(d){
     const c=d.com;
-    return entete((c.important?'❗ ':'')+c.titre)+`<p style="font-size:12px;opacity:.7">${dt(c.created_at)}</p><p style="white-space:pre-wrap">${esc(c.texte)}</p>`
+    return entete((c.important?'❗ ':'')+c.titre)+`<p style="font-size:12px;opacity:.7">${dt(c.created_at)}</p>${c.texte?`<p style="white-space:pre-wrap">${esc(c.texte)}</p>`:''}`+boutonFichier(c)
       +(d.accuse===true?'<p class="ok">✔ Ta lecture est enregistrée : ton enseignant sait que tu as lu ce communiqué.</p>':d.accuse===false?'<p class="ko">Lecture non enregistrée (connexion). Réessaie plus tard.</p>':'<p style="font-size:12px;opacity:.7">Enregistrement de ta lecture…</p>')
       +retour('commes','← Communiqués');
   }
@@ -263,20 +278,34 @@ export function makeEvalViews(h){
     return s+`<button class="p" onclick="comNouv()">+ Nouveau communiqué</button>`+retour('classe','← Classe');
   }
   async function chargerComProf(id){
-    const r=await C.lireTable('communiques?select=id,titre,texte,important,created_at&class_id=eq.'+id+'&order=created_at.desc');
+    const r=await C.lireTable('communiques?select=id,titre,texte,important,created_at,fichier_chemin,fichier_nom,fichier_type&class_id=eq.'+id+'&order=created_at.desc');
     if(D()&&D().vue==='comprof')maj({comsProf:r.ok?r.data:[],msg:r.ok?'':r.err,erreur:!r.ok});
   }
   function vueComNouv(d){
     return entete('Nouveau communiqué')+msg(d)
       +`<input id="comTitre" maxlength="120" placeholder="Titre" value="${esc(d.cTitre||'')}">`
       +`<textarea id="comTexte" rows="6" maxlength="3000" placeholder="Message pour la classe">${esc(d.cTexte||'')}</textarea>`
+      +`<label style="display:block;margin:6px 0;font-size:13px">📎 Joindre un fichier (PDF, Word ou photo, 10 Mo maximum)<input id="comFic" type="file" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp,application/pdf"></label>`
       +`<label style="display:block;margin:6px 0;font-size:13px"><input id="comImp" type="checkbox"> ❗ Important</label>`
       +`<button class="p" onclick="comPublier()">📢 Envoyer à la classe</button>`+retour('comprof','← Annuler');
   }
   async function publierCom(){
     const t=val('comTitre'),x=val('comTexte'),imp=!!(document.getElementById('comImp')||{}).checked;
-    if(t.length<2||!x){maj({cTitre:t,cTexte:x,msg:'Écris un titre et un message.',erreur:true});return}
-    const r=await C.inserer('communiques',{class_id:D().classe.id,titre:t,texte:x,important:imp});
+    const f=(document.getElementById('comFic')||{}).files&&document.getElementById('comFic').files[0];
+    if(t.length<2||(!x&&!f)){maj({cTitre:t,cTexte:x,msg:'Écris un titre, puis un message ou joins un fichier.',erreur:true});return}
+    const ext=f?(/\.(pdf|docx?|jpe?g|png|webp)$/i.exec(f.name)||[])[1]:null;
+    if(f&&!ext){maj({cTitre:t,cTexte:x,msg:'Format non accepté : PDF, Word (.doc, .docx) ou photo (JPG, PNG).',erreur:true});return}
+    if(f&&f.size>10485760){maj({cTitre:t,cTexte:x,msg:'Fichier trop lourd (10 Mo maximum).',erreur:true});return}
+    const ligne={class_id:D().classe.id,titre:t,texte:x||null,important:imp};
+    if(f){
+      const MIME={pdf:'application/pdf',doc:'application/msword',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+      const type=MIME[ext.toLowerCase()],chemin=D().classe.id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+'.'+ext.toLowerCase();
+      maj({msg:'Envoi du fichier…',erreur:false,cTitre:t,cTexte:x});
+      const u=await C.deposerFichier(chemin,f.type===type?f:new Blob([f],{type}));
+      if(!u.ok){maj({cTitre:t,cTexte:x,msg:u.err,erreur:true});return}
+      ligne.fichier_chemin=chemin;ligne.fichier_nom=f.name.slice(0,150);ligne.fichier_type=type;
+    }
+    const r=await C.inserer('communiques',ligne);
     if(!r.ok){maj({cTitre:t,cTexte:x,msg:r.err,erreur:true});return}
     maj({vue:'comprof',comsProf:null,cTitre:'',cTexte:'',msg:'Communiqué envoyé.',erreur:false});
   }
@@ -287,7 +316,7 @@ export function makeEvalViews(h){
   }
   function vueComSuivi(d){
     const x=d.comsProf.find(z=>z.id===d.comId);
-    let s=entete('📢 '+(x?x.titre:'Communiqué'))+msg(d)+(x?`<p style="white-space:pre-wrap;font-size:13px">${esc(x.texte)}</p>`:'');
+    let s=entete('📢 '+(x?x.titre:'Communiqué'))+msg(d)+(x?(x.texte?`<p style="white-space:pre-wrap;font-size:13px">${esc(x.texte)}</p>`:'')+boutonFichier(x):'');
     if(!d.suiviData){chargerSuivi(d.comId);return s+'<p>Chargement…</p>'+retour('comprof','← Communiqués')}
     const lus=d.suiviData.filter(z=>z.lu_le).length;
     s+=`<h4>Accusés de lecture : ${lus} sur ${d.suiviData.length}</h4>`+d.suiviData.map(z=>`<p class="row" style="margin:2px 0"><span>${z.lu_le?'✔':'⏳'} ${esc(z.pseudo)}</span><b style="font-size:12px">${z.lu_le?dt(z.lu_le):'pas encore lu'}</b></p>`).join('');
@@ -305,7 +334,7 @@ export function makeEvalViews(h){
     html:html,rattrapage:rattrapage,
     actions:{
       evPasser:passer,evResultat:resultat,comLire:lire,evNouv:nouv,evAjoutQ:evAjoutQ,evSuppQ:evSuppQ,evAjoutChoix:evAjoutChoix,evCreer:creer,
-      evCopies:copies,evCopie:copie,evNoter:noter,evPublier:publier,comNouv:()=>maj({vue:'comnouv',cTitre:'',cTexte:'',msg:'',erreur:false}),comPublier:publierCom,comSuivi:suivi
+      evCopies:copies,evCopie:copie,evNoter:noter,evPublier:publier,comNouv:()=>maj({vue:'comnouv',cTitre:'',cTexte:'',msg:'',erreur:false}),comPublier:publierCom,comFichier:ouvrirFichier,comSuivi:suivi
     }
   };
 }
